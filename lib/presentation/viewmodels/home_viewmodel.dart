@@ -27,6 +27,15 @@ class HomeViewModel extends ChangeNotifier {
   int get nextSlotCost => slotCosts[_maxSlots + 1] ?? 0;
   bool get canBuySlot => _maxSlots < maxTotalSlots && balance >= nextSlotCost;
 
+  double get coinsPerMinute {
+    if (miners.isEmpty) return 0;
+    double total = 0;
+    for (final m in miners) {
+      total += m.incomePerCycle * 60 / m.cycleSeconds;
+    }
+    return total;
+  }
+
   bool canUpgrade(Miner miner) {
     final cost = upgradeCosts[miner.lvl];
     return cost != null && balance >= cost;

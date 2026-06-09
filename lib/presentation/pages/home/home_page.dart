@@ -32,19 +32,16 @@ class _HomePageState extends State<HomePage> {
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: 1 + vm.miners.length + (vm.maxSlots < HomeViewModel.maxTotalSlots ? 1 : 0),
+              itemCount: vm.miners.length + (vm.maxSlots < HomeViewModel.maxTotalSlots ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == 0) {
-                  return AdBanner(onReward: () => vm.addReward(50));
-                }
-                final minerIndex = index - 1;
-                if (minerIndex < vm.miners.length) {
-                  return _minerTile(vm.miners[minerIndex], vm);
+                if (index < vm.miners.length) {
+                  return _minerTile(vm.miners[index], vm);
                 }
                 return _buySlotCard(vm);
               },
             ),
           ),
+          AdBanner(onReward: () => vm.addReward(50)),
           _minersInfo(vm),
         ],
         ),
@@ -142,12 +139,14 @@ class _HomePageState extends State<HomePage> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.zero,
-                  backgroundColor: Colors.grey.shade300,
-                  foregroundColor: Colors.grey.shade500,
+                  backgroundColor:
+                      vm.canBuySlot ? Colors.green : Colors.grey.shade300,
+                  foregroundColor:
+                      vm.canBuySlot ? Colors.white : Colors.grey.shade500,
                   textStyle: const TextStyle(fontSize: 11),
                 ),
                 onPressed: vm.canBuySlot ? () => vm.buySlot() : null,
-                child: const Text('Buy'),
+                child: Text(vm.canBuySlot ? 'Buy' : '${vm.nextSlotCost}'),
               ),
             ),
           ],
@@ -166,6 +165,11 @@ class _HomePageState extends State<HomePage> {
           Text(
             'Miners: ${vm.miners.length}',
             style: const TextStyle(fontSize: 16),
+          ),
+          const Spacer(),
+          Text(
+            '${vm.coinsPerMinute.toStringAsFixed(1)}/min',
+            style: const TextStyle(fontSize: 16, color: Colors.amber),
           ),
           const Spacer(),
           Text(
