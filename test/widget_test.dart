@@ -74,12 +74,12 @@ void main() {
         overclockLevel: 1,
       );
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
-      // 70°C: rate = (70-65)/25 * 0.005 = 0.001/tick
+      // 70°C: rate = (70-65)/25 * 0.0005 = 0.0001/tick
+      // 100 ticks = 0.01 wear → condition ≈ 0.99
       for (var i = 0; i < 100; i++) {
         game = WearSystem.update(game);
       }
-      // 100 * 0.001 = 0.1 wear → condition ≈ 0.90
-      expect(game.farm.gpuList.first.condition, closeTo(0.90, 0.02));
+      expect(game.farm.gpuList.first.condition, closeTo(0.99, 0.005));
     });
   });
 

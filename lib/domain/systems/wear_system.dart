@@ -14,10 +14,11 @@ class WearSystem {
       if (gpu.condition <= 0) return gpu;
       if (!gpu.isPowered) return gpu;
 
-      // Wear rate: 0 at 65°C → 0.005/tick at 90°C → more above
+      // Wear rate: gentle at first, dangerous at high temps
+      // 0 at 65°C → 0.0005/tick at 90°C → more above
       final wearRate = temp <= 90
-          ? (temp - 65) / 25 * 0.005
-          : 0.005 + (temp - 90) * 0.002;
+          ? (temp - 65) / 25 * 0.0005
+          : 0.0005 + (temp - 90) * 0.0005;
 
       // Worn cards degrade up to 3x faster
       final accelerator = 1 + (1 - gpu.condition) * 2;

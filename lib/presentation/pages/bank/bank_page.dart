@@ -5,22 +5,8 @@ import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class BankPage extends StatefulWidget {
+class BankPage extends StatelessWidget {
   const BankPage({super.key});
-  @override
-  State<BankPage> createState() => _BankPageState();
-}
-
-class _BankPageState extends State<BankPage> {
-  final Map<String, TextEditingController> _repayCtrls = {};
-
-  @override
-  void dispose() {
-    for (final c in _repayCtrls.values) {
-      c.dispose();
-    }
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,8 +102,8 @@ class _BankPageState extends State<BankPage> {
             // ── Info ──
             const SizedBox(height: 16),
             Text(
-              '⚠ If debt exceeds 2× your net worth, the bank may seize GPUs.',
-              style: TextStyle(fontSize: 11, color: Colors.red.shade300),
+              'Interest compounds every second. Repay early to minimize cost.',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
             ),
           ],
         ),
@@ -160,7 +146,7 @@ class _BankPageState extends State<BankPage> {
                     ),
                   ),
                   Text(
-                    '${(template.interestPerMinute * 100).toStringAsFixed(1)}%/min interest',
+                    '${(template.interestPerMinute * 60 * 100).toStringAsFixed(0)}%/h interest',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
@@ -190,77 +176,42 @@ class _BankPageState extends State<BankPage> {
   }
 
   Widget _activeLoanCard(Loan loan, GameViewModel vm) {
-    if (!_repayCtrls.containsKey(loan.id)) {
-      _repayCtrls[loan.id] = TextEditingController(text: '0');
-    }
-    final ctrl = _repayCtrls[loan.id]!;
     final interestPerSec = loan.remaining * loan.interestPerMinute / 60;
+    final canPay = vm.money >= loan.remaining;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       color: Colors.red.shade50,
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                const Icon(Icons.warning_amber, color: Colors.red, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        loan.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Owe: \$${loan.remaining.toStringAsFixed(2)}  •  +\$${interestPerSec.toStringAsFixed(4)}/s',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.red.shade700,
-                        ),
-                      ),
-                    ],
+            const Icon(Icons.warning_amber, color: Colors.red, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loan.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                ),
-              ],
+                  Text(
+                    'Owe: \$${loan.remaining.toStringAsFixed(2)}  \u2022  +\$${interestPerSec.toStringAsFixed(4)}/s',
+                    style: TextStyle(fontSize: 12, color: Colors.red.shade700),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: ctrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                      hintText: '0',
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    final amt = double.tryParse(ctrl.text) ?? 0;
-                    if (amt > 0) {
-                      vm.repayLoan(loan.id, amt);
-                      ctrl.text = '0';
-                    }
-                  },
-                  child: const Text('Repay'),
-                ),
-              ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: canPay ? Colors.green : Colors.grey,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: canPay
+                  ? () => vm.repayLoan(loan.id, loan.remaining)
+                  : null,
+              child: Text('Pay \$${loan.remaining.toStringAsFixed(0)}'),
             ),
           ],
         ),

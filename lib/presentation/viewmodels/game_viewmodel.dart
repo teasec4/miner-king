@@ -108,7 +108,7 @@ class GameViewModel {
     if (gpu == null || gpu.condition >= 1.0) return 0;
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    return (model.price * 0.1 * (1.0 - gpu.condition)).round();
+    return (model.price * 0.05 * (1.0 - gpu.condition)).round();
   }
 
   bool canRepair(String instanceId) {

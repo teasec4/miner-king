@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _eventOverlay(GameViewModel vm) => Positioned(
-    top: 8,
+    bottom: 70,
     right: 8,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -67,7 +67,7 @@ class _HomePageState extends State<HomePage> {
             duration: const Duration(milliseconds: 200),
             margin: const EdgeInsets.only(bottom: 4),
             padding: const EdgeInsets.all(10),
-            width: isExpanded ? 220 : 140,
+            width: isExpanded ? 240 : 130,
             decoration: BoxDecoration(
               color: Colors.deepPurple.shade600,
               borderRadius: BorderRadius.circular(10),
@@ -97,15 +97,14 @@ class _HomePageState extends State<HomePage> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Spacer(),
-                      if (e.durationTicks > 0)
-                        Text(
-                          '${e.remainingTicks}s',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                          ),
+                      const SizedBox(width: 4),
+                      Text(
+                        e.durationTicks > 0 ? '${e.remainingTicks}s' : 'Now',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
                         ),
+                      ),
                     ],
                   ],
                 ),
@@ -124,22 +123,16 @@ class _HomePageState extends State<HomePage> {
                     style: const TextStyle(color: Colors.white70, fontSize: 11),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (e.durationTicks > 0)
-                        Text(
-                          '⏱ ${e.remainingTicks}s remaining',
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 10,
-                          ),
-                        ),
-                      const Spacer(),
-                      Text(
-                        'tap to collapse',
-                        style: TextStyle(color: Colors.white30, fontSize: 9),
-                      ),
-                    ],
+                  Text(
+                    e.durationTicks > 0
+                        ? '⏱ ${e.remainingTicks}s remaining'
+                        : 'Instant effect',
+                    style: const TextStyle(color: Colors.white54, fontSize: 10),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'tap to collapse',
+                    style: TextStyle(color: Colors.white30, fontSize: 9),
                   ),
                 ],
               ],
