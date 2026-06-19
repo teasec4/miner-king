@@ -6,6 +6,8 @@ import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
+import 'package:crypto_king/domain/models/loan.dart';
+import 'package:crypto_king/domain/systems/credit_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
@@ -54,6 +56,8 @@ class GameViewModel {
   }
 
   List<GameEvent> get activeEvents => _game.activeEvents;
+  List<Loan> get activeLoans => _game.activeLoans;
+  double get totalDebt => CreditSystem.totalDebt(_game);
 
   bool canSellCoin(String coinId) => holding(coinId) > 0;
 
@@ -138,6 +142,8 @@ class GameViewModel {
   void sellAllCoins() => _state.sellAllCoins();
   bool swapCoins(String from, String to, double amount) =>
       _state.swapCoins(from, to, amount);
+  bool takeLoan(String id) => _state.takeLoan(id);
+  bool repayLoan(String id, double amount) => _state.repayLoan(id, amount);
   void startTicks() => _state.startTicks();
   bool upgradeGpu(String id) => _state.upgradeGpu(id);
   void toggleOverclock(String id) => _state.toggleOverclock(id);

@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
+import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/systems/economy_system.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
 import 'package:flutter/foundation.dart';
@@ -132,6 +134,47 @@ class GameState extends ChangeNotifier {
       money: _game.money - next.price,
       farm: _game.farm.copyWith(totalSlots: next.slots),
     );
+    notifyListeners();
+    return true;
+  }
+
+  // ── Bank ──
+
+  bool takeLoan(String loanId) {
+    final template = LoanCatalog.byId(loanId);
+    if (template == null) return false;
+    // Already have this loan?
+    if (_game.activeLoans.any((l) => l.id == loanId)) return false;
+
+    final loan = Loan(
+      id: template.id,
+      name: template.name,
+      principal: template.principal,
+      interestPerMinute: template.interestPerMinute,
+    );
+    _game = _game.copyWith(
+      money: _game.money + loan.principal,
+      activeLoans: [..._game.activeLoans, loan],
+    );
+    notifyListeners();
+    return true;
+  }
+
+  bool repayLoan(String loanId, double amount) {
+    final index = _game.activeLoans.indexWhere((l) => l.id == loanId);
+    if (index == -1) return false;
+    final loan = _game.activeLoans[index];
+    final toPay = amount.clamp(0, loan.remaining);
+    if (_game.money < toPay) return false;
+
+    final newLoans = [..._game.activeLoans];
+    final newRemaining = loan.remaining - toPay;
+    if (newRemaining <= 0.01) {
+      newLoans.removeAt(index); // paid off
+    } else {
+      newLoans[index] = loan.copyWith(remaining: newRemaining);
+    }
+    _game = _game.copyWith(money: _game.money - toPay, activeLoans: newLoans);
     notifyListeners();
     return true;
   }

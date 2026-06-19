@@ -1,5 +1,6 @@
 import '../models/game.dart';
 import '../models/game_event.dart';
+import 'credit_system.dart';
 import 'electricity_system.dart';
 import 'event_system.dart';
 import 'market_system.dart';
@@ -38,7 +39,10 @@ class TickSystem {
     // 6. Deduct electricity cost
     g = ElectricitySystem.update(g);
 
-    // 7. Advance tick
+    // 7. Apply loan interest + risk
+    g = CreditSystem.update(g);
+
+    // 8. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
     return (g, newEvent);

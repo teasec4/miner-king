@@ -1,3 +1,4 @@
+import 'package:crypto_king/presentation/pages/bank/bank_page.dart';
 import 'package:crypto_king/presentation/pages/home/home_page.dart';
 import 'package:crypto_king/presentation/pages/market/market_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
@@ -17,6 +18,7 @@ class _MainShellState extends State<MainShell> {
     HomePage(),
     WalletPage(),
     MarketPage(),
+    BankPage(),
     ShopPage(),
   ];
 
@@ -38,6 +40,10 @@ class _MainShellState extends State<MainShell> {
             BottomNavigationBarItem(
               icon: Icon(Icons.show_chart),
               label: 'Market',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance),
+              label: 'Bank',
             ),
             BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
           ],

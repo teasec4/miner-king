@@ -1,6 +1,7 @@
 import 'coin_state.dart';
 import 'farm.dart';
 import 'game_event.dart';
+import 'loan.dart';
 import 'modifier.dart';
 
 /// Root aggregate – contains all game state.
@@ -12,6 +13,7 @@ class Game {
   final Farm farm;
   final List<Modifier> activeModifiers;
   final List<GameEvent> activeEvents;
+  final List<Loan> activeLoans;
   final int tick; // current tick counter
 
   const Game({
@@ -22,6 +24,7 @@ class Game {
     this.electricityRate = 0.12,
     this.activeModifiers = const [],
     this.activeEvents = const [],
+    this.activeLoans = const [],
     this.tick = 0,
   });
 
@@ -45,6 +48,7 @@ class Game {
     Farm? farm,
     List<Modifier>? activeModifiers,
     List<GameEvent>? activeEvents,
+    List<Loan>? activeLoans,
     int? tick,
   }) {
     return Game(
@@ -55,6 +59,7 @@ class Game {
       farm: farm ?? this.farm,
       activeModifiers: activeModifiers ?? this.activeModifiers,
       activeEvents: activeEvents ?? this.activeEvents,
+      activeLoans: activeLoans ?? this.activeLoans,
       tick: tick ?? this.tick,
     );
   }
