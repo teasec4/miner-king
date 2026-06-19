@@ -68,6 +68,14 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool swapCoins(String fromId, String toId, double amount) {
+    final result = EconomySystem.swapCoins(_game, fromId, toId, amount);
+    if (result == null) return false;
+    _game = result;
+    notifyListeners();
+    return true;
+  }
+
   bool buyGpu(GpuModel model) {
     if (_game.money < model.price) return false;
     if (!_game.farm.hasFreeSlots) return false;

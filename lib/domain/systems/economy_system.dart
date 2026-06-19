@@ -25,4 +25,29 @@ class EconomySystem {
     }
     return g;
   }
+
+  /// Swap one coin for another at market rates.
+  /// Uses a 1% spread (slight disadvantage to prevent arbitrage loops).
+  static Game? swapCoins(Game game, String fromId, String toId, double amount) {
+    if (fromId == toId) return null;
+    final fromCoin = game.coin(fromId);
+    final toCoin = game.coin(toId);
+    final fromBalance = game.holdings[fromId] ?? 0;
+    if (fromCoin == null ||
+        toCoin == null ||
+        amount <= 0 ||
+        fromBalance < amount) {
+      return null;
+    }
+
+    // Value in USD, with 1% fee
+    final usdValue = amount * fromCoin.price * 0.99;
+    final toAmount = usdValue / toCoin.price;
+
+    final newHoldings = Map<String, double>.from(game.holdings);
+    newHoldings[fromId] = (newHoldings[fromId] ?? 0) - amount;
+    newHoldings[toId] = (newHoldings[toId] ?? 0) + toAmount;
+
+    return game.copyWith(holdings: newHoldings);
+  }
 }

@@ -6,6 +6,7 @@ import 'package:crypto_king/domain/models/market_phase.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class MarketPage extends StatelessWidget {
@@ -15,17 +16,16 @@ class MarketPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final game = context.watch<GameState>();
     final vm = GameViewModel(game);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Market'), centerTitle: true),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Coin price cards ──
-            ...vm.coins.map((coin) => _coinPriceCard(coin, vm)),
+            ...vm.coins.map((c) => _coinPriceCard(c)),
             const SizedBox(height: 12),
-            // ── News section ──
+            _swapCard(context),
+            const SizedBox(height: 12),
             _newsSection(vm),
           ],
         ),
@@ -33,89 +33,126 @@ class MarketPage extends StatelessWidget {
     );
   }
 
-  Widget _coinPriceCard(CoinState coin, GameViewModel vm) {
-    final phaseColor = switch (coin.phase) {
+  Widget _swapCard(BuildContext context) => Card(
+    child: InkWell(
+      onTap: () async {
+        final result = await context.push('/home/swap');
+        if (result != null && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$result'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.swap_horiz, color: Colors.blue),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Swap Coins',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Exchange one coin for another at market rate. 1% fee.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _coinPriceCard(CoinState coin) {
+    final c = switch (coin.phase) {
       MarketPhase.bull => Colors.green,
       MarketPhase.bear => Colors.red,
-      MarketPhase.sideways => Colors.grey,
+      _ => Colors.grey,
     };
-    final trend = switch (coin.phase) {
+    final t = switch (coin.phase) {
       MarketPhase.bull => 'Rising',
       MarketPhase.bear => 'Falling',
-      MarketPhase.sideways => 'Stable',
+      _ => 'Stable',
     };
-
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: phaseColor.withAlpha(30),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      coin.name.substring(0, 1),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: phaseColor,
-                      ),
-                    ),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: c.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  coin.name[0],
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: c,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            coin.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            MarketSystem.phaseIcon(coin.phase),
-                            style: TextStyle(fontSize: 13, color: phaseColor),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            trend,
-                            style: TextStyle(fontSize: 11, color: phaseColor),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
                       Text(
-                        'Mine: ${coin.baseReward}x  •  Vol: ${(coin.volatility * 100).toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
+                        coin.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                       ),
+                      const SizedBox(width: 6),
+                      Text(
+                        MarketSystem.phaseIcon(coin.phase),
+                        style: TextStyle(fontSize: 13, color: c),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(t, style: TextStyle(fontSize: 11, color: c)),
                     ],
                   ),
-                ),
-                Text(
-                  '\$${coin.price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(height: 2),
+                  Text(
+                    'Mine: ${coin.baseReward}x  •  Vol: ${(coin.volatility * 100).toStringAsFixed(0)}%',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ),
+            Text(
+              '\$${coin.price.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -124,8 +161,7 @@ class MarketPage extends StatelessWidget {
   }
 
   Widget _newsSection(GameViewModel vm) {
-    final messages = _generateNews(vm);
-
+    final msgs = _generateNews(vm);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -139,22 +175,22 @@ class MarketPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        ...messages.map(
-          (msg) => Card(
+        ...msgs.map(
+          (m) => Card(
             margin: const EdgeInsets.symmetric(vertical: 3),
-            color: msg.isGood
+            color: m.isGood
                 ? Colors.green.shade50
-                : msg.isBad
+                : m.isBad
                 ? Colors.red.shade50
                 : null,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  Icon(msg.icon, size: 18, color: msg.iconColor),
+                  Icon(m.icon, size: 18, color: m.iconColor),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(msg.text, style: const TextStyle(fontSize: 13)),
+                    child: Text(m.text, style: const TextStyle(fontSize: 13)),
                   ),
                 ],
               ),
@@ -167,10 +203,8 @@ class MarketPage extends StatelessWidget {
 
   List<_NewsMsg> _generateNews(GameViewModel vm) {
     final msgs = <_NewsMsg>[];
-    final rng = Random(vm.tick); // seeded by tick for consistency
-
+    final rng = Random(vm.tick);
     for (final coin in vm.coins) {
-      // Phase change alerts
       if (coin.phaseTicksLeft < 30) {
         msgs.add(
           _NewsMsg(
@@ -180,42 +214,35 @@ class MarketPage extends StatelessWidget {
           ),
         );
       }
-
-      // Volatility warnings
       if (coin.phase == MarketPhase.bear && coin.volatility > 1.5) {
         msgs.add(
           _NewsMsg(
             icon: Icons.trending_down,
             iconColor: Colors.red,
             isBad: true,
-            text:
-                '${coin.name} high volatility + bear market — consider switching mining',
+            text: '${coin.name} high vol + bear — switch mining?',
           ),
         );
       }
       if (coin.phase == MarketPhase.bull &&
           coin.volatility > 1.5 &&
-          coin.price > 3.0) {
+          coin.price > 3) {
         msgs.add(
           _NewsMsg(
             icon: Icons.trending_up,
             iconColor: Colors.green,
             isGood: true,
-            text:
-                '${coin.name} pumping! Price: \$${coin.price.toStringAsFixed(2)}',
+            text: '${coin.name} pumping! \$${coin.price.toStringAsFixed(2)}',
           ),
         );
       }
-
-      // Price extremes
       if (coin.price > 50) {
         msgs.add(
           _NewsMsg(
             icon: Icons.monetization_on,
             iconColor: Colors.amber,
             isGood: true,
-            text:
-                '${coin.name} at all-time high — \$${coin.price.toStringAsFixed(2)}!',
+            text: '${coin.name} ATH — \$${coin.price.toStringAsFixed(2)}!',
           ),
         );
       }
@@ -225,43 +252,29 @@ class MarketPage extends StatelessWidget {
             icon: Icons.discount,
             iconColor: Colors.orange,
             text:
-                '${coin.name} is cheap — \$${coin.price.toStringAsFixed(2)}. Buying opportunity?',
+                '${coin.name} cheap — \$${coin.price.toStringAsFixed(2)}. Buy?',
           ),
         );
       }
     }
-
-    // General tips
     if (rng.nextDouble() < 0.3) {
       msgs.add(
         _NewsMsg(
           icon: Icons.lightbulb,
           iconColor: Colors.amber,
-          text:
-              'Tip: diversify your GPUs across different coins to reduce risk.',
+          text: 'Tip: diversify GPUs across coins to reduce risk.',
         ),
       );
     }
-    if (rng.nextDouble() < 0.2) {
-      msgs.add(
-        _NewsMsg(
-          icon: Icons.build,
-          iconColor: Colors.blue,
-          text: 'Tip: repair GPUs early — waiting makes it more expensive.',
-        ),
-      );
-    }
-
     if (msgs.isEmpty) {
       msgs.add(
         _NewsMsg(
           icon: Icons.check_circle,
           iconColor: Colors.grey,
-          text: 'Market is calm. No significant events at the moment.',
+          text: 'Market is calm. No significant events.',
         ),
       );
     }
-
     return msgs.take(5).toList();
   }
 }
@@ -272,7 +285,6 @@ class _NewsMsg {
   final String text;
   final bool isGood;
   final bool isBad;
-
   _NewsMsg({
     required this.icon,
     required this.iconColor,

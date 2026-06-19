@@ -136,6 +136,8 @@ class GameViewModel {
 
   void sellCoin(String id) => _state.sellCoin(id);
   void sellAllCoins() => _state.sellAllCoins();
+  bool swapCoins(String from, String to, double amount) =>
+      _state.swapCoins(from, to, amount);
   void startTicks() => _state.startTicks();
   bool upgradeGpu(String id) => _state.upgradeGpu(id);
   void toggleOverclock(String id) => _state.toggleOverclock(id);
