@@ -1,4 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
@@ -131,6 +132,7 @@ class GameViewModel {
         cycleProgress: cycleProgress,
         cycleReward: cycleReward,
         revenuePerCycle: revenuePerCycle,
+        debuffs: gpu.debuffs,
       );
     }).toList();
   }
@@ -146,6 +148,10 @@ class GameViewModel {
       base *= 1.5;
     }
     base *= gpu.condition;
+    for (final d in gpu.debuffs) {
+      final debuff = DebuffCatalog.byId(d);
+      if (debuff != null) base *= debuff.hashrateMul;
+    }
     if (_game.activeJobId != null) base *= 0.6;
     return base;
   }
@@ -175,7 +181,7 @@ class GameViewModel {
     if (gpu == null || gpu.condition >= 1.0) return 0;
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    final cost = (model.price * 0.1 * (1.0 - gpu.condition)).ceil();
+    final cost = (model.price * 0.15 * (1.0 - gpu.condition)).ceil();
     return cost;
   }
 
@@ -234,6 +240,8 @@ class GameViewModel {
   void toggleOverclock(String id) => _state.toggleOverclock(id);
   bool repairGpu(String id) => _state.repairGpu(id);
   bool buyGpu(GpuModel model) => _state.buyGpu(model);
+  bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) =>
+      _state.buyBlackMarketGpu(model, price, debuffs);
   bool buySlot() => _state.buySlot();
   bool buyCooling(CoolingUpgrade u) => _state.buyCooling(u);
   bool buySolar(SolarUpgrade u) => _state.buySolar(u);
@@ -276,6 +284,7 @@ class GpuDisplayInfo {
   final double cycleProgress;
   final double cycleReward;
   final double revenuePerCycle;
+  final List<String> debuffs;
 
   const GpuDisplayInfo({
     required this.instanceId,
@@ -295,5 +304,6 @@ class GpuDisplayInfo {
     required this.cycleProgress,
     required this.cycleReward,
     required this.revenuePerCycle,
+    required this.debuffs,
   });
 }

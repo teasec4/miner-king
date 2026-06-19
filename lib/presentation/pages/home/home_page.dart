@@ -392,6 +392,14 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(width: 4),
                             _badge('DEAD', Colors.white, Colors.grey),
                           ],
+                          for (final _ in gpu.debuffs) ...[
+                            const SizedBox(width: 4),
+                            _badge(
+                              '⚠',
+                              Colors.red.shade700,
+                              Colors.red.shade50,
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 2),

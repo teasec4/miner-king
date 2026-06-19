@@ -1,3 +1,4 @@
+import '../catalogs/debuff_catalog.dart';
 import '../catalogs/gpu_catalog.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
@@ -54,6 +55,12 @@ class ThermalSystem {
 
       // Worn cards run hotter: up to +20°C when near death
       temp += (1 - gpu.condition) * 20.0;
+
+      // Debuffs temperature
+      for (final d in gpu.debuffs) {
+        final debuff = DebuffCatalog.byId(d);
+        if (debuff != null) temp += debuff.tempAdd;
+      }
 
       // Cooling reduces heat
       temp += cooling;

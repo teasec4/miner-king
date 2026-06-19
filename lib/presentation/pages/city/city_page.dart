@@ -1,5 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/presentation/pages/bank/bank_page.dart';
+import 'package:crypto_king/presentation/pages/black_market/black_market_page.dart';
 import 'package:crypto_king/presentation/pages/job/job_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -43,7 +44,7 @@ class CityPage extends StatelessWidget {
                       context,
                       Icons.store,
                       'Shop',
-                      'Buy GPUs, cooling\nsolar panels, slots',
+                      'GPUs, cooling\nsolar, slots',
                       Colors.deepPurple,
                       '/shop',
                     ),
@@ -51,7 +52,7 @@ class CityPage extends StatelessWidget {
                       context,
                       Icons.account_balance,
                       'Bank',
-                      'Take loans, repay debt\n3 loan types available',
+                      'Loans & debt\n3 loan types',
                       Colors.blue,
                       '/bank',
                       badge: vm.activeLoans.isNotEmpty ? _loanBadge(vm) : null,
@@ -60,7 +61,7 @@ class CityPage extends StatelessWidget {
                       context,
                       Icons.work,
                       'Job',
-                      'Earn cash while you wait\n-40% mining speed',
+                      'Earn cash\n-40% mining speed',
                       Colors.orange,
                       '/job',
                       badge: vm.activeJobId != null ? _activeBadge() : null,
@@ -72,6 +73,14 @@ class CityPage extends StatelessWidget {
                       'Coming soon...',
                       Colors.grey,
                       null,
+                    ),
+                    _building(
+                      context,
+                      Icons.dark_mode,
+                      'Black Market',
+                      'Cheap flawed GPUs\n40-60% off',
+                      Colors.red,
+                      '/blackmarket',
                     ),
                     _building(
                       context,
@@ -153,6 +162,7 @@ class CityPage extends StatelessWidget {
     if (route == '/shop') return const ShopPage();
     if (route == '/bank') return const BankPage();
     if (route == '/job') return const JobPage();
+    if (route == '/blackmarket') return const BlackMarketPage();
     return const SizedBox.shrink();
   }
 

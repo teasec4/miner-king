@@ -1,4 +1,5 @@
 import '../catalogs/coin_catalog.dart';
+import '../catalogs/debuff_catalog.dart';
 import '../catalogs/gpu_catalog.dart';
 import '../models/game.dart';
 import '../models/gpu_instance.dart';
@@ -34,6 +35,11 @@ double _effectiveHashrate(
   }
 
   base *= gpu.condition;
+  // Debuffs
+  for (final d in gpu.debuffs) {
+    final debuff = DebuffCatalog.byId(d);
+    if (debuff != null) base *= debuff.hashrateMul;
+  }
   // Working a job? Distracted — 40% hashrate penalty
   if (hasJob) base *= 0.6;
   return base;

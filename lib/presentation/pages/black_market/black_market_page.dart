@@ -1,0 +1,190 @@
+import 'dart:math';
+import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
+import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/models/gpu_model.dart';
+import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+class BlackMarketPage extends StatefulWidget {
+  const BlackMarketPage({super.key});
+  @override
+  State<BlackMarketPage> createState() => _BlackMarketPageState();
+}
+
+class _BlackMarketPageState extends State<BlackMarketPage> {
+  static final _r = Random();
+  late List<_BlackOffer> _offers;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateOffers();
+  }
+
+  void _generateOffers() {
+    final allGpus = [...GpuCatalog.all];
+    allGpus.shuffle(_r);
+    _offers = allGpus.take(3).map((model) {
+      final debuffs = <String>[];
+      final count = _r.nextInt(3);
+      for (int i = 0; i < count; i++) {
+        final available = DebuffCatalog.all
+            .where((d) => !debuffs.contains(d.id))
+            .toList();
+        if (available.isNotEmpty) {
+          debuffs.add(available[_r.nextInt(available.length)].id);
+        }
+      }
+      final discount = 0.4 + _r.nextDouble() * 0.2;
+      final price = (model.price * discount).ceil();
+      final approxHash =
+          '~${(model.baseHashrate * (0.85 + _r.nextDouble() * 0.3)).toStringAsFixed(0)} MH/s';
+      return _BlackOffer(
+        model: model,
+        price: price,
+        debuffs: debuffs,
+        approxHash: approxHash,
+      );
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = GameViewModel(context.watch<GameState>());
+    return Scaffold(
+      appBar: AppBar(title: const Text('Black Market'), centerTitle: true),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(
+              'Shady deals — stats are approximate. GPUs may have hidden flaws.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  '\$${vm.money.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Slots: ${vm.usedSlots}/${vm.totalSlots}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._offers.map((o) => _offerCard(o, vm)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _offerCard(_BlackOffer offer, GameViewModel vm) {
+    final m = offer.model;
+    final hasSlots = vm.usedSlots < vm.totalSlots;
+    final canBuy = vm.money >= offer.price && hasSlots;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      color: Colors.red.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const Icon(Icons.memory, size: 36, color: Colors.red),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        m.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      for (final _ in offer.debuffs)
+                        Text(
+                          '⚠',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.red.shade500,
+                          ),
+                        ),
+                    ],
+                  ),
+                  Text(
+                    offer.approxHash,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '\$${offer.price}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  'vs \$${m.price}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey.shade400,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canBuy ? Colors.red.shade600 : Colors.grey,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    textStyle: const TextStyle(fontSize: 11),
+                  ),
+                  onPressed: canBuy
+                      ? () {
+                          vm.buyBlackMarketGpu(m, offer.price, offer.debuffs);
+                          setState(() => _offers.remove(offer));
+                        }
+                      : null,
+                  child: Text(hasSlots ? 'Buy' : 'No slots'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BlackOffer {
+  final GpuModel model;
+  final int price;
+  final List<String> debuffs;
+  final String approxHash;
+  _BlackOffer({
+    required this.model,
+    required this.price,
+    required this.debuffs,
+    required this.approxHash,
+  });
+}

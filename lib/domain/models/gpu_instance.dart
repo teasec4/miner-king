@@ -8,6 +8,7 @@ class GpuInstance {
   int overclockLevel;
   int siliconLotteryLevel;
   double cycleProgress; // 0.0 → 1.0, reward at 1.0
+  List<String> debuffs; // permanent negative traits
 
   GpuInstance({
     required this.id,
@@ -19,6 +20,7 @@ class GpuInstance {
     this.overclockLevel = 0,
     this.siliconLotteryLevel = 0,
     this.cycleProgress = 0,
+    this.debuffs = const [],
   });
 
   int get effectiveOverclock => overclockLevel + siliconLotteryLevel;
@@ -33,6 +35,7 @@ class GpuInstance {
     int? overclockLevel,
     int? siliconLotteryLevel,
     double? cycleProgress,
+    List<String>? debuffs,
   }) {
     return GpuInstance(
       id: id ?? this.id,
@@ -44,6 +47,7 @@ class GpuInstance {
       overclockLevel: overclockLevel ?? this.overclockLevel,
       siliconLotteryLevel: siliconLotteryLevel ?? this.siliconLotteryLevel,
       cycleProgress: cycleProgress ?? this.cycleProgress,
+      debuffs: debuffs ?? this.debuffs,
     );
   }
 }

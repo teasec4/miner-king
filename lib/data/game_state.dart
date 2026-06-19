@@ -155,6 +155,24 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
+  bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) {
+    if (_game.money < price) return false;
+    if (!_game.farm.hasFreeSlots) return false;
+    final instance = GpuInstance(
+      id: _uuid.v4(),
+      modelId: model.id,
+      miningCoinId: 'btc',
+      temperature: model.baseTemperature,
+      debuffs: debuffs,
+    );
+    _game = _game.copyWith(
+      money: _game.money - price,
+      farm: _game.farm.copyWith(gpuList: [..._game.farm.gpuList, instance]),
+    );
+    notifyListeners();
+    return true;
+  }
+
   bool upgradeGpu(String instanceId) {
     final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
     if (index == -1) return false;
@@ -385,7 +403,7 @@ class GameState extends ChangeNotifier {
     if (model == null) return false;
 
     final damage = 1.0 - gpu.condition;
-    final cost = (model.price * 0.1 * damage).ceil();
+    final cost = (model.price * 0.15 * damage).ceil();
     if (_game.money < cost) return false;
 
     final newList = [..._game.farm.gpuList];
