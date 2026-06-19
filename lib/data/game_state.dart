@@ -173,6 +173,14 @@ class GameState extends ChangeNotifier {
     // Already have this loan?
     if (_game.activeLoans.any((l) => l.id == loanId)) return false;
 
+    // Credit history: need 2x repayments of previous tier
+    final tiers = ['small', 'medium', 'large'];
+    final idx = tiers.indexOf(loanId);
+    if (idx > 0) {
+      final prevRepayments = _game.loanRepayments[tiers[idx - 1]] ?? 0;
+      if (prevRepayments < 2) return false;
+    }
+
     final loan = Loan(
       id: template.id,
       name: template.name,
@@ -197,11 +205,19 @@ class GameState extends ChangeNotifier {
     final newLoans = [..._game.activeLoans];
     final newRemaining = loan.remaining - toPay;
     if (newRemaining <= 0.01) {
-      newLoans.removeAt(index); // paid off
+      // Paid off — increment repayment counter
+      final reps = Map<String, int>.from(_game.loanRepayments);
+      reps[loanId] = (reps[loanId] ?? 0) + 1;
+      newLoans.removeAt(index);
+      _game = _game.copyWith(
+        money: _game.money - toPay,
+        activeLoans: newLoans,
+        loanRepayments: reps,
+      );
     } else {
       newLoans[index] = loan.copyWith(remaining: newRemaining);
+      _game = _game.copyWith(money: _game.money - toPay, activeLoans: newLoans);
     }
-    _game = _game.copyWith(money: _game.money - toPay, activeLoans: newLoans);
     notifyListeners();
     return true;
   }

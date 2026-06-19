@@ -53,6 +53,7 @@ class CityPage extends StatelessWidget {
                       'Take loans, repay debt\n3 loan types available',
                       Colors.blue,
                       '/bank',
+                      badge: vm.activeLoans.isNotEmpty ? _loanBadge(vm) : null,
                     ),
                     _building(
                       context,
@@ -86,8 +87,9 @@ class CityPage extends StatelessWidget {
     String title,
     String subtitle,
     Color color,
-    String? route,
-  ) => Card(
+    String? route, {
+    Widget? badge,
+  }) => Card(
     child: InkWell(
       onTap: route != null
           ? () => Navigator.of(
@@ -124,6 +126,7 @@ class CityPage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
             ),
+            if (badge != null) ...[const SizedBox(height: 6), badge],
           ],
         ),
       ),
@@ -135,4 +138,31 @@ class CityPage extends StatelessWidget {
     if (route == '/bank') return const BankPage();
     return const SizedBox.shrink();
   }
+
+  Widget _loanBadge(GameViewModel vm) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: Colors.red.shade100,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${vm.activeLoans.length} loan',
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.red.shade700,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
 }

@@ -113,9 +113,22 @@ class BankPage extends StatelessWidget {
 
   Widget _loanOfferCard(Loan template, GameViewModel vm) {
     final alreadyTaken = vm.activeLoans.any((l) => l.id == template.id);
+    final unlocked = vm.isLoanUnlocked(template.id);
+    final prevTier = template.id == 'medium'
+        ? 'small'
+        : template.id == 'large'
+        ? 'medium'
+        : null;
+    final repsNeeded = prevTier != null
+        ? 2 - (vm.loanRepayments[prevTier] ?? 0)
+        : 0;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      color: alreadyTaken ? Colors.grey.shade100 : null,
+      color: alreadyTaken
+          ? Colors.grey.shade100
+          : unlocked
+          ? null
+          : Colors.grey.shade100,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
@@ -159,6 +172,24 @@ class BankPage extends StatelessWidget {
                   color: Colors.grey.shade500,
                   fontWeight: FontWeight.w500,
                 ),
+              )
+            else if (!unlocked)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Locked',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red.shade400,
+                    ),
+                  ),
+                  Text(
+                    'Repay ${prevTier!.toUpperCase()} $repsNeeded more times',
+                    style: TextStyle(fontSize: 10, color: Colors.red.shade300),
+                  ),
+                ],
               )
             else
               ElevatedButton(

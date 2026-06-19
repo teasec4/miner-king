@@ -5,19 +5,20 @@ import 'loan.dart';
 import 'modifier.dart';
 import 'player_profile.dart';
 
-/// Root aggregate – contains all game state.
 class Game {
-  final double money; // $
-  final Map<String, double> holdings; // coinId → amount
-  final List<CoinState> coins; // market state for each coin
-  final double electricityRate; // $ per kWh
+  final double money;
+  final Map<String, double> holdings;
+  final List<CoinState> coins;
+  final double electricityRate;
   final Farm farm;
   final List<Modifier> activeModifiers;
   final List<GameEvent> activeEvents;
   final List<Loan> activeLoans;
+  final double marketMood;
+  final Map<String, int> loanRepayments;
   final CharacterType? character;
   final List<Perk> perks;
-  final int tick; // current tick counter
+  final int tick;
 
   const Game({
     required this.money,
@@ -28,12 +29,13 @@ class Game {
     this.activeModifiers = const [],
     this.activeEvents = const [],
     this.activeLoans = const [],
+    this.marketMood = 0,
+    this.loanRepayments = const {},
     this.character,
     this.perks = const [],
     this.tick = 0,
   });
 
-  /// Convenience: get a single coin's state.
   CoinState? coin(String id) {
     try {
       return coins.firstWhere((c) => c.id == id);
@@ -42,7 +44,6 @@ class Game {
     }
   }
 
-  /// Convenience: first coin (for backward compatibility).
   CoinState get primaryCoin => coins.first;
 
   Game copyWith({
@@ -54,6 +55,8 @@ class Game {
     List<Modifier>? activeModifiers,
     List<GameEvent>? activeEvents,
     List<Loan>? activeLoans,
+    double? marketMood,
+    Map<String, int>? loanRepayments,
     CharacterType? character,
     List<Perk>? perks,
     int? tick,
@@ -67,6 +70,8 @@ class Game {
       activeModifiers: activeModifiers ?? this.activeModifiers,
       activeEvents: activeEvents ?? this.activeEvents,
       activeLoans: activeLoans ?? this.activeLoans,
+      marketMood: marketMood ?? this.marketMood,
+      loanRepayments: loanRepayments ?? this.loanRepayments,
       character: character ?? this.character,
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,

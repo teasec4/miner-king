@@ -74,8 +74,17 @@ class GameViewModel {
   }
 
   List<GameEvent> get activeEvents => _game.activeEvents;
+  double get marketMood => _game.marketMood;
   List<Loan> get activeLoans => _game.activeLoans;
+  Map<String, int> get loanRepayments => _game.loanRepayments;
   double get totalDebt => CreditSystem.totalDebt(_game);
+
+  bool isLoanUnlocked(String loanId) {
+    final tiers = ['small', 'medium', 'large'];
+    final idx = tiers.indexOf(loanId);
+    if (idx <= 0) return true;
+    return (_game.loanRepayments[tiers[idx - 1]] ?? 0) >= 2;
+  }
 
   bool canSellCoin(String coinId) => holding(coinId) > 0;
 
