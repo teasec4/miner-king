@@ -34,13 +34,13 @@ class EventCatalog {
       id: 'market_crash',
       name: 'Market Crash',
       description: 'Panic selling! A random coin price drops by 40%.',
-      durationTicks: 0,
+      durationTicks: 120,
     ),
     GameEvent(
       id: 'mining_boom',
       name: 'Mining Boom',
       description: 'A random coin surges +30% in price.',
-      durationTicks: 0,
+      durationTicks: 120,
     ),
     GameEvent(
       id: 'power_surge',

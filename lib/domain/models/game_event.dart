@@ -5,6 +5,7 @@ class GameEvent {
   final String description;
   final int durationTicks; // 0 = instant
   int remainingTicks;
+  Map<String, dynamic>? data; // arbitrary payload (e.g. pre-event prices)
 
   GameEvent({
     required this.id,
@@ -16,7 +17,7 @@ class GameEvent {
   bool get isExpired => durationTicks > 0 && remainingTicks <= 0;
   bool get isInstant => durationTicks == 0;
 
-  GameEvent copyWith({int? remainingTicks}) {
+  GameEvent copyWith({int? remainingTicks, Map<String, dynamic>? data}) {
     final e = GameEvent(
       id: id,
       name: name,
@@ -24,6 +25,7 @@ class GameEvent {
       durationTicks: durationTicks,
     );
     e.remainingTicks = remainingTicks ?? this.remainingTicks;
+    e.data = data ?? this.data;
     return e;
   }
 }

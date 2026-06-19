@@ -56,20 +56,22 @@ class ShopPage extends StatelessWidget {
             _section('GPUs'),
             ...vm.shopGpus.map((e) {
               final m = e.model;
+              final hasSale = vm.hasGpuSale;
               return _upgradeCard(
                 icon: Icons.memory,
                 color: Colors.deepPurple,
                 title: m.name,
                 subtitle:
                     '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
-                price: m.price,
+                price: e.effectivePrice,
                 canBuy: e.canBuy,
                 onBuy: () => vm.buyGpu(m),
                 hint: !e.hasSlots
                     ? 'No slots'
                     : !e.canAfford
-                    ? 'Need \$${m.price - vm.money.toInt()}'
+                    ? 'Need \$${e.effectivePrice - vm.money.toInt()}'
                     : null,
+                salePercent: hasSale ? 30 : null,
               );
             }),
 
@@ -96,25 +98,6 @@ class ShopPage extends StatelessWidget {
                 onBuy: () => vm.buyCooling(c),
               );
             }),
-
-            // Solar
-            _section('Solar Panels'),
-            Text(
-              'Generated: ${vm.solarPower.toStringAsFixed(0)}W',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 4),
-            ...SolarCatalog.all.map(
-              (s) => _upgradeCard(
-                icon: Icons.solar_power,
-                color: Colors.amber,
-                title: s.name,
-                subtitle: '+${s.powerGen.toStringAsFixed(0)}W generation',
-                price: s.price,
-                canBuy: vm.money >= s.price,
-                onBuy: () => vm.buySolar(s),
-              ),
-            ),
 
             // Solar
             _section('Solar Panels'),
@@ -162,6 +145,7 @@ class ShopPage extends StatelessWidget {
     required bool canBuy,
     required VoidCallback onBuy,
     String? hint,
+    int? salePercent,
   }) => Card(
     margin: const EdgeInsets.symmetric(vertical: 4),
     child: Padding(
@@ -201,13 +185,28 @@ class ShopPage extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '\$$price',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade500,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (salePercent != null) ...[
+                      Text(
+                        '-$salePercent% ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
+                    Text(
+                      '\$$price',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
                 ),
                 if (hint != null)
                   Text(

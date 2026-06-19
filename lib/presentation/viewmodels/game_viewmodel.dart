@@ -174,15 +174,20 @@ class GameViewModel {
       SlotCatalog.nextTier(_game.farm.totalSlots)?.price ?? 0;
   bool get canBuySlot => nextSlotTier != null && _game.money >= nextSlotCost;
 
+  bool get hasGpuSale => _game.activeEvents.any((e) => e.id == 'gpu_sale');
+
   // ── Shop ──
 
   List<ShopGpuEntry> get shopGpus {
+    final sale = hasGpuSale;
     return GpuCatalog.all.map((model) {
+      final price = sale ? (model.price * 0.7).ceil() : model.price;
       return ShopGpuEntry(
         model: model,
-        canAfford: _game.money >= model.price,
+        effectivePrice: price,
+        canAfford: _game.money >= price,
         hasSlots: _game.farm.hasFreeSlots,
-        canBuy: _game.money >= model.price && _game.farm.hasFreeSlots,
+        canBuy: _game.money >= price && _game.farm.hasFreeSlots,
       );
     }).toList();
   }
@@ -210,12 +215,14 @@ class GameViewModel {
 
 class ShopGpuEntry {
   final GpuModel model;
+  final int effectivePrice;
   final bool canAfford;
   final bool hasSlots;
   final bool canBuy;
 
   const ShopGpuEntry({
     required this.model,
+    required this.effectivePrice,
     required this.canAfford,
     required this.hasSlots,
     required this.canBuy,

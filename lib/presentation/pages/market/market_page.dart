@@ -182,10 +182,11 @@ class MarketPage extends StatelessWidget {
     child: InkWell(
       onTap: () async {
         final r = await context.push('/home/swap');
-        if (r != null && context.mounted)
+        if (r != null && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('$r'), duration: const Duration(seconds: 2)),
           );
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Padding(

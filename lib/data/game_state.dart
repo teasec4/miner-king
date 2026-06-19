@@ -82,7 +82,9 @@ class GameState extends ChangeNotifier {
   }
 
   bool buyGpu(GpuModel model) {
-    if (_game.money < model.price) return false;
+    final hasSale = _game.activeEvents.any((e) => e.id == 'gpu_sale');
+    final price = hasSale ? (model.price * 0.7).ceil() : model.price;
+    if (_game.money < price) return false;
     if (!_game.farm.hasFreeSlots) return false;
 
     final instance = GpuInstance(
@@ -93,7 +95,7 @@ class GameState extends ChangeNotifier {
     );
 
     _game = _game.copyWith(
-      money: _game.money - model.price,
+      money: _game.money - price,
       farm: _game.farm.copyWith(gpuList: [..._game.farm.gpuList, instance]),
     );
     notifyListeners();

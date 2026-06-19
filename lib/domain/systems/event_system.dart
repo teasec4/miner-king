@@ -55,10 +55,25 @@ class EventSystem {
   }
 
   static GameEvent? _pickRandomEvent(Game game) {
-    final available = EventCatalog.all
+    var available = EventCatalog.all
         .where((e) => !game.activeEvents.any((a) => a.id == e.id))
         .toList();
     if (available.isEmpty) return null;
+
+    // Market mood influences event probabilities
+    final mood = game.marketMood;
+    final r = _random.nextDouble();
+
+    // Bias: high mood → more booms, low mood → more crashes
+    if (mood > 0.3 && r < mood * 0.4) {
+      final boom = available.where((e) => e.id == 'mining_boom').firstOrNull;
+      if (boom != null) return boom;
+    }
+    if (mood < -0.3 && r < -mood * 0.4) {
+      final crash = available.where((e) => e.id == 'market_crash').firstOrNull;
+      if (crash != null) return crash;
+    }
+
     return available[_random.nextInt(available.length)];
   }
 
@@ -87,10 +102,11 @@ class EventSystem {
       case 'gpu_sale':
         break; // -30% shop prices
       case 'market_crash':
-        // -40% to random coin
+        // -40% to random coin, save old price for restore
         if (g.coins.isNotEmpty) {
           final idx = _random.nextInt(g.coins.length);
           final coin = g.coins[idx];
+          event.data = {'coinIdx': idx, 'oldPrice': coin.price};
           final newCoins = [...g.coins];
           newCoins[idx] = coin.copyWith(
             price: (coin.price * 0.6).clamp(0.01, 10000),
@@ -99,10 +115,11 @@ class EventSystem {
         }
         break;
       case 'mining_boom':
-        // +30% to random coin
+        // +30% to random coin, save old price for restore
         if (g.coins.isNotEmpty) {
           final idx = _random.nextInt(g.coins.length);
           final coin = g.coins[idx];
+          event.data = {'coinIdx': idx, 'oldPrice': coin.price};
           final newCoins = [...g.coins];
           newCoins[idx] = coin.copyWith(
             price: (coin.price * 1.3).clamp(0.01, 10000),
@@ -122,8 +139,21 @@ class EventSystem {
   static Game _removeEvent(Game game, GameEvent event) {
     switch (event.id) {
       case 'power_surge':
-        // Restore electricity rate
         return game.copyWith(electricityRate: game.electricityRate / 2);
+      case 'market_crash':
+      case 'mining_boom':
+        // Restore coin price to pre-event level
+        final data = event.data;
+        if (data != null) {
+          final idx = data['coinIdx'] as int;
+          final oldPrice = (data['oldPrice'] as num).toDouble();
+          if (idx < game.coins.length) {
+            final newCoins = [...game.coins];
+            newCoins[idx] = game.coins[idx].copyWith(price: oldPrice);
+            return game.copyWith(coins: newCoins);
+          }
+        }
+        return game;
       default:
         return game;
     }
