@@ -102,29 +102,35 @@ class EventSystem {
       case 'gpu_sale':
         break; // -30% shop prices
       case 'market_crash':
-        // -40% to random coin, save old price for restore
-        if (g.coins.isNotEmpty) {
-          final idx = _random.nextInt(g.coins.length);
-          final coin = g.coins[idx];
-          event.data = {'coinIdx': idx, 'oldPrice': coin.price};
-          final newCoins = [...g.coins];
-          newCoins[idx] = coin.copyWith(
-            price: (coin.price * 0.6).clamp(0.01, 10000),
-          );
-          g = g.copyWith(coins: newCoins);
+        // -40% to weighted random non-immune coin
+        {
+          final eligible = g.coins.where((c) => !c.eventImmune).toList();
+          if (eligible.isNotEmpty) {
+            final coin = _weightedPick(eligible, (c) => c.crashChance);
+            final idx = g.coins.indexOf(coin);
+            event.data = {'coinIdx': idx, 'oldPrice': coin.price};
+            final newCoins = [...g.coins];
+            newCoins[idx] = coin.copyWith(
+              price: (coin.price * 0.6).clamp(0.01, 10000),
+            );
+            g = g.copyWith(coins: newCoins);
+          }
         }
         break;
       case 'mining_boom':
-        // +30% to random coin, save old price for restore
-        if (g.coins.isNotEmpty) {
-          final idx = _random.nextInt(g.coins.length);
-          final coin = g.coins[idx];
-          event.data = {'coinIdx': idx, 'oldPrice': coin.price};
-          final newCoins = [...g.coins];
-          newCoins[idx] = coin.copyWith(
-            price: (coin.price * 1.3).clamp(0.01, 10000),
-          );
-          g = g.copyWith(coins: newCoins);
+        // +30% to weighted random non-immune coin
+        {
+          final eligible = g.coins.where((c) => !c.eventImmune).toList();
+          if (eligible.isNotEmpty) {
+            final coin = _weightedPick(eligible, (c) => c.boomChance);
+            final idx = g.coins.indexOf(coin);
+            event.data = {'coinIdx': idx, 'oldPrice': coin.price};
+            final newCoins = [...g.coins];
+            newCoins[idx] = coin.copyWith(
+              price: (coin.price * 1.3).clamp(0.01, 10000),
+            );
+            g = g.copyWith(coins: newCoins);
+          }
         }
         break;
       case 'power_surge':
@@ -157,5 +163,17 @@ class EventSystem {
       default:
         return game;
     }
+  }
+
+  /// Pick a coin weighted by a selector function.
+  static T _weightedPick<T>(List<T> items, double Function(T) weightFn) {
+    final total = items.fold(0.0, (s, i) => s + weightFn(i).abs());
+    if (total <= 0) return items[_random.nextInt(items.length)];
+    var r = _random.nextDouble() * total;
+    for (final item in items) {
+      r -= weightFn(item).abs();
+      if (r <= 0) return item;
+    }
+    return items.last;
   }
 }

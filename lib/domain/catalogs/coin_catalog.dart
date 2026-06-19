@@ -10,6 +10,9 @@ class CoinCatalog {
     baseReward: 1.0,
     volatility: 1.0,
     price: 10.0,
+    crashChance: 0.5,
+    boomChance: 0.7,
+    microEventRate: 0.003,
   );
 
   static final eth = CoinState(
@@ -18,14 +21,9 @@ class CoinCatalog {
     baseReward: 1.5,
     volatility: 0.8,
     price: 5.0,
-  );
-
-  static final doge = CoinState(
-    id: 'doge',
-    name: 'DOGE',
-    baseReward: 0.5,
-    volatility: 2.5,
-    price: 1.0,
+    crashChance: 0.4,
+    boomChance: 0.9,
+    microEventRate: 0.004,
   );
 
   static final sol = CoinState(
@@ -34,6 +32,20 @@ class CoinCatalog {
     baseReward: 1.2,
     volatility: 1.8,
     price: 3.0,
+    crashChance: 1.5,
+    boomChance: 2.0,
+    microEventRate: 0.008,
+  );
+
+  static final doge = CoinState(
+    id: 'doge',
+    name: 'DOGE',
+    baseReward: 0.5,
+    volatility: 2.5,
+    price: 1.0,
+    crashChance: 3.0,
+    boomChance: 3.0,
+    microEventRate: 0.015,
   );
 
   static final pepe = CoinState(
@@ -42,6 +54,9 @@ class CoinCatalog {
     baseReward: 3.0,
     volatility: 5.0,
     price: 0.10,
+    crashChance: 6.0,
+    boomChance: 6.0,
+    microEventRate: 0.03,
   );
 
   static final usdt = CoinState(
@@ -50,6 +65,10 @@ class CoinCatalog {
     baseReward: 0.0, // can't mine stablecoins
     volatility: 0.03,
     price: 1.0,
+    eventImmune: true,
+    crashChance: 0,
+    boomChance: 0,
+    microEventRate: 0,
   );
 
   static final List<CoinState> all = [btc, eth, sol, doge, pepe, usdt];
@@ -72,6 +91,10 @@ class CoinCatalog {
             baseReward: c.baseReward,
             volatility: c.volatility,
             price: c.price,
+            eventImmune: c.eventImmune,
+            crashChance: c.crashChance,
+            boomChance: c.boomChance,
+            microEventRate: c.microEventRate,
           ),
         )
         .toList();
