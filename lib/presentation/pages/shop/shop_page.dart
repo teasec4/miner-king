@@ -80,9 +80,10 @@ class ShopPage extends StatelessWidget {
             ...CoolingCatalog.all.map((c) {
               final current = game.game.farm.coolingSystem;
               final owned = current == c.id;
-              final betterThanCurrent =
-                  ['basic', 'fans', 'water', 'immersion'].indexOf(c.id) >
-                  ['basic', 'fans', 'water', 'immersion'].indexOf(current);
+              const order = ['basic', 'fans', 'water', 'immersion'];
+              final currentIdx = order.indexOf(current);
+              final thisIdx = order.indexOf(c.id);
+              final isDowngrade = thisIdx <= currentIdx && !owned;
               return _upgradeCard(
                 icon: Icons.ac_unit,
                 color: Colors.blue,
@@ -90,11 +91,11 @@ class ShopPage extends StatelessWidget {
                 subtitle:
                     '${c.tempReduction}°C  ${owned
                         ? "(installed)"
-                        : betterThanCurrent
-                        ? ""
-                        : "(downgrade)"}',
+                        : isDowngrade
+                        ? "(already have better)"
+                        : ""}',
                 price: c.price,
-                canBuy: !owned && vm.money >= c.price,
+                canBuy: !owned && !isDowngrade && vm.money >= c.price,
                 onBuy: () => vm.buyCooling(c),
               );
             }),

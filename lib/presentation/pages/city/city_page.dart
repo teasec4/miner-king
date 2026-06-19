@@ -69,14 +69,6 @@ class CityPage extends StatelessWidget {
                     ),
                     _building(
                       context,
-                      Icons.warehouse,
-                      'Warehouse',
-                      'Coming soon...',
-                      Colors.grey,
-                      null,
-                    ),
-                    _building(
-                      context,
                       Icons.dark_mode,
                       'Black Market',
                       'Cheap flawed GPUs\n40-60% off',
@@ -85,8 +77,8 @@ class CityPage extends StatelessWidget {
                     ),
                     _building(
                       context,
-                      Icons.people,
-                      'Employees',
+                      Icons.business,
+                      'Business Center',
                       'Coming soon...',
                       Colors.grey,
                       null,

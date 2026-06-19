@@ -228,6 +228,11 @@ class GameState extends ChangeNotifier {
   bool buyCooling(CoolingUpgrade upgrade) {
     if (_game.money < upgrade.price) return false;
     if (_game.farm.coolingSystem == upgrade.id) return false;
+    // Only allow upgrades (not downgrades)
+    const order = ['basic', 'fans', 'water', 'immersion'];
+    final currentIdx = order.indexOf(_game.farm.coolingSystem);
+    final newIdx = order.indexOf(upgrade.id);
+    if (newIdx <= currentIdx) return false;
     _game = _game.copyWith(
       money: _game.money - upgrade.price,
       farm: _game.farm.copyWith(coolingSystem: upgrade.id),

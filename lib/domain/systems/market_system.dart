@@ -8,13 +8,11 @@ class MarketSystem {
   static const _minPhase = 60, _maxPhase = 300;
 
   static Game update(Game game) {
-    // Update global mood (random walk + mean reversion toward 0)
     var mood = game.marketMood;
-    mood += (_r.nextDouble() - 0.5) * 0.02; // random walk
-    mood -= mood * 0.001; // mean reversion
+    mood += (_r.nextDouble() - 0.5) * 0.03;
+    mood -= mood * 0.002; // stronger mean reversion
     mood = mood.clamp(-1.0, 1.0);
 
-    // Update coins
     final updatedCoins = game.coins.map((coin) {
       var phase = coin.phase;
       var ticksLeft = coin.phaseTicksLeft;
@@ -26,14 +24,23 @@ class MarketSystem {
         ticksLeft = _minPhase + _r.nextInt(_maxPhase - _minPhase);
       }
 
-      // Price change: base volatility * mood amplification
-      final change = _priceChange(phase, coin.volatility, mood);
-      price = (price * (1 + change)).clamp(0.01, 999999.0);
+      // Smooth drift: smaller and noisier than before
+      final drift = _drift(phase, coin.volatility, mood);
+      price = (price * (1 + drift)).clamp(0.01, 999999.0);
 
-      // Coin-specific micro-event
-      if (coin.microEventRate > 0 && _r.nextDouble() < coin.microEventRate) {
-        final micro = (_r.nextDouble() - 0.45) * coin.volatility * 0.03;
-        price = (price * (1 + micro)).clamp(0.01, 999999.0);
+      // Micro-shocks: rare, significant swings (fat tails)
+      if (coin.microEventRate > 0 &&
+          _r.nextDouble() < coin.microEventRate * 1.5) {
+        // Bias toward crashes for volatile coins
+        final crashBias = coin.volatility > 2 ? 0.55 : 0.48;
+        final shock = (_r.nextDouble() - crashBias) * coin.volatility * 0.12;
+        price = (price * (1 + shock)).clamp(0.01, 999999.0);
+      }
+
+      // Rare volatility explosion: big swing for volatile coins
+      if (coin.volatility > 2 && _r.nextDouble() < 0.0005) {
+        final explosion = (_r.nextDouble() - 0.52) * coin.volatility * 0.4;
+        price = (price * (1 + explosion)).clamp(0.01, 999999.0);
       }
 
       return coin.copyWith(
@@ -48,21 +55,23 @@ class MarketSystem {
 
   static MarketPhase _nextPhase(MarketPhase current, double mood) {
     final others = MarketPhase.values.where((p) => p != current).toList();
-    // Bias: positive mood → more bull, negative → more bear
     if (mood > 0.3 && _r.nextDouble() < mood) return MarketPhase.bull;
     if (mood < -0.3 && _r.nextDouble() < -mood) return MarketPhase.bear;
     return others[_r.nextInt(others.length)];
   }
 
-  static double _priceChange(MarketPhase phase, double vol, double mood) {
+  /// Smaller, less predictable drift.
+  static double _drift(MarketPhase phase, double vol, double mood) {
     final base = switch (phase) {
-      MarketPhase.bull => (_r.nextDouble() * 0.008 + 0.002),
-      MarketPhase.bear => -(_r.nextDouble() * 0.008 + 0.002),
-      MarketPhase.sideways => (_r.nextDouble() - 0.5) * 0.006,
+      MarketPhase.bull => (_r.nextDouble() * 0.004 + 0.001),
+      MarketPhase.bear => -(_r.nextDouble() * 0.004 + 0.001),
+      MarketPhase.sideways => (_r.nextDouble() - 0.5) * 0.004,
     };
-    // Mood amplifies: greed boosts bulls, fear deepens bears
-    final amp = 1 + mood.abs() * 0.5;
-    return base * vol * amp;
+    // Mood amplifies but less aggressively
+    final amp = 1 + mood.abs() * 0.3;
+    // Add noise: random wiggle
+    final noise = (_r.nextDouble() - 0.5) * 0.003 * vol;
+    return (base + noise) * vol * amp;
   }
 
   static String moodLabel(double mood) {
