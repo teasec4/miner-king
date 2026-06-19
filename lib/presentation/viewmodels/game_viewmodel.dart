@@ -4,6 +4,7 @@ import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
+import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
@@ -51,6 +52,8 @@ class GameViewModel {
   double get totalHoldingsValue {
     return _game.coins.fold(0, (sum, c) => sum + holdingValue(c.id));
   }
+
+  List<GameEvent> get activeEvents => _game.activeEvents;
 
   bool canSellCoin(String coinId) => holding(coinId) > 0;
 

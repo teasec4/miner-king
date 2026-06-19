@@ -31,7 +31,7 @@ void main() {
   group('TickSystem', () {
     test('tick increases holdings and tick counter', () {
       final state = GameState();
-      final game = TickSystem.tick(state.game);
+      final (game, _) = TickSystem.tick(state.game);
       expect(game.holdings['btc']!, greaterThan(0));
       expect(game.tick, 1);
     });
@@ -94,7 +94,7 @@ void main() {
       final state = GameState();
       var game = state.game;
       for (var i = 0; i < 50; i++) {
-        game = TickSystem.tick(game);
+        (game, _) = TickSystem.tick(game);
       }
       final btcBefore = game.holdings['btc']!;
       expect(btcBefore, greaterThan(0));
@@ -154,7 +154,7 @@ void main() {
       final state = GameState();
       var game = state.game;
       for (var i = 0; i < 500; i++) {
-        game = TickSystem.tick(game);
+        (game, _) = TickSystem.tick(game);
       }
       expect(game.primaryCoin.price, isNot(10.0));
     });

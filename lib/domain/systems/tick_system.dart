@@ -1,5 +1,7 @@
 import '../models/game.dart';
+import '../models/game_event.dart';
 import 'electricity_system.dart';
+import 'event_system.dart';
 import 'market_system.dart';
 import 'mining_system.dart';
 import 'thermal_system.dart';
@@ -9,13 +11,17 @@ import 'wear_system.dart';
 class TickSystem {
   TickSystem._();
 
-  static Game tick(Game game) {
+  static (Game, GameEvent?) tick(Game game) {
     var g = game;
+    GameEvent? newEvent;
 
     // 1. Update market (all coins)
     g = MarketSystem.update(g);
 
-    // 2. Mine coins — returns per-coin map
+    // 2. Process events (tick active, maybe trigger new)
+    (g, newEvent) = EventSystem.update(g);
+
+    // 3. Mine coins
     final mined = MiningSystem.mine(g);
     final newHoldings = Map<String, double>.from(g.holdings);
     for (final entry in mined.entries) {
@@ -23,18 +29,18 @@ class TickSystem {
     }
     g = g.copyWith(holdings: newHoldings);
 
-    // 3. Update temperatures
+    // 4. Update temperatures
     g = ThermalSystem.update(g);
 
-    // 4. Apply wear from heat
+    // 5. Apply wear from heat
     g = WearSystem.update(g);
 
-    // 5. Deduct electricity cost
+    // 6. Deduct electricity cost
     g = ElectricitySystem.update(g);
 
-    // 6. Advance tick
+    // 7. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
-    return g;
+    return (g, newEvent);
   }
 }

@@ -1,4 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -11,11 +12,20 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  GameEvent? _bannerEvent;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GameViewModel>().startTicks();
+      final vm = context.read<GameViewModel>();
+      vm.startTicks();
+      context.read<GameState>().onEvent = (e) {
+        setState(() => _bannerEvent = e);
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) setState(() => _bannerEvent = null);
+        });
+      };
     });
   }
 
@@ -28,6 +38,8 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Column(
           children: [
+            if (_bannerEvent != null) _eventBanner(_bannerEvent!),
+            if (vm.activeEvents.isNotEmpty) _activeEventsRow(vm),
             _resourcesBar(vm),
             const Divider(height: 1),
             Expanded(child: _gpuList(vm)),
@@ -37,6 +49,71 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  Widget _eventBanner(GameEvent e) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    color: Colors.deepPurple.shade50,
+    child: Row(
+      children: [
+        const Icon(
+          Icons.notifications_active,
+          color: Colors.deepPurple,
+          size: 20,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                e.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.deepPurple,
+                ),
+              ),
+              Text(
+                e.description,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.deepPurple.shade300,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (e.durationTicks > 0)
+          Text(
+            '${e.remainingTicks}s',
+            style: TextStyle(fontSize: 12, color: Colors.deepPurple.shade300),
+          ),
+      ],
+    ),
+  );
+
+  Widget _activeEventsRow(GameViewModel vm) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+    child: Wrap(
+      spacing: 6,
+      children: vm.activeEvents
+          .map(
+            (e) => Chip(
+              avatar: Icon(
+                Icons.warning_amber,
+                size: 14,
+                color: Colors.deepOrange,
+              ),
+              label: Text(e.name, style: const TextStyle(fontSize: 10)),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              backgroundColor: Colors.orange.shade50,
+            ),
+          )
+          .toList(),
+    ),
+  );
 
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerHour;
@@ -189,7 +266,6 @@ class _HomePageState extends State<HomePage> {
         : gpu.condition > 0.3
         ? Colors.orange
         : Colors.red;
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: isDead ? Colors.grey.shade100 : null,

@@ -5,6 +5,7 @@ import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
 import 'package:crypto_king/domain/models/game.dart';
+import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/systems/economy_system.dart';
@@ -17,6 +18,10 @@ class GameState extends ChangeNotifier {
 
   Game _game;
   Timer? _tickTimer;
+  GameEvent? lastEvent;
+
+  /// Callback when a new event is triggered.
+  void Function(GameEvent)? onEvent;
 
   GameState() : _game = _createInitialGame();
 
@@ -41,7 +46,12 @@ class GameState extends ChangeNotifier {
   void startTicks({Duration interval = const Duration(seconds: 1)}) {
     _tickTimer?.cancel();
     _tickTimer = Timer.periodic(interval, (_) {
-      _game = TickSystem.tick(_game);
+      final (newGame, event) = TickSystem.tick(_game);
+      _game = newGame;
+      if (event != null) {
+        lastEvent = event;
+        onEvent?.call(event);
+      }
       notifyListeners();
     });
   }

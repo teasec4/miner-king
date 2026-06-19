@@ -29,6 +29,20 @@ class ThermalSystem {
       final model = GpuCatalog.byId(gpu.modelId);
       double temp = model?.baseTemperature ?? 50.0;
 
+      // Event: Dust Storm — +15°C to all
+      if (game.activeEvents.any((e) => e.id == 'dust')) {
+        temp += 15;
+      }
+      // Event: Fan Failure — +25°C to one GPU (first non-dead)
+      if (game.activeEvents.any((e) => e.id == 'fan_fail')) {
+        final firstAlive = game.farm.gpuList
+            .where((g) => g.condition > 0 && g.isPowered)
+            .firstOrNull;
+        if (firstAlive != null && gpu.id == firstAlive.id) {
+          temp += 25;
+        }
+      }
+
       // Overclock adds heat
       temp += gpu.overclockLevel * 25.0;
 
