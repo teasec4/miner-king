@@ -41,7 +41,7 @@ class GameState extends ChangeNotifier {
 
     return Game(
       money: 1000,
-      holdings: {'btc': 0, 'eth': 0, 'sol': 0, 'doge': 0, 'pepe': 0},
+      holdings: {'btc': 0, 'eth': 0, 'sol': 0, 'doge': 0, 'pepe': 0, 'usdt': 0},
       coins: CoinCatalog.initialCoins(),
       electricityRate: 0.12,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
@@ -71,6 +71,22 @@ class GameState extends ChangeNotifier {
   void sellAllCoins() {
     _game = EconomySystem.sellAllCoins(_game);
     notifyListeners();
+  }
+
+  bool buyCoinWithCash(String coinId, double cashAmount) {
+    final result = EconomySystem.buyCoinWithCash(_game, coinId, cashAmount);
+    if (result == null) return false;
+    _game = result;
+    notifyListeners();
+    return true;
+  }
+
+  bool sellCoinForCash(String coinId, double coinAmount) {
+    final result = EconomySystem.sellCoinForCash(_game, coinId, coinAmount);
+    if (result == null) return false;
+    _game = result;
+    notifyListeners();
+    return true;
   }
 
   bool swapCoins(String fromId, String toId, double amount) {

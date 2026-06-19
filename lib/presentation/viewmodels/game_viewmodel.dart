@@ -196,6 +196,10 @@ class GameViewModel {
 
   void sellCoin(String id) => _state.sellCoin(id);
   void sellAllCoins() => _state.sellAllCoins();
+  bool buyCoinWithCash(String id, double cash) =>
+      _state.buyCoinWithCash(id, cash);
+  bool sellCoinForCash(String id, double amount) =>
+      _state.sellCoinForCash(id, amount);
   bool swapCoins(String from, String to, double amount) =>
       _state.swapCoins(from, to, amount);
   bool takeLoan(String id) => _state.takeLoan(id);

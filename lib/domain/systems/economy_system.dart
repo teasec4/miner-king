@@ -4,6 +4,28 @@ import '../models/game.dart';
 class EconomySystem {
   EconomySystem._();
 
+  /// Buy coin with cash at market price (5% fee).
+  /// Returns updated game or null if can't afford.
+  static Game? buyCoinWithCash(Game game, String coinId, double cashAmount) {
+    final coin = game.coin(coinId);
+    if (coin == null || cashAmount <= 0 || game.money < cashAmount) return null;
+    final amount = cashAmount * 0.95 / coin.price;
+    final newHoldings = Map<String, double>.from(game.holdings);
+    newHoldings[coinId] = (newHoldings[coinId] ?? 0) + amount;
+    return game.copyWith(money: game.money - cashAmount, holdings: newHoldings);
+  }
+
+  /// Sell coin for cash at market price (5% fee).
+  static Game? sellCoinForCash(Game game, String coinId, double coinAmount) {
+    final coin = game.coin(coinId);
+    final balance = game.holdings[coinId] ?? 0;
+    if (coin == null || coinAmount <= 0 || balance < coinAmount) return null;
+    final cash = coinAmount * coin.price * 0.95;
+    final newHoldings = Map<String, double>.from(game.holdings);
+    newHoldings[coinId] = balance - coinAmount;
+    return game.copyWith(money: game.money + cash, holdings: newHoldings);
+  }
+
   /// Sell all of a specific coin for money at current price.
   static Game sellCoin(Game game, String coinId) {
     final coin = game.coin(coinId);

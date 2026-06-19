@@ -511,7 +511,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _coinSwitcher(GpuDisplayInfo gpu, GameViewModel vm) {
-    final coins = vm.coins;
+    final coins = vm.coins.where((c) => c.id != 'usdt').toList();
     if (coins.length < 2) return const SizedBox.shrink();
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,

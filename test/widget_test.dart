@@ -19,8 +19,11 @@ void main() {
       expect(game.money, 1000);
       expect(game.holdings['btc'], 0);
       expect(game.holdings['eth'], 0);
+      expect(game.holdings['sol'], 0);
       expect(game.holdings['doge'], 0);
-      expect(game.coins.length, 3);
+      expect(game.holdings['pepe'], 0);
+      expect(game.holdings['usdt'], 0);
+      expect(game.coins.length, 6);
       expect(game.primaryCoin.price, 10.0);
       expect(game.electricityRate, 0.12);
       expect(game.farm.gpuList.length, 1);
@@ -166,7 +169,7 @@ void main() {
   });
 
   group('CoinCatalog', () {
-    test('has 3 coins', () => expect(CoinCatalog.all.length, 3));
+    test('has 6 coins', () => expect(CoinCatalog.all.length, 6));
     test('BTC has standard reward', () {
       expect(CoinCatalog.btc.baseReward, 1.0);
     });

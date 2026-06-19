@@ -44,7 +44,15 @@ class CoinCatalog {
     price: 0.10,
   );
 
-  static final List<CoinState> all = [btc, eth, sol, doge, pepe];
+  static final usdt = CoinState(
+    id: 'usdt',
+    name: 'USDT',
+    baseReward: 0.0, // can't mine stablecoins
+    volatility: 0.03,
+    price: 1.0,
+  );
+
+  static final List<CoinState> all = [btc, eth, sol, doge, pepe, usdt];
 
   static CoinState? byId(String id) {
     try {
