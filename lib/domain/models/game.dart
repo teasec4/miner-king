@@ -23,6 +23,7 @@ class Game {
   final int courseTicksLeft;
   final List<String> employees;
   final String? officeId;
+  final Map<String, int> unseenEvents;
   final CharacterType? character;
   final List<Perk> perks;
   final int tick;
@@ -45,6 +46,7 @@ class Game {
     this.courseTicksLeft = 0,
     this.employees = const [],
     this.officeId,
+    this.unseenEvents = const {},
     this.character,
     this.perks = const [],
     this.tick = 0,
@@ -78,6 +80,7 @@ class Game {
     int? courseTicksLeft,
     List<String>? employees,
     String? officeId,
+    Map<String, int>? unseenEvents,
     CharacterType? character,
     List<Perk>? perks,
     int? tick,
@@ -100,6 +103,7 @@ class Game {
       courseTicksLeft: courseTicksLeft ?? this.courseTicksLeft,
       employees: employees ?? this.employees,
       officeId: officeId ?? this.officeId,
+      unseenEvents: unseenEvents ?? this.unseenEvents,
       character: character ?? this.character,
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,

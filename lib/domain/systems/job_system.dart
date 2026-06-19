@@ -20,9 +20,13 @@ class JobSystem {
     final exp = newExp[jobId] ?? 0;
     final level = (exp ~/ job.expPerLevel).clamp(0, job.maxLevel);
     final multiplier = 1.0 + level * 0.1;
+    // Job Fair event: double salary
+    final fairBonus = game.activeEvents.any((e) => e.id == 'job_fair')
+        ? 2.0
+        : 1.0;
 
     return game.copyWith(
-      money: game.money + job.salaryPerTick * multiplier,
+      money: game.money + job.salaryPerTick * multiplier * fairBonus,
       jobExperience: newExp,
     );
   }

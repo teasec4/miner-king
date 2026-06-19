@@ -37,7 +37,10 @@ class EmployeeSystem {
     }
 
     // Pay office rent
-    money -= office.rentPerTick;
+    final rentMult = game.activeEvents.any((e) => e.id == 'rent_hike')
+        ? 2.0
+        : 1.0;
+    money -= office.rentPerTick * rentMult;
 
     return game.copyWith(money: money.clamp(0, double.infinity));
   }

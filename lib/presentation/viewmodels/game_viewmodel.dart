@@ -241,6 +241,11 @@ class GameViewModel {
     return OfficeCatalog.byId(id)?.slots ?? 0;
   }
 
+  // ── Events ──
+
+  Map<String, int> get unseenEvents => _game.unseenEvents;
+  void clearUnseen(String category) => _state.clearUnseen(category);
+
   // ── Shop ──
 
   List<ShopGpuEntry> get shopGpus {

@@ -3,14 +3,16 @@ class GameEvent {
   final String id;
   final String name;
   final String description;
+  final String category; // 'rig', 'market', 'city'
   final int durationTicks; // 0 = instant
   int remainingTicks;
-  Map<String, dynamic>? data; // arbitrary payload (e.g. pre-event prices)
+  Map<String, dynamic>? data;
 
   GameEvent({
     required this.id,
     required this.name,
     required this.description,
+    required this.category,
     required this.durationTicks,
   }) : remainingTicks = durationTicks;
 
@@ -22,6 +24,7 @@ class GameEvent {
       id: id,
       name: name,
       description: description,
+      category: category,
       durationTicks: durationTicks,
     );
     e.remainingTicks = remainingTicks ?? this.remainingTicks;

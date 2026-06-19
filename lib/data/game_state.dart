@@ -467,6 +467,15 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
+  // ── Events ──
+
+  void clearUnseen(String category) {
+    final unseen = Map<String, int>.from(_game.unseenEvents);
+    unseen[category] = 0;
+    _game = _game.copyWith(unseenEvents: unseen);
+    notifyListeners();
+  }
+
   // ── Character & Perks ──
 
   void addPerk(Perk perk) {
