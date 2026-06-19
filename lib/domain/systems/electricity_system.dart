@@ -2,24 +2,22 @@ import '../catalogs/gpu_catalog.dart';
 import '../models/game.dart';
 
 /// Calculates electricity costs per tick.
+///
+/// Uses a game-friendly formula: hourly cost = totalWatts × electricityRate.
+/// electricityRate is a game coefficient (not real $/kWh).
+/// Example: 120W × $0.12 = $14.40/h.
 class ElectricitySystem {
   ElectricitySystem._();
 
-  /// Default electricity rate in $/kWh.
-  static const double defaultRate = 0.12;
-
   /// Calculate electricity cost for one tick and deduct from money.
-  /// Returns updated Game, or same Game if money would go negative
-  /// (player can't go bankrupt from electricity alone in v0.2).
   static Game update(Game game) {
     final totalWatts = _totalPowerConsumption(game);
-    // kWh per tick (1 second): watts / 1000 / 3600
-    final kWhPerTick = totalWatts / 1000.0 / 3600.0;
-    final cost = kWhPerTick * game.electricityRate;
+    // Hourly cost = watts * rate (game formula)
+    final costPerHour = totalWatts * game.electricityRate;
+    // Per tick (1 second)
+    final cost = costPerHour / 3600.0;
 
-    // Don't go below zero from electricity
     final newMoney = ((game.money - cost).clamp(0, double.infinity) as double);
-
     return game.copyWith(money: newMoney);
   }
 
@@ -27,7 +25,7 @@ class ElectricitySystem {
   static double _totalPowerConsumption(Game game) {
     double total = 0;
     for (final gpu in game.farm.gpuList) {
-      if (gpu.isBroken) continue;
+      if (gpu.condition <= 0) continue;
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
       // Overclock adds 10% power per level
@@ -41,13 +39,6 @@ class ElectricitySystem {
 
   /// Cost per hour for display.
   static double costPerHour(Game game) {
-    final watts = _totalPowerConsumption(game);
-    return watts / 1000.0 * game.electricityRate;
-  }
-
-  /// Cost per minute for display.
-  static double costPerMinute(Game game) {
-    final watts = _totalPowerConsumption(game);
-    return watts / 1000.0 / 60.0 * game.electricityRate;
+    return _totalPowerConsumption(game) * game.electricityRate;
   }
 }

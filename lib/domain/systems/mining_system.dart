@@ -10,7 +10,7 @@ double _effectiveHashrate(
   GpuModel model,
   List<Modifier> modifiers,
 ) {
-  if (gpu.isBroken) return 0;
+  if (gpu.condition <= 0) return 0; // dead card
 
   double base = model.baseHashrate;
 
@@ -45,8 +45,8 @@ class MiningSystem {
     }
 
     // Coins per tick: hashrate * rate.
-    // 10 MH/s (GTX 1060) ≈ 0.003 coins/min ≈ $127/min at $42,500/BTC
-    return totalHashrate * 0.000005;
+    // 10 MH/s (GTX 1060) ≈ 7.2 coins/h ≈ $72/h at $10/coin
+    return totalHashrate * 0.0002;
   }
 
   /// Returns total effective hashrate (for display).

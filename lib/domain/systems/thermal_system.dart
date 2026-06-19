@@ -1,7 +1,7 @@
 import '../catalogs/gpu_catalog.dart';
 import '../models/game.dart';
 
-/// Calculates GPU temperatures based on model, overclock, cooling, and external factors.
+/// Calculates GPU temperatures based on model, overclock, cooling, wear, and external factors.
 class ThermalSystem {
   ThermalSystem._();
 
@@ -18,14 +18,19 @@ class ThermalSystem {
     final cooling = _coolingPower[game.farm.coolingSystem] ?? 0.0;
 
     final updatedGpus = game.farm.gpuList.map((gpu) {
-      if (gpu.isBroken) return gpu; // broken GPUs don't heat up
+      if (gpu.condition <= 0) {
+        return gpu.copyWith(temperature: 25); // dead card, ambient
+      }
 
       // Base temp from the GPU model's spec
       final model = GpuCatalog.byId(gpu.modelId);
       double temp = model?.baseTemperature ?? 50.0;
 
       // Overclock adds heat
-      temp += gpu.overclockLevel * 20.0;
+      temp += gpu.overclockLevel * 25.0;
+
+      // Worn cards run hotter: up to +20°C when near death
+      temp += (1 - gpu.condition) * 20.0;
 
       // Cooling reduces heat
       temp += cooling;

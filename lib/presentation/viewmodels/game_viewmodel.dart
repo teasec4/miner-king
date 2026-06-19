@@ -28,7 +28,6 @@ class GameViewModel {
   double get coinsPerSecond => MiningSystem.mine(_game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(_game);
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
-  double get electricityCostPerMin => ElectricitySystem.costPerMinute(_game);
 
   /// Net profit per hour: mining revenue − electricity cost.
   double get netProfitPerHour {
@@ -47,7 +46,7 @@ class GameViewModel {
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
-        isBroken: gpu.isBroken,
+        isDead: gpu.condition <= 0,
         tempStatus: ThermalSystem.status(gpu.temperature),
       );
     }).toList();
@@ -85,18 +84,19 @@ class GameViewModel {
     return GpuCatalog.all[idx + 1].price - model.price;
   }
 
+  /// Repair cost: 30% of model price × damage ratio.
   int repairCost(String instanceId) {
     final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
-    if (gpu == null || !gpu.isBroken) return 0;
+    if (gpu == null || gpu.condition >= 1.0) return 0;
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    return (model.price * 0.15).round();
+    final damage = 1.0 - gpu.condition;
+    return (model.price * 0.3 * damage).round();
   }
 
   bool canRepair(String instanceId) {
-    final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
-    if (gpu == null || !gpu.isBroken) return false;
-    return _game.money >= repairCost(instanceId);
+    final cost = repairCost(instanceId);
+    return cost > 0 && _game.money >= cost;
   }
 
   bool get canSellCoins => _game.coins > 0;
@@ -118,7 +118,7 @@ class GpuDisplayInfo {
   final double temperature;
   final double condition;
   final int overclockLevel;
-  final bool isBroken;
+  final bool isDead;
   final String tempStatus; // 'normal', 'warning', 'critical'
 
   const GpuDisplayInfo({
@@ -128,7 +128,7 @@ class GpuDisplayInfo {
     required this.temperature,
     required this.condition,
     required this.overclockLevel,
-    required this.isBroken,
+    required this.isDead,
     required this.tempStatus,
   });
 }

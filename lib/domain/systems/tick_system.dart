@@ -1,8 +1,8 @@
 import '../models/game.dart';
 import 'electricity_system.dart';
-import 'failure_system.dart';
 import 'mining_system.dart';
 import 'thermal_system.dart';
+import 'wear_system.dart';
 
 /// Main game loop – advances the simulation by one tick.
 /// Orchestrates all systems in order.
@@ -19,8 +19,8 @@ class TickSystem {
     // 2. Update temperatures
     g = ThermalSystem.update(g);
 
-    // 3. Check for failures
-    g = FailureSystem.update(g);
+    // 3. Apply wear from heat
+    g = WearSystem.update(g);
 
     // 4. Deduct electricity cost
     g = ElectricitySystem.update(g);

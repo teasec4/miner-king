@@ -29,7 +29,7 @@ class GameState extends ChangeNotifier {
     return Game(
       money: 1000,
       coins: 0,
-      coinPrice: 42500.0,
+      coinPrice: 10.0,
       electricityRate: 0.12,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
     );
@@ -111,13 +111,12 @@ class GameState extends ChangeNotifier {
 
   // ── Overclock ──
 
-  /// Toggle overclock on a GPU. Max level: 3.
   void toggleOverclock(String instanceId) {
     final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
     if (index == -1) return;
 
     final gpu = _game.farm.gpuList[index];
-    if (gpu.isBroken) return;
+    if (gpu.condition <= 0) return; // dead card
 
     final newLevel = gpu.overclockLevel > 0 ? 0 : 1;
 
@@ -130,26 +129,26 @@ class GameState extends ChangeNotifier {
 
   // ── Repair ──
 
-  /// Repair a broken GPU. Cost = 15% of the GPU model price.
+  /// Repair a GPU. Cost is proportional to damage.
+  /// Full repair cost = 30% of model price.
+  /// Restores condition to 1.0.
   bool repairGpu(String instanceId) {
     final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
     if (index == -1) return false;
 
     final gpu = _game.farm.gpuList[index];
-    if (!gpu.isBroken) return false;
+    if (gpu.condition >= 1.0) return false; // nothing to repair
 
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return false;
 
-    final cost = (model.price * 0.15).round();
+    // Cost proportional to damage: 30% of model price * damage
+    final damage = 1.0 - gpu.condition;
+    final cost = (model.price * 0.3 * damage).round();
     if (_game.money < cost) return false;
 
     final newList = [..._game.farm.gpuList];
-    newList[index] = gpu.copyWith(
-      isBroken: false,
-      condition: (gpu.condition - 0.1).clamp(0.3, 1.0), // permanent wear
-      temperature: model.baseTemperature,
-    );
+    newList[index] = gpu.copyWith(condition: 1.0);
 
     _game = _game.copyWith(
       money: _game.money - cost,

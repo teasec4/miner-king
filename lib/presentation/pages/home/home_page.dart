@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ── Top bar: money, coins, hashrate, power ──
+  // ── Top bar ──
 
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerHour;
@@ -59,7 +59,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 8),
               _chip(
                 Icons.currency_bitcoin,
-                vm.coins.toStringAsFixed(6),
+                vm.coins.toStringAsFixed(4),
                 Colors.amber,
               ),
               const Spacer(),
@@ -96,7 +96,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(width: 8),
               Text(
-                '−${vm.electricityCostPerHour.toStringAsFixed(3)}\$/h',
+                '−${vm.electricityCostPerHour.toStringAsFixed(2)}\$/h',
                 style: TextStyle(fontSize: 11, color: Colors.red.shade400),
               ),
               const Spacer(),
@@ -145,8 +145,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _gpuCard(GpuDisplayInfo gpu, GameViewModel vm) {
-    final isBroken = gpu.isBroken;
+    final isDead = gpu.isDead;
     final isOverclocked = gpu.overclockLevel > 0;
+    final conditionPercent = (gpu.condition * 100).toInt();
 
     // Temperature color
     final tempColor = switch (gpu.tempStatus) {
@@ -155,21 +156,30 @@ class _HomePageState extends State<HomePage> {
       _ => Colors.green,
     };
 
+    // Condition color
+    final condColor = isDead
+        ? Colors.grey
+        : gpu.condition > 0.7
+        ? Colors.green
+        : gpu.condition > 0.3
+        ? Colors.orange
+        : Colors.red;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: isBroken ? Colors.red.shade50 : null,
+      color: isDead ? Colors.grey.shade100 : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Top row: name, status, temp ──
+            // ── Name + badges ──
             Row(
               children: [
                 Icon(
-                  isBroken ? Icons.memory : Icons.memory,
+                  Icons.memory,
                   size: 36,
-                  color: isBroken ? Colors.red.shade300 : Colors.deepPurple,
+                  color: isDead ? Colors.grey.shade400 : Colors.deepPurple,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -178,54 +188,27 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            gpu.modelName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                          Flexible(
+                            child: Text(
+                              gpu.modelName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: isDead ? Colors.grey.shade500 : null,
+                              ),
                             ),
                           ),
                           if (isOverclocked) ...[
                             const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade100,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'OC',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.deepOrange,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                            _badge(
+                              'OC',
+                              Colors.deepOrange,
+                              Colors.orange.shade100,
                             ),
                           ],
-                          if (isBroken) ...[
+                          if (isDead) ...[
                             const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red.shade100,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'BROKEN',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                            _badge('DEAD', Colors.white, Colors.grey),
                           ],
                         ],
                       ),
@@ -242,14 +225,6 @@ class _HomePageState extends State<HomePage> {
                               color: tempColor,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Cond: ${(gpu.condition * 100).toStringAsFixed(0)}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
                         ],
                       ),
                     ],
@@ -258,13 +233,51 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
 
+            const SizedBox(height: 8),
+
+            // ── Condition bar ──
+            Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    value: gpu.condition,
+                    strokeWidth: 2,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation(condColor),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: gpu.condition,
+                      minHeight: 8,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation(condColor),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '$conditionPercent%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: condColor,
+                  ),
+                ),
+              ],
+            ),
+
             // ── Action buttons ──
-            if (!isBroken) ...[
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // Overclock toggle
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (!isDead) ...[
                   _actionButton(
                     label: isOverclocked ? 'Stock' : 'Overclock',
                     icon: Icons.speed,
@@ -272,7 +285,6 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => vm.toggleOverclock(gpu.instanceId),
                   ),
                   const SizedBox(width: 8),
-                  // Upgrade
                   if (vm.upgradeCost(gpu.instanceId) > 0)
                     _actionButton(
                       label: 'Upgrade \$${vm.upgradeCost(gpu.instanceId)}',
@@ -285,13 +297,9 @@ class _HomePageState extends State<HomePage> {
                           : null,
                     ),
                 ],
-              ),
-            ] else ...[
-              // Repair button for broken GPU
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
+                // Repair button (always visible if damaged)
+                if (vm.repairCost(gpu.instanceId) > 0) ...[
+                  if (!isDead) const SizedBox(width: 8),
                   _actionButton(
                     label: 'Repair \$${vm.repairCost(gpu.instanceId)}',
                     icon: Icons.build,
@@ -303,10 +311,24 @@ class _HomePageState extends State<HomePage> {
                         : null,
                   ),
                 ],
-              ),
-            ],
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _badge(String text, Color fg, Color bg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.bold),
       ),
     );
   }
