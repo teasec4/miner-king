@@ -30,21 +30,21 @@ class CourseCatalog {
     name: 'Basic IT',
     price: 300,
     durationTicks: 120,
-    unlocks: 'Unlocks Tech Support',
+    unlocks: 'Unlocks Tech Support, Call Center',
   );
   static const management = Course(
     id: 'management',
     name: 'Management 101',
     price: 500,
     durationTicks: 180,
-    unlocks: 'Unlocks Retail',
+    unlocks: 'Unlocks Retail, Office Clerk',
   );
   static const programming = Course(
     id: 'programming',
     name: 'Programming',
     price: 800,
     durationTicks: 300,
-    unlocks: 'Unlocks Freelance Dev',
+    unlocks: 'Unlocks Freelance Dev, IT Admin',
     requiresCourse: ['basic_it'],
   );
   static const business = Course(
@@ -52,7 +52,7 @@ class CourseCatalog {
     name: 'Business Admin',
     price: 1000,
     durationTicks: 360,
-    unlocks: 'Unlocks Office Manager',
+    unlocks: 'Unlocks Office Manager, Accountant',
     requiresCourse: ['management'],
   );
 

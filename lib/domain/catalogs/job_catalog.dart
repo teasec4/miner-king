@@ -1,10 +1,9 @@
-/// Simple job: player works for salary, gains experience.
 class Job {
   final String id;
   final String name;
   final String description;
   final double salaryPerTick;
-  final int maxLevel; // 0 = infinite
+  final int maxLevel;
   final int expPerLevel;
 
   const Job({
@@ -20,11 +19,11 @@ class Job {
 class JobCatalog {
   JobCatalog._();
 
-  // Tier 1 — no requirements
+  // Tier 1 — Entry level (no requirements)
   static const fastFood = Job(
     id: 'fast_food',
     name: 'Fast Food',
-    description: 'Flip burgers. Easy money.',
+    description: 'Flip burgers. Greasy but pays.',
     salaryPerTick: 0.01,
   );
   static const courier = Job(
@@ -33,45 +32,82 @@ class JobCatalog {
     description: 'Deliver packages across town.',
     salaryPerTick: 0.011,
   );
+  static const janitor = Job(
+    id: 'janitor',
+    name: 'Janitor',
+    description: 'Clean offices at night. Nobody sees you.',
+    salaryPerTick: 0.009,
+  );
+  static const delivery = Job(
+    id: 'delivery',
+    name: 'Delivery Driver',
+    description: 'Drive around town. Tips included.',
+    salaryPerTick: 0.012,
+  );
 
-  // Tier 2 — need Lv5 in any Tier 1
+  static final tier1 = [fastFood, courier, janitor, delivery];
+
+  // Tier 2 — Office/Service (need Tier1 Lv3 or diploma)
   static const techSupport = Job(
     id: 'tech_support',
     name: 'Tech Support',
-    description: 'Help people reset routers.',
+    description: 'Have you tried turning it off and on again?',
     salaryPerTick: 0.015,
   );
   static const retail = Job(
     id: 'retail',
     name: 'Retail',
-    description: 'Manage a small store.',
+    description: 'Manage a small store. Talk to customers.',
     salaryPerTick: 0.016,
   );
+  static const callCenter = Job(
+    id: 'call_center',
+    name: 'Call Center',
+    description: 'Answer calls. Stay calm.',
+    salaryPerTick: 0.014,
+  );
+  static const officeClerk = Job(
+    id: 'office_clerk',
+    name: 'Office Clerk',
+    description: 'File papers. Drink coffee.',
+    salaryPerTick: 0.017,
+  );
 
-  // Tier 3 — need Lv7 in Tier 2
+  static final tier2 = [techSupport, retail, callCenter, officeClerk];
+
+  // Tier 3 — Professional (need Tier2 Lv5 or advanced diploma)
   static const freelance = Job(
     id: 'freelance',
     name: 'Freelance Dev',
-    description: 'Code for clients. Good pay.',
+    description: 'Code for clients. Good pay, flexible hours.',
     salaryPerTick: 0.022,
     maxLevel: 15,
   );
-  static const office = Job(
+  static const officeManager = Job(
     id: 'office',
     name: 'Office Manager',
-    description: 'Run an office team.',
+    description: 'Run an office team. Manage people.',
     salaryPerTick: 0.025,
     maxLevel: 15,
   );
+  static const itAdmin = Job(
+    id: 'it_admin',
+    name: 'IT Admin',
+    description: 'Manage servers. Keep everything running.',
+    salaryPerTick: 0.023,
+    maxLevel: 15,
+  );
+  static const accountant = Job(
+    id: 'accountant',
+    name: 'Accountant',
+    description: 'Crunch numbers. Tax season is hell.',
+    salaryPerTick: 0.026,
+    maxLevel: 15,
+  );
 
-  static final all = [
-    fastFood,
-    courier,
-    techSupport,
-    retail,
-    freelance,
-    office,
-  ];
+  static final tier3 = [freelance, officeManager, itAdmin, accountant];
+
+  static final all = [...tier1, ...tier2, ...tier3];
 
   static Job? byId(String id) {
     try {

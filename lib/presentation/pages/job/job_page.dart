@@ -27,35 +27,38 @@ class JobPage extends StatelessWidget {
     final hasProg = vm.completedCourses.contains('programming');
     final hasBiz = vm.completedCourses.contains('business');
 
-    switch (job.id) {
-      case 'tech_support':
-        final ffLv = _jobLevel(JobCatalog.fastFood, vm);
-        final crLv = _jobLevel(JobCatalog.courier, vm);
-        if (!hasBasicIt && ffLv < 5 && crLv < 5) {
-          return 'Need Basic IT diploma or Fast Food Lv5';
-        }
+    // Tier 1 — no requirements
+    if (JobCatalog.tier1.any((j) => j.id == job.id)) return null;
+
+    // Tier 2 — need Tier1 Lv3 or basic diploma
+    if (JobCatalog.tier2.any((j) => j.id == job.id)) {
+      final hasExp = JobCatalog.tier1.any((t) => _jobLevel(t, vm) >= 3);
+      if (hasExp) return null;
+      if (job.id == 'tech_support' || job.id == 'call_center') {
+        if (!hasBasicIt) return 'Need Basic IT diploma or any Tier1 Lv3';
         return null;
-      case 'retail':
-        final ffLv = _jobLevel(JobCatalog.fastFood, vm);
-        if (!hasMgmt && ffLv < 5) {
-          return 'Need Management diploma or Fast Food Lv5';
-        }
+      }
+      if (job.id == 'retail' || job.id == 'office_clerk') {
+        if (!hasMgmt) return 'Need Management diploma or any Tier1 Lv3';
         return null;
-      case 'freelance':
-        final tsLv = _jobLevel(JobCatalog.techSupport, vm);
-        if (!hasProg && tsLv < 7) {
-          return 'Need Programming diploma or Tech Support Lv7';
-        }
-        return null;
-      case 'office':
-        final rtLv = _jobLevel(JobCatalog.retail, vm);
-        if (!hasBiz && rtLv < 7) {
-          return 'Need Business diploma or Retail Lv7';
-        }
-        return null;
-      default:
-        return null;
+      }
     }
+
+    // Tier 3 — need Tier2 Lv5 or advanced diploma
+    if (JobCatalog.tier3.any((j) => j.id == job.id)) {
+      final hasExp = JobCatalog.tier2.any((t) => _jobLevel(t, vm) >= 5);
+      if (hasExp) return null;
+      if (job.id == 'freelance' || job.id == 'it_admin') {
+        if (!hasProg) return 'Need Programming diploma or any Tier2 Lv5';
+        return null;
+      }
+      if (job.id == 'office' || job.id == 'accountant') {
+        if (!hasBiz) return 'Need Business diploma or any Tier2 Lv5';
+        return null;
+      }
+    }
+
+    return null;
   }
 
   @override
