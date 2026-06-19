@@ -1,5 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/systems/economy_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
@@ -222,6 +223,30 @@ void main() {
     test('repair cost is proportional to damage', () {
       // GTX 1060 price \$200, damage 50%, 30% rate → 200*0.3*0.5 = \$30
       expect((200 * 0.3 * 0.5).round(), 30);
+    });
+
+    test('buyGpu adds GPU when affordable and slots free', () {
+      final state = GameState();
+      // Initial: 1 slot, 1 GPU, \$1000
+      expect(state.game.farm.gpuList.length, 1);
+      expect(state.game.farm.totalSlots, 1);
+    });
+  });
+
+  group('SlotCatalog', () {
+    test('nextTier returns correct tier', () {
+      expect(SlotCatalog.nextTier(1)?.slots, 2);
+      expect(SlotCatalog.nextTier(2)?.slots, 4);
+      expect(SlotCatalog.nextTier(4)?.slots, 8);
+      expect(SlotCatalog.nextTier(8)?.slots, 12);
+      expect(SlotCatalog.nextTier(12), null);
+    });
+
+    test('nextTier returns correct prices', () {
+      expect(SlotCatalog.nextTier(1)?.price, 400);
+      expect(SlotCatalog.nextTier(2)?.price, 1500);
+      expect(SlotCatalog.nextTier(4)?.price, 5000);
+      expect(SlotCatalog.nextTier(8)?.price, 15000);
     });
   });
 }

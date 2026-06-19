@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
@@ -104,6 +105,22 @@ class GameState extends ChangeNotifier {
     _game = _game.copyWith(
       money: _game.money - cost,
       farm: _game.farm.copyWith(gpuList: newList),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  // ── Slots ──
+
+  /// Buy the next slot tier (motherboard upgrade).
+  bool buySlot() {
+    final next = SlotCatalog.nextTier(_game.farm.totalSlots);
+    if (next == null) return false;
+    if (_game.money < next.price) return false;
+
+    _game = _game.copyWith(
+      money: _game.money - next.price,
+      farm: _game.farm.copyWith(totalSlots: next.slots),
     );
     notifyListeners();
     return true;

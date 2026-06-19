@@ -133,14 +133,59 @@ class _HomePageState extends State<HomePage> {
 
   Widget _gpuList(GameViewModel vm) {
     final gpus = vm.gpus;
-    if (gpus.isEmpty) {
+    final emptySlots = vm.totalSlots - vm.usedSlots;
+
+    if (gpus.isEmpty && emptySlots == 0) {
       return const Center(child: Text('No GPUs installed'));
     }
 
+    final itemCount = gpus.length + (emptySlots > 0 ? 1 : 0);
+
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: gpus.length,
-      itemBuilder: (context, index) => _gpuCard(gpus[index], vm),
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        if (index < gpus.length) {
+          return _gpuCard(gpus[index], vm);
+        }
+        return _emptySlotCard(vm, emptySlots);
+      },
+    );
+  }
+
+  Widget _emptySlotCard(GameViewModel vm, int count) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: Colors.grey.shade100,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.memory, size: 36, color: Colors.grey.shade400),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$count empty slot${count > 1 ? "s" : ""}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  Text(
+                    'Go to Shop to buy a GPU',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+          ],
+        ),
+      ),
     );
   }
 

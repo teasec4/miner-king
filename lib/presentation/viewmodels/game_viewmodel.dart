@@ -1,5 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
@@ -101,6 +102,27 @@ class GameViewModel {
 
   bool get canSellCoins => _game.coins > 0;
 
+  // ── Slots ──
+
+  int? get nextSlotTier => SlotCatalog.nextTier(_game.farm.totalSlots)?.slots;
+  int get nextSlotCost =>
+      SlotCatalog.nextTier(_game.farm.totalSlots)?.price ?? 0;
+  bool get canBuySlot => nextSlotTier != null && _game.money >= nextSlotCost;
+
+  // ── Shop ──
+
+  /// All GPU models available for purchase.
+  List<ShopGpuEntry> get shopGpus {
+    return GpuCatalog.all.map((model) {
+      return ShopGpuEntry(
+        model: model,
+        canAfford: _game.money >= model.price,
+        hasSlots: _game.farm.hasFreeSlots,
+        canBuy: _game.money >= model.price && _game.farm.hasFreeSlots,
+      );
+    }).toList();
+  }
+
   // ── Actions ──
 
   void sellAllCoins() => _state.sellAllCoins();
@@ -108,6 +130,23 @@ class GameViewModel {
   bool upgradeGpu(String id) => _state.upgradeGpu(id);
   void toggleOverclock(String id) => _state.toggleOverclock(id);
   bool repairGpu(String id) => _state.repairGpu(id);
+  bool buyGpu(GpuModel model) => _state.buyGpu(model);
+  bool buySlot() => _state.buySlot();
+}
+
+/// Shop display entry for a GPU model.
+class ShopGpuEntry {
+  final GpuModel model;
+  final bool canAfford;
+  final bool hasSlots;
+  final bool canBuy;
+
+  const ShopGpuEntry({
+    required this.model,
+    required this.canAfford,
+    required this.hasSlots,
+    required this.canBuy,
+  });
 }
 
 /// Lightweight display info for a GPU.

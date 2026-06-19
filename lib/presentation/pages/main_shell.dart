@@ -1,9 +1,9 @@
 import 'package:crypto_king/presentation/pages/home/home_page.dart';
 import 'package:crypto_king/presentation/pages/market/market_page.dart';
+import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
 import 'package:flutter/material.dart';
 
-/// Shell with bottom navigation bar.
-/// Each tab is a separate page preserved with IndexedStack.
+/// Shell with bottom navigation bar — Rig / Market / Shop.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -14,7 +14,7 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  static const _tabs = <Widget>[HomePage(), MarketPage()];
+  static const _tabs = <Widget>[HomePage(), MarketPage(), ShopPage()];
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +32,7 @@ class _MainShellState extends State<MainShell> {
               icon: Icon(Icons.show_chart),
               label: 'Market',
             ),
+            BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Shop'),
           ],
         ),
       ],
