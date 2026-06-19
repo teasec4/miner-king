@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
+import 'package:crypto_king/domain/catalogs/course_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
@@ -275,6 +276,26 @@ class GameState extends ChangeNotifier {
       tick: _game.tick,
     );
     notifyListeners();
+  }
+
+  // ── Education ──
+
+  bool enrollCourse(String courseId) {
+    final course = CourseCatalog.byId(courseId);
+    if (course == null) return false;
+    if (_game.money < course.price) return false;
+    if (_game.activeCourseId != null) return false;
+    if (_game.completedCourses.contains(courseId)) return false;
+    for (final req in course.requiresCourse) {
+      if (!_game.completedCourses.contains(req)) return false;
+    }
+    _game = _game.copyWith(
+      money: _game.money - course.price,
+      activeCourseId: courseId,
+      courseTicksLeft: course.durationTicks,
+    );
+    notifyListeners();
+    return true;
   }
 
   // ── Bank ──

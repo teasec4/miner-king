@@ -1,6 +1,7 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/presentation/pages/bank/bank_page.dart';
 import 'package:crypto_king/presentation/pages/black_market/black_market_page.dart';
+import 'package:crypto_king/presentation/pages/institute/institute_page.dart';
 import 'package:crypto_king/presentation/pages/job/job_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -90,6 +91,15 @@ class CityPage extends StatelessWidget {
                       Colors.grey,
                       null,
                     ),
+                    _building(
+                      context,
+                      Icons.school,
+                      'Institute',
+                      'Study courses\nUnlock better jobs',
+                      Colors.indigo,
+                      '/institute',
+                      badge: vm.activeCourseId != null ? _activeBadge() : null,
+                    ),
                   ],
                 ),
               ),
@@ -163,6 +173,7 @@ class CityPage extends StatelessWidget {
     if (route == '/bank') return const BankPage();
     if (route == '/job') return const JobPage();
     if (route == '/blackmarket') return const BlackMarketPage();
+    if (route == '/institute') return const InstitutePage();
     return const SizedBox.shrink();
   }
 

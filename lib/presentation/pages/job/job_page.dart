@@ -22,18 +22,36 @@ class JobPage extends StatelessWidget {
   }
 
   String? _jobRequirement(Job job, GameViewModel vm) {
+    final hasBasicIt = vm.completedCourses.contains('basic_it');
+    final hasMgmt = vm.completedCourses.contains('management');
+    final hasProg = vm.completedCourses.contains('programming');
+    final hasBiz = vm.completedCourses.contains('business');
+
     switch (job.id) {
       case 'tech_support':
-      case 'retail':
         final ffLv = _jobLevel(JobCatalog.fastFood, vm);
         final crLv = _jobLevel(JobCatalog.courier, vm);
-        if (ffLv < 5 && crLv < 5) return 'Need Fast Food Lv5 or Courier Lv5';
+        if (!hasBasicIt && ffLv < 5 && crLv < 5) {
+          return 'Need Basic IT diploma or Fast Food Lv5';
+        }
+        return null;
+      case 'retail':
+        final ffLv = _jobLevel(JobCatalog.fastFood, vm);
+        if (!hasMgmt && ffLv < 5) {
+          return 'Need Management diploma or Fast Food Lv5';
+        }
         return null;
       case 'freelance':
-      case 'office':
         final tsLv = _jobLevel(JobCatalog.techSupport, vm);
+        if (!hasProg && tsLv < 7) {
+          return 'Need Programming diploma or Tech Support Lv7';
+        }
+        return null;
+      case 'office':
         final rtLv = _jobLevel(JobCatalog.retail, vm);
-        if (tsLv < 7 && rtLv < 7) return 'Need Tech Support Lv7 or Retail Lv7';
+        if (!hasBiz && rtLv < 7) {
+          return 'Need Business diploma or Retail Lv7';
+        }
         return null;
       default:
         return null;

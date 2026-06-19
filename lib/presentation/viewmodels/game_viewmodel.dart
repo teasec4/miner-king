@@ -216,6 +216,13 @@ class GameViewModel {
     return job.salaryPerTick * 60 * (1.0 + level * 0.1);
   }
 
+  // ── Education ──
+
+  String? get activeCourseId => _game.activeCourseId;
+  int get courseTicksLeft => _game.courseTicksLeft;
+  List<String> get completedCourses => _game.completedCourses;
+  bool enrollCourse(String id) => _state.enrollCourse(id);
+
   // ── Shop ──
 
   List<ShopGpuEntry> get shopGpus {

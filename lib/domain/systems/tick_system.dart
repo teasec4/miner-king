@@ -1,5 +1,6 @@
 import '../models/game.dart';
 import '../models/game_event.dart';
+import 'course_system.dart';
 import 'credit_system.dart';
 import 'electricity_system.dart';
 import 'event_system.dart';
@@ -49,7 +50,10 @@ class TickSystem {
     // 8. Pay job salary + gain exp
     g = JobSystem.update(g);
 
-    // 9. Advance tick
+    // 9. Tick course progress
+    g = CourseSystem.update(g);
+
+    // 10. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
     return (g, newEvent);
