@@ -3,6 +3,7 @@ import '../models/game_event.dart';
 import 'course_system.dart';
 import 'credit_system.dart';
 import 'electricity_system.dart';
+import 'employee_system.dart';
 import 'event_system.dart';
 import 'job_system.dart';
 import 'market_system.dart';
@@ -53,7 +54,10 @@ class TickSystem {
     // 9. Tick course progress
     g = CourseSystem.update(g);
 
-    // 10. Advance tick
+    // 10. Process employees + office
+    g = EmployeeSystem.update(g);
+
+    // 11. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
     return (g, newEvent);

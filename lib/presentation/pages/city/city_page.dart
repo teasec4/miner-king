@@ -2,6 +2,7 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/presentation/pages/bank/bank_page.dart';
 import 'package:crypto_king/presentation/pages/black_market/black_market_page.dart';
 import 'package:crypto_king/presentation/pages/institute/institute_page.dart';
+import 'package:crypto_king/presentation/pages/business_center/business_center_page.dart';
 import 'package:crypto_king/presentation/pages/job/job_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -79,9 +80,9 @@ class CityPage extends StatelessWidget {
                       context,
                       Icons.business,
                       'Business Center',
-                      'Coming soon...',
-                      Colors.grey,
-                      null,
+                      'Buy office, hire staff\nPassive income & buffs',
+                      Colors.teal,
+                      '/business',
                     ),
                     _building(
                       context,
@@ -166,6 +167,7 @@ class CityPage extends StatelessWidget {
     if (route == '/job') return const JobPage();
     if (route == '/blackmarket') return const BlackMarketPage();
     if (route == '/institute') return const InstitutePage();
+    if (route == '/business') return const BusinessCenterPage();
     return const SizedBox.shrink();
   }
 

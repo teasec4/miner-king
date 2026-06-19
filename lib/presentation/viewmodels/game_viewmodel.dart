@@ -2,6 +2,7 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/job_catalog.dart';
+import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
@@ -14,6 +15,7 @@ import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/credit_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
+import 'package:crypto_king/domain/systems/employee_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
 
@@ -153,6 +155,8 @@ class GameViewModel {
       final debuff = DebuffCatalog.byId(d);
       if (debuff != null) base *= debuff.hashrateMul;
     }
+    final empBonus = EmployeeSystem.hashrateBonus(_game);
+    base *= (1 + empBonus);
     return base;
   }
 
@@ -222,6 +226,19 @@ class GameViewModel {
   int get courseTicksLeft => _game.courseTicksLeft;
   List<String> get completedCourses => _game.completedCourses;
   bool enrollCourse(String id) => _state.enrollCourse(id);
+
+  // ── Office ──
+
+  String? get officeId => _game.officeId;
+  List<String> get employees => _game.employees;
+  bool buyOffice(String id) => _state.buyOffice(id);
+  bool hireEmployee(String id) => _state.hireEmployee(id);
+  void fireEmployee(String id) => _state.fireEmployee(id);
+  int get officeSlots {
+    final id = _game.officeId;
+    if (id == null) return 0;
+    return OfficeCatalog.byId(id)?.slots ?? 0;
+  }
 
   // ── Shop ──
 

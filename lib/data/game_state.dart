@@ -5,6 +5,7 @@ import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/course_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
+import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
@@ -301,6 +302,40 @@ class GameState extends ChangeNotifier {
     );
     notifyListeners();
     return true;
+  }
+
+  // ── Office ──
+
+  bool buyOffice(String officeId) {
+    final office = OfficeCatalog.byId(officeId);
+    if (office == null) return false;
+    if (_game.money < office.price) return false;
+    if (_game.officeId == officeId) return false;
+    _game = _game.copyWith(
+      money: _game.money - office.price,
+      officeId: officeId,
+    );
+    notifyListeners();
+    return true;
+  }
+
+  bool hireEmployee(String empId) {
+    final office = _game.officeId != null
+        ? OfficeCatalog.byId(_game.officeId!)
+        : null;
+    if (office == null) return false;
+    if (_game.employees.length >= office.slots) return false;
+    if (_game.employees.contains(empId)) return false;
+    _game = _game.copyWith(employees: [..._game.employees, empId]);
+    notifyListeners();
+    return true;
+  }
+
+  void fireEmployee(String empId) {
+    _game = _game.copyWith(
+      employees: _game.employees.where((e) => e != empId).toList(),
+    );
+    notifyListeners();
   }
 
   // ── Bank ──

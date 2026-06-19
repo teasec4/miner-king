@@ -6,6 +6,7 @@ import '../models/gpu_instance.dart';
 import '../models/gpu_model.dart';
 import '../models/modifier.dart';
 import '../models/player_profile.dart';
+import 'employee_system.dart';
 
 double _effectiveHashrate(
   GpuInstance gpu,
@@ -70,7 +71,8 @@ class MiningSystem {
       }
 
       // Progress per tick: hashrate * 0.02 (10 MH/s → 0.2/tick → 5s cycle)
-      var progress = gpu.cycleProgress + hashrate * 0.02;
+      final empBonus = EmployeeSystem.hashrateBonus(game);
+      var progress = gpu.cycleProgress + hashrate * 0.02 * (1 + empBonus);
       if (progress >= 1.0) {
         // Cycle complete — grant reward
         final completions = progress.floor();

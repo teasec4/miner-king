@@ -2,6 +2,7 @@ import 'dart:math';
 import '../catalogs/debuff_catalog.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
+import 'employee_system.dart';
 
 /// Gradual GPU degradation + random failures.
 ///
@@ -32,6 +33,8 @@ class WearSystem {
       if (game.perks.any((p) => p.effect == PerkEffect.riskLover)) {
         accelerator *= 1.5;
       }
+      // Repair techs reduce wear
+      accelerator *= (1 - EmployeeSystem.wearReduction(game));
 
       var newCondition = (gpu.condition - wearRate * accelerator).clamp(
         0.0,

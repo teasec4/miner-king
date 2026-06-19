@@ -21,6 +21,8 @@ class Game {
   final List<String> completedCourses;
   final String? activeCourseId;
   final int courseTicksLeft;
+  final List<String> employees;
+  final String? officeId;
   final CharacterType? character;
   final List<Perk> perks;
   final int tick;
@@ -41,6 +43,8 @@ class Game {
     this.completedCourses = const [],
     this.activeCourseId,
     this.courseTicksLeft = 0,
+    this.employees = const [],
+    this.officeId,
     this.character,
     this.perks = const [],
     this.tick = 0,
@@ -72,6 +76,8 @@ class Game {
     List<String>? completedCourses,
     String? activeCourseId,
     int? courseTicksLeft,
+    List<String>? employees,
+    String? officeId,
     CharacterType? character,
     List<Perk>? perks,
     int? tick,
@@ -92,6 +98,8 @@ class Game {
       completedCourses: completedCourses ?? this.completedCourses,
       activeCourseId: activeCourseId ?? this.activeCourseId,
       courseTicksLeft: courseTicksLeft ?? this.courseTicksLeft,
+      employees: employees ?? this.employees,
+      officeId: officeId ?? this.officeId,
       character: character ?? this.character,
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,
