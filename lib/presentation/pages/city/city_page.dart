@@ -1,5 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/presentation/pages/bank/bank_page.dart';
+import 'package:crypto_king/presentation/pages/job/job_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -54,6 +55,15 @@ class CityPage extends StatelessWidget {
                       Colors.blue,
                       '/bank',
                       badge: vm.activeLoans.isNotEmpty ? _loanBadge(vm) : null,
+                    ),
+                    _building(
+                      context,
+                      Icons.work,
+                      'Job',
+                      'Earn cash while you wait\n-40% mining speed',
+                      Colors.orange,
+                      '/job',
+                      badge: vm.activeJobId != null ? _activeBadge() : null,
                     ),
                     _building(
                       context,
@@ -142,8 +152,18 @@ class CityPage extends StatelessWidget {
   Widget _buildingPage(String route) {
     if (route == '/shop') return const ShopPage();
     if (route == '/bank') return const BankPage();
+    if (route == '/job') return const JobPage();
     return const SizedBox.shrink();
   }
+
+  Widget _activeBadge() => Container(
+    width: 12,
+    height: 12,
+    decoration: const BoxDecoration(
+      color: Colors.green,
+      shape: BoxShape.circle,
+    ),
+  );
 
   Widget _loanBadge(GameViewModel vm) => Container(
     width: 22,

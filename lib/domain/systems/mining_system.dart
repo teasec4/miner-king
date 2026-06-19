@@ -11,6 +11,7 @@ double _effectiveHashrate(
   GpuModel model,
   List<Modifier> modifiers,
   List<Perk> perks,
+  bool hasJob,
 ) {
   if (gpu.condition <= 0) return 0;
   if (!gpu.isPowered) return 0;
@@ -33,6 +34,8 @@ double _effectiveHashrate(
   }
 
   base *= gpu.condition;
+  // Working a job? Distracted — 40% hashrate penalty
+  if (hasJob) base *= 0.6;
   return base;
 }
 
@@ -57,6 +60,7 @@ class MiningSystem {
         model,
         game.activeModifiers,
         game.perks,
+        game.activeJobId != null,
       );
       if (hashrate <= 0) {
         updatedGpus.add(gpu.copyWith(cycleProgress: gpu.cycleProgress));
@@ -86,7 +90,13 @@ class MiningSystem {
     for (final gpu in game.farm.gpuList) {
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
-      total += _effectiveHashrate(gpu, model, game.activeModifiers, game.perks);
+      total += _effectiveHashrate(
+        gpu,
+        model,
+        game.activeModifiers,
+        game.perks,
+        game.activeJobId != null,
+      );
     }
     return total;
   }

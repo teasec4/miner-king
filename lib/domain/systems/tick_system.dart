@@ -3,6 +3,7 @@ import '../models/game_event.dart';
 import 'credit_system.dart';
 import 'electricity_system.dart';
 import 'event_system.dart';
+import 'job_system.dart';
 import 'market_system.dart';
 import 'mining_system.dart';
 import 'thermal_system.dart';
@@ -45,7 +46,10 @@ class TickSystem {
     // 7. Apply loan interest + risk
     g = CreditSystem.update(g);
 
-    // 8. Advance tick
+    // 8. Pay job salary + gain exp
+    g = JobSystem.update(g);
+
+    // 9. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
     return (g, newEvent);

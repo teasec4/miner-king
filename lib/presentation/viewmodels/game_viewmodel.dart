@@ -146,7 +146,9 @@ class GameViewModel {
     if (_game.perks.any((p) => p.effect == PerkEffect.riskLover)) {
       base *= 1.5;
     }
-    return base * gpu.condition;
+    base *= gpu.condition;
+    if (_game.activeJobId != null) base *= 0.6;
+    return base;
   }
 
   bool canUpgrade(String instanceId) {
@@ -192,6 +194,13 @@ class GameViewModel {
   bool get canBuySlot => nextSlotTier != null && _game.money >= nextSlotCost;
 
   bool get hasGpuSale => _game.activeEvents.any((e) => e.id == 'gpu_sale');
+
+  // ── Jobs ──
+
+  String? get activeJobId => _game.activeJobId;
+  int jobExp(String jobId) => _game.jobExperience[jobId] ?? 0;
+  void startJob(String id) => _state.startJob(id);
+  void quitJob() => _state.quitJob();
 
   // ── Shop ──
 

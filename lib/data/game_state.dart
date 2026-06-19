@@ -220,6 +220,35 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
+  // ── Jobs ──
+
+  void startJob(String jobId) {
+    _game = _game.copyWith(activeJobId: jobId);
+    notifyListeners();
+  }
+
+  void quitJob() {
+    // copyWith can't clear optional fields (null gets swallowed by ??)
+    _game = Game(
+      money: _game.money,
+      holdings: _game.holdings,
+      coins: _game.coins,
+      electricityRate: _game.electricityRate,
+      farm: _game.farm,
+      activeModifiers: _game.activeModifiers,
+      activeEvents: _game.activeEvents,
+      activeLoans: _game.activeLoans,
+      marketMood: _game.marketMood,
+      loanRepayments: _game.loanRepayments,
+      activeJobId: null,
+      jobExperience: _game.jobExperience,
+      character: _game.character,
+      perks: _game.perks,
+      tick: _game.tick,
+    );
+    notifyListeners();
+  }
+
   // ── Bank ──
 
   bool takeLoan(String loanId) {

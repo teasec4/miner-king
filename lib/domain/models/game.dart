@@ -16,6 +16,8 @@ class Game {
   final List<Loan> activeLoans;
   final double marketMood;
   final Map<String, int> loanRepayments;
+  final String? activeJobId;
+  final Map<String, int> jobExperience;
   final CharacterType? character;
   final List<Perk> perks;
   final int tick;
@@ -31,6 +33,8 @@ class Game {
     this.activeLoans = const [],
     this.marketMood = 0,
     this.loanRepayments = const {},
+    this.activeJobId,
+    this.jobExperience = const {},
     this.character,
     this.perks = const [],
     this.tick = 0,
@@ -57,6 +61,8 @@ class Game {
     List<Loan>? activeLoans,
     double? marketMood,
     Map<String, int>? loanRepayments,
+    String? activeJobId,
+    Map<String, int>? jobExperience,
     CharacterType? character,
     List<Perk>? perks,
     int? tick,
@@ -72,6 +78,8 @@ class Game {
       activeLoans: activeLoans ?? this.activeLoans,
       marketMood: marketMood ?? this.marketMood,
       loanRepayments: loanRepayments ?? this.loanRepayments,
+      activeJobId: activeJobId ?? this.activeJobId,
+      jobExperience: jobExperience ?? this.jobExperience,
       character: character ?? this.character,
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,
