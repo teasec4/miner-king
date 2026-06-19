@@ -186,7 +186,7 @@ class GameState extends ChangeNotifier {
       name: template.name,
       principal: template.principal,
       interestPerMinute: template.interestPerMinute,
-    );
+    )..remaining = template.principal * 1.1; // 10% fee upfront
     _game = _game.copyWith(
       money: _game.money + loan.principal,
       activeLoans: [..._game.activeLoans, loan],

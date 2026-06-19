@@ -90,6 +90,7 @@ class CityPage extends StatelessWidget {
     String? route, {
     Widget? badge,
   }) => Card(
+    clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: route != null
           ? () => Navigator.of(
@@ -97,38 +98,43 @@ class CityPage extends StatelessWidget {
             ).push(MaterialPageRoute(builder: (_) => _buildingPage(route)))
           : null,
       borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: route != null ? null : Colors.grey.shade400,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: route != null ? null : Colors.grey.shade400,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-            ),
-            if (badge != null) ...[const SizedBox(height: 6), badge],
-          ],
-        ),
+          ),
+          if (badge != null) Positioned(top: 6, right: 6, child: badge),
+        ],
       ),
     ),
   );
@@ -140,29 +146,18 @@ class CityPage extends StatelessWidget {
   }
 
   Widget _loanBadge(GameViewModel vm) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: Colors.red.shade100,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+    width: 22,
+    height: 22,
+    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+    child: Center(
+      child: Text(
+        '${vm.activeLoans.length}',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
         ),
-        const SizedBox(width: 4),
-        Text(
-          '${vm.activeLoans.length} loan',
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.red.shade700,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+      ),
     ),
   );
 }
