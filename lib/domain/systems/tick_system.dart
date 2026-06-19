@@ -22,13 +22,16 @@ class TickSystem {
     // 2. Process events (tick active, maybe trigger new)
     (g, newEvent) = EventSystem.update(g);
 
-    // 3. Mine coins
-    final mined = MiningSystem.mine(g);
+    // 3. Mine coins (cycle-based)
+    final (updatedGpus, mined) = MiningSystem.mine(g);
     final newHoldings = Map<String, double>.from(g.holdings);
     for (final entry in mined.entries) {
       newHoldings[entry.key] = (newHoldings[entry.key] ?? 0) + entry.value;
     }
-    g = g.copyWith(holdings: newHoldings);
+    g = g.copyWith(
+      holdings: newHoldings,
+      farm: g.farm.copyWith(gpuList: updatedGpus),
+    );
 
     // 4. Update temperatures
     g = ThermalSystem.update(g);

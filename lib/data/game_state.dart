@@ -24,6 +24,7 @@ class GameState extends ChangeNotifier {
   Game _game;
   Timer? _tickTimer;
   Timer? _watchdog;
+  int _lastWatchdogTick = 0;
   GameEvent? lastEvent;
 
   /// Callback when a new event is triggered.
@@ -35,10 +36,20 @@ class GameState extends ChangeNotifier {
 
   void _startWatchdog() {
     _watchdog?.cancel();
-    _watchdog = Timer.periodic(const Duration(seconds: 10), (_) {
+    _watchdog = Timer.periodic(const Duration(seconds: 3), (_) {
+      // Restart if timer died
       if (_tickTimer == null || !_tickTimer!.isActive) {
         startTicks();
+        return;
       }
+      // Also check tick is actually advancing (not stuck)
+      final currentTick = _game.tick;
+      if (_lastWatchdogTick > 0 && currentTick == _lastWatchdogTick) {
+        // Ticker stalled — force restart
+        _tickTimer?.cancel();
+        startTicks();
+      }
+      _lastWatchdogTick = currentTick;
     });
   }
 
@@ -61,6 +72,7 @@ class GameState extends ChangeNotifier {
   }
 
   void startTicks({Duration interval = const Duration(seconds: 1)}) {
+    if (_tickTimer?.isActive == true) return; // already running
     _tickTimer?.cancel();
     _tickTimer = Timer.periodic(interval, (_) {
       _safeTick();

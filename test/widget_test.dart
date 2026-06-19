@@ -32,11 +32,15 @@ void main() {
   });
 
   group('TickSystem', () {
-    test('tick increases holdings and tick counter', () {
+    test('tick increases holdings and tick counter after cycles', () {
       final state = GameState();
-      final (game, _) = TickSystem.tick(state.game);
+      var game = state.game;
+      // GTX 1060 needs ~5 ticks to complete its first mining cycle
+      for (int i = 0; i < 6; i++) {
+        (game, _) = TickSystem.tick(game);
+      }
       expect(game.holdings['btc']!, greaterThan(0));
-      expect(game.tick, 1);
+      expect(game.tick, 6);
     });
   });
 
@@ -122,11 +126,19 @@ void main() {
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
       expect(MiningSystem.totalHashrate(game), closeTo(full * 0.5, 0.1));
     });
-    test('mine returns per-coin map', () {
+    test('mine returns per-coin map after enough ticks', () {
       final state = GameState();
-      final mined = MiningSystem.mine(state.game);
-      expect(mined.containsKey('btc'), true);
-      expect(mined['btc']!, greaterThan(0));
+      var game = state.game;
+      // GTX 1060 needs ~5 ticks to complete a cycle
+      for (int i = 0; i < 5; i++) {
+        final (gpus, mined) = MiningSystem.mine(game);
+        if (mined.isNotEmpty) {
+          expect(mined.containsKey('btc'), true);
+          expect(mined['btc']!, greaterThan(0));
+          return;
+        }
+        game = game.copyWith(farm: game.farm.copyWith(gpuList: gpus));
+      }
     });
   });
 

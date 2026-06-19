@@ -42,17 +42,21 @@ class GameViewModel {
     _ => '',
   };
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
+  double get electricityCostPerMin => electricityCostPerHour / 60;
 
-  double get netProfitPerHour {
-    final mined = MiningSystem.mine(_game);
+  double get netProfitPerMin {
     double revenue = 0;
-    for (final entry in mined.entries) {
-      final coin = _game.coin(entry.key);
+    for (final gpu in _game.farm.gpuList) {
+      final model = GpuCatalog.byId(gpu.modelId);
+      if (model == null) continue;
+      final hashrate = _gpuHashrate(gpu, model);
+      if (hashrate <= 0) continue;
+      final coin = _game.coin(gpu.miningCoinId);
       if (coin != null) {
-        revenue += entry.value * 3600 * coin.price;
+        revenue += hashrate * 0.02 * 60 * 0.01 * (coin.baseReward) * coin.price;
       }
     }
-    return revenue - electricityCostPerHour;
+    return revenue - electricityCostPerMin;
   }
 
   /// Holding amount for a coin.
@@ -95,12 +99,11 @@ class GameViewModel {
       final model = GpuCatalog.byId(gpu.modelId);
       final coin = CoinCatalog.byId(gpu.miningCoinId);
       final hashrate = _gpuHashrate(gpu, model);
-      final revenuePerHour =
-          hashrate *
-          0.0002 *
-          (coin?.baseReward ?? 1) *
-          3600 *
-          (coin?.price ?? 0);
+      // Cycle progress: visible fill on GPU card
+      final cycleProgress = gpu.cycleProgress;
+      // Revenue per cycle completion
+      final cycleReward = 0.01 * (coin?.baseReward ?? 1);
+      final revenuePerCycle = cycleReward * (coin?.price ?? 0);
       return GpuDisplayInfo(
         instanceId: gpu.id,
         modelName: model?.name ?? 'Unknown',
@@ -108,13 +111,18 @@ class GameViewModel {
         miningCoinId: gpu.miningCoinId,
         miningCoinName: coin?.name ?? 'BTC',
         isPowered: gpu.isPowered,
-        revenuePerHour: revenuePerHour,
+        revenuePerHour:
+            hashrate * 0.02 * cycleReward * 3600 * (coin?.price ?? 0),
+        revenuePerMin: hashrate * 0.02 * cycleReward * 60 * (coin?.price ?? 0),
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
         siliconLotteryLevel: gpu.siliconLotteryLevel,
         isDead: gpu.condition <= 0,
         tempStatus: ThermalSystem.status(gpu.temperature),
+        cycleProgress: cycleProgress,
+        cycleReward: cycleReward,
+        revenuePerCycle: revenuePerCycle,
       );
     }).toList();
   }
@@ -241,12 +249,16 @@ class GpuDisplayInfo {
   final String miningCoinName;
   final bool isPowered;
   final double revenuePerHour;
+  final double revenuePerMin;
   final double temperature;
   final double condition;
   final int overclockLevel;
   final int siliconLotteryLevel;
   final bool isDead;
   final String tempStatus;
+  final double cycleProgress;
+  final double cycleReward;
+  final double revenuePerCycle;
 
   const GpuDisplayInfo({
     required this.instanceId,
@@ -256,11 +268,15 @@ class GpuDisplayInfo {
     required this.miningCoinName,
     required this.isPowered,
     required this.revenuePerHour,
+    required this.revenuePerMin,
     required this.temperature,
     required this.condition,
     required this.overclockLevel,
     required this.siliconLotteryLevel,
     required this.isDead,
     required this.tempStatus,
+    required this.cycleProgress,
+    required this.cycleReward,
+    required this.revenuePerCycle,
   });
 }

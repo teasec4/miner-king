@@ -21,11 +21,9 @@ double _effectiveHashrate(
     base *= 1 + 0.2 * gpu.effectiveOverclock;
   }
 
-  // Perk: Silicon Lottery +10%
   if (perks.any((p) => p.effect == PerkEffect.siliconLottery)) {
     base *= 1.1;
   }
-  // Perk: Risk Lover +50%
   if (perks.any((p) => p.effect == PerkEffect.riskLover)) {
     base *= 1.5;
   }
@@ -38,17 +36,21 @@ double _effectiveHashrate(
   return base;
 }
 
-/// Stateless system – calculates coin production per tick for each coin.
+/// Cycle-based mining: each GPU fills a progress bar, reward on completion.
 class MiningSystem {
   MiningSystem._();
 
-  /// Returns a map of coinId → coins mined this tick.
-  static Map<String, double> mine(Game game) {
+  /// Advance cycles. Returns (updated GPUs, coins produced this tick).
+  static (List<GpuInstance>, Map<String, double>) mine(Game game) {
     final produced = <String, double>{};
+    final updatedGpus = <GpuInstance>[];
 
     for (final gpu in game.farm.gpuList) {
       final model = GpuCatalog.byId(gpu.modelId);
-      if (model == null) continue;
+      if (model == null) {
+        updatedGpus.add(gpu);
+        continue;
+      }
 
       final hashrate = _effectiveHashrate(
         gpu,
@@ -56,18 +58,26 @@ class MiningSystem {
         game.activeModifiers,
         game.perks,
       );
-      if (hashrate <= 0) continue;
+      if (hashrate <= 0) {
+        updatedGpus.add(gpu.copyWith(cycleProgress: gpu.cycleProgress));
+        continue;
+      }
 
-      final coin = CoinCatalog.byId(gpu.miningCoinId);
-      final reward = coin?.baseReward ?? 1.0;
-
-      // Coins per tick: hashrate * baseRate * coinReward
-      final amount = hashrate * 0.0002 * reward;
-
-      produced[gpu.miningCoinId] = (produced[gpu.miningCoinId] ?? 0) + amount;
+      // Progress per tick: hashrate * 0.02 (10 MH/s → 0.2/tick → 5s cycle)
+      var progress = gpu.cycleProgress + hashrate * 0.02;
+      if (progress >= 1.0) {
+        // Cycle complete — grant reward
+        final completions = progress.floor();
+        progress -= completions;
+        final coin = CoinCatalog.byId(gpu.miningCoinId);
+        final reward = coin?.baseReward ?? 1.0;
+        final amount = 0.01 * reward * completions;
+        produced[gpu.miningCoinId] = (produced[gpu.miningCoinId] ?? 0) + amount;
+      }
+      updatedGpus.add(gpu.copyWith(cycleProgress: progress));
     }
 
-    return produced;
+    return (updatedGpus, produced);
   }
 
   /// Returns total effective hashrate (for display).

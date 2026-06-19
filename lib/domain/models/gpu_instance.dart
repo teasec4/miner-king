@@ -7,6 +7,7 @@ class GpuInstance {
   double temperature;
   int overclockLevel;
   int siliconLotteryLevel;
+  double cycleProgress; // 0.0 → 1.0, reward at 1.0
 
   GpuInstance({
     required this.id,
@@ -17,6 +18,7 @@ class GpuInstance {
     this.temperature = 50,
     this.overclockLevel = 0,
     this.siliconLotteryLevel = 0,
+    this.cycleProgress = 0,
   });
 
   int get effectiveOverclock => overclockLevel + siliconLotteryLevel;
@@ -30,6 +32,7 @@ class GpuInstance {
     double? temperature,
     int? overclockLevel,
     int? siliconLotteryLevel,
+    double? cycleProgress,
   }) {
     return GpuInstance(
       id: id ?? this.id,
@@ -40,6 +43,7 @@ class GpuInstance {
       temperature: temperature ?? this.temperature,
       overclockLevel: overclockLevel ?? this.overclockLevel,
       siliconLotteryLevel: siliconLotteryLevel ?? this.siliconLotteryLevel,
+      cycleProgress: cycleProgress ?? this.cycleProgress,
     );
   }
 }

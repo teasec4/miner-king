@@ -142,7 +142,7 @@ class _HomePageState extends State<HomePage> {
   );
 
   Widget _resourcesBar(GameViewModel vm) {
-    final profit = vm.netProfitPerHour;
+    final profit = vm.netProfitPerMin;
     final c = profit >= 0 ? Colors.green : Colors.red;
     final btc = vm.coinState('btc');
     return Padding(
@@ -174,7 +174,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Text(
-                    '${profit >= 0 ? "+" : ""}${profit.toStringAsFixed(2)}\$/h',
+                    '${profit >= 0 ? "+" : ""}${profit.toStringAsFixed(2)}\$/min',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
@@ -202,7 +202,7 @@ class _HomePageState extends State<HomePage> {
               ],
               const SizedBox(width: 8),
               Text(
-                '\u2212${vm.electricityCostPerHour.toStringAsFixed(2)}\$/h',
+                '\u2212${vm.electricityCostPerMin.toStringAsFixed(2)}\$/min',
                 style: TextStyle(fontSize: 11, color: Colors.red.shade400),
               ),
               const Spacer(),
@@ -410,7 +410,7 @@ class _HomePageState extends State<HomePage> {
                           const Spacer(),
                           if (!dead && gpu.isPowered)
                             Text(
-                              '${gpu.miningCoinName} +\$${gpu.revenuePerHour.toStringAsFixed(1)}/h',
+                              '\$${gpu.revenuePerMin.toStringAsFixed(1)}/min',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -427,6 +427,40 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 8),
             Row(
               children: [
+                // Cycle progress bar
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: gpu.isPowered && !dead ? gpu.cycleProgress : 0,
+                      minHeight: 10,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation(
+                        gpu.isPowered && !dead ? Colors.blue : Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${(gpu.cycleProgress * 100).toInt()}%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${gpu.miningCoinName} mine',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const Spacer(),
+                // Condition bar (small)
                 SizedBox(
                   width: 14,
                   height: 14,
@@ -437,19 +471,7 @@ class _HomePageState extends State<HomePage> {
                     valueColor: AlwaysStoppedAnimation(cc),
                   ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: gpu.condition,
-                      minHeight: 8,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation(cc),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 Text(
                   '$cp%',
                   style: TextStyle(
