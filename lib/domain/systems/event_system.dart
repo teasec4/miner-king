@@ -68,7 +68,9 @@ class EventSystem {
     final mood = game.marketMood;
     final r = _random.nextDouble();
     if (mood > 0.3 && r < mood * 0.4) {
-      final boom = pool.where((e) => e.id == 'mining_boom').firstOrNull;
+      final boom = pool
+          .where((e) => e.id == 'mining_boom' || e.id == 'fomo_rally')
+          .firstOrNull;
       if (boom != null) return boom;
     }
     if (mood < -0.3 && r < -mood * 0.4) {
@@ -84,14 +86,14 @@ class EventSystem {
       case 'dust':
       case 'fan_fail':
         break; // handled by thermal system
-      case 'silicon_lottery':
-        if (g.farm.gpuList.isNotEmpty) {
-          final idx = _random.nextInt(g.farm.gpuList.length);
-          final gpu = g.farm.gpuList[idx];
-          final newList = [...g.farm.gpuList];
-          newList[idx] = gpu.copyWith(
-            siliconLotteryLevel: gpu.siliconLotteryLevel + 1,
-          );
+      case 'overheat':
+        // -5% condition to all GPUs
+        {
+          final newList = g.farm.gpuList.map((gpu) {
+            return gpu.copyWith(
+              condition: (gpu.condition - 0.05).clamp(0.0, 1.0),
+            );
+          }).toList();
           g = g.copyWith(farm: g.farm.copyWith(gpuList: newList));
         }
         break;
@@ -127,6 +129,21 @@ class EventSystem {
           }
         }
         break;
+      case 'fomo_rally':
+        {
+          final eligible = g.coins.where((c) => !c.eventImmune).toList();
+          if (eligible.isNotEmpty) {
+            final coin = _weightedPick(eligible, (c) => c.boomChance);
+            final idx = g.coins.indexOf(coin);
+            event.data = {'coinIdx': idx, 'oldPrice': coin.price};
+            final newCoins = [...g.coins];
+            newCoins[idx] = coin.copyWith(
+              price: (coin.price * 1.5).clamp(0.01, 999999),
+            );
+            g = g.copyWith(coins: newCoins);
+          }
+        }
+        break;
       case 'power_surge':
         g = g.copyWith(electricityRate: g.electricityRate * 2);
         break;
@@ -137,7 +154,11 @@ class EventSystem {
         // Applied in EmployeeSystem via active event check
         break;
       case 'job_fair':
-        // Applied in JobSystem via active event check
+        break;
+      case 'free_power':
+        // Electricity -> 0. Store old rate to restore
+        event.data = {'oldRate': g.electricityRate};
+        g = g.copyWith(electricityRate: 0);
         break;
     }
     return g.copyWith(activeEvents: [...g.activeEvents, event]);
@@ -149,8 +170,17 @@ class EventSystem {
         return game.copyWith(electricityRate: game.electricityRate / 2);
       case 'tax_break':
         return game.copyWith(electricityRate: game.electricityRate / 0.5);
+      case 'free_power':
+        final data = event.data;
+        if (data != null && data['oldRate'] != null) {
+          return game.copyWith(
+            electricityRate: (data['oldRate'] as num).toDouble(),
+          );
+        }
+        return game;
       case 'market_crash':
       case 'mining_boom':
+      case 'fomo_rally':
         final data = event.data;
         if (data != null) {
           final idx = data['coinIdx'] as int;

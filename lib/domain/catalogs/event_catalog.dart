@@ -20,10 +20,10 @@ class EventCatalog {
     category: 'rig',
     durationTicks: 60,
   );
-  static final rigSilicon = GameEvent(
-    id: 'silicon_lottery',
-    name: 'Silicon Lottery',
-    description: 'One GPU exceptionally binned — permanent +20% hashrate.',
+  static final rigOverheat = GameEvent(
+    id: 'overheat',
+    name: 'Overheat',
+    description: 'All GPUs take -5% condition damage instantly.',
     category: 'rig',
     durationTicks: 0,
   );
@@ -58,6 +58,13 @@ class EventCatalog {
     category: 'market',
     durationTicks: 120,
   );
+  static final marketFomo = GameEvent(
+    id: 'fomo_rally',
+    name: 'FOMO Rally',
+    description: 'Everyone is buying! A random coin +50% for 90s.',
+    category: 'market',
+    durationTicks: 90,
+  );
 
   // ── City events (shown on City tab) ──
 
@@ -82,10 +89,27 @@ class EventCatalog {
     category: 'city',
     durationTicks: 120,
   );
+  static final cityFreePower = GameEvent(
+    id: 'free_power',
+    name: 'Free Power',
+    description: 'Grid surplus — electricity cost \$0 for 60s!',
+    category: 'city',
+    durationTicks: 60,
+  );
 
-  static final rigEvents = [rigDust, rigFanFail, rigSilicon, rigPowerSurge];
-  static final marketEvents = [marketCrash, marketBoom, marketGpuSale];
-  static final cityEvents = [cityTaxBreak, cityJobFair, cityRentHike];
+  static final rigEvents = [rigDust, rigFanFail, rigOverheat, rigPowerSurge];
+  static final marketEvents = [
+    marketCrash,
+    marketBoom,
+    marketGpuSale,
+    marketFomo,
+  ];
+  static final cityEvents = [
+    cityTaxBreak,
+    cityJobFair,
+    cityRentHike,
+    cityFreePower,
+  ];
   static final all = [...rigEvents, ...marketEvents, ...cityEvents];
 
   static GameEvent? byId(String id) {

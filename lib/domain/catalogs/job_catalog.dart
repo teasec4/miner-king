@@ -44,8 +44,27 @@ class JobCatalog {
     description: 'Drive around town. Tips included.',
     salaryPerTick: 0.012,
   );
+  static const barista = Job(
+    id: 'barista',
+    name: 'Barista',
+    description: 'Make coffee. Deal with Karens.',
+    salaryPerTick: 0.0095,
+  );
+  static const warehouse = Job(
+    id: 'warehouse',
+    name: 'Warehouse Worker',
+    description: 'Lift boxes. Stay fit.',
+    salaryPerTick: 0.0115,
+  );
 
-  static final tier1 = [fastFood, courier, janitor, delivery];
+  static final tier1 = [
+    fastFood,
+    courier,
+    janitor,
+    delivery,
+    barista,
+    warehouse,
+  ];
 
   // Tier 2 — Office/Service (need Tier1 Lv3 or diploma)
   static const techSupport = Job(
@@ -72,8 +91,27 @@ class JobCatalog {
     description: 'File papers. Drink coffee.',
     salaryPerTick: 0.017,
   );
+  static const dataEntry = Job(
+    id: 'data_entry',
+    name: 'Data Entry',
+    description: 'Type numbers. Listen to podcasts.',
+    salaryPerTick: 0.0145,
+  );
+  static const insurance = Job(
+    id: 'insurance',
+    name: 'Insurance Agent',
+    description: 'Sell policies. Smile a lot.',
+    salaryPerTick: 0.0165,
+  );
 
-  static final tier2 = [techSupport, retail, callCenter, officeClerk];
+  static final tier2 = [
+    techSupport,
+    retail,
+    callCenter,
+    officeClerk,
+    dataEntry,
+    insurance,
+  ];
 
   // Tier 3 — Professional (need Tier2 Lv5 or advanced diploma)
   static const freelance = Job(
@@ -104,8 +142,29 @@ class JobCatalog {
     salaryPerTick: 0.026,
     maxLevel: 15,
   );
+  static const architect = Job(
+    id: 'architect',
+    name: 'Software Architect',
+    description: 'Design systems. Big salary.',
+    salaryPerTick: 0.028,
+    maxLevel: 15,
+  );
+  static const marketing = Job(
+    id: 'marketing',
+    name: 'Marketing Director',
+    description: 'Run campaigns. Big budget.',
+    salaryPerTick: 0.027,
+    maxLevel: 15,
+  );
 
-  static final tier3 = [freelance, officeManager, itAdmin, accountant];
+  static final tier3 = [
+    freelance,
+    officeManager,
+    itAdmin,
+    accountant,
+    architect,
+    marketing,
+  ];
 
   static final all = [...tier1, ...tier2, ...tier3];
 
