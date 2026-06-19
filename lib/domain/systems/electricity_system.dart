@@ -26,6 +26,7 @@ class ElectricitySystem {
     double total = 0;
     for (final gpu in game.farm.gpuList) {
       if (gpu.condition <= 0) continue;
+      if (!gpu.isPowered) continue;
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
       // Overclock adds 10% power per level

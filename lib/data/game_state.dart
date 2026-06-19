@@ -144,6 +144,19 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Power toggle ──
+
+  void togglePower(String instanceId) {
+    final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
+    if (index == -1) return;
+    final gpu = _game.farm.gpuList[index];
+    if (gpu.condition <= 0) return; // dead card can't toggle
+    final newList = [..._game.farm.gpuList];
+    newList[index] = gpu.copyWith(isPowered: !gpu.isPowered);
+    _game = _game.copyWith(farm: _game.farm.copyWith(gpuList: newList));
+    notifyListeners();
+  }
+
   // ── Repair ──
 
   bool repairGpu(String instanceId) {

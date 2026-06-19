@@ -11,6 +11,7 @@ double _effectiveHashrate(
   List<Modifier> modifiers,
 ) {
   if (gpu.condition <= 0) return 0;
+  if (!gpu.isPowered) return 0;
 
   double base = model.baseHashrate;
 

@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -24,7 +23,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final game = context.watch<GameState>();
     final vm = GameViewModel(game);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Mining Rig'), centerTitle: true),
       body: SafeArea(
@@ -44,7 +42,6 @@ class _HomePageState extends State<HomePage> {
     final profit = vm.netProfitPerHour;
     final profitColor = profit >= 0 ? Colors.green : Colors.red;
     final btc = vm.coinState('btc');
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(
@@ -112,23 +109,21 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _chip(IconData icon, String value, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: color,
-          ),
+  Widget _chip(IconData icon, String value, Color color) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 18, color: color),
+      const SizedBox(width: 2),
+      Text(
+        value,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: color,
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 
   Widget _gpuList(GameViewModel vm) {
     final gpus = vm.gpus;
@@ -136,58 +131,52 @@ class _HomePageState extends State<HomePage> {
     if (gpus.isEmpty && emptySlots == 0) {
       return const Center(child: Text('No GPUs installed'));
     }
-    final itemCount = gpus.length + (emptySlots > 0 ? 1 : 0);
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        if (index < gpus.length) return _gpuCard(gpus[index], vm);
-        return _emptySlotCard(vm, emptySlots);
-      },
+      itemCount: gpus.length + (emptySlots > 0 ? 1 : 0),
+      itemBuilder: (_, i) =>
+          i < gpus.length ? _gpuCard(gpus[i], vm) : _emptySlotCard(emptySlots),
     );
   }
 
-  Widget _emptySlotCard(GameViewModel vm, int count) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Colors.grey.shade100,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.memory, size: 36, color: Colors.grey.shade400),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$count empty slot${count > 1 ? "s" : ""}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
-                      color: Colors.grey.shade500,
-                    ),
+  Widget _emptySlotCard(int count) => Card(
+    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    color: Colors.grey.shade100,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(Icons.memory, size: 36, color: Colors.grey.shade400),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$count empty slot${count > 1 ? "s" : ""}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                    color: Colors.grey.shade500,
                   ),
-                  Text(
-                    'Go to Shop to buy a GPU',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                  ),
-                ],
-              ),
+                ),
+                Text(
+                  'Go to Shop to buy a GPU',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                ),
+              ],
             ),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400),
-          ],
-        ),
+          ),
+          Icon(Icons.chevron_right, color: Colors.grey.shade400),
+        ],
       ),
-    );
-  }
+    ),
+  );
 
   Widget _gpuCard(GpuDisplayInfo gpu, GameViewModel vm) {
-    final isDead = gpu.isDead;
-    final isOverclocked = gpu.overclockLevel > 0;
-    final conditionPercent = (gpu.condition * 100).toInt();
-
+    final isDead = gpu.isDead,
+        isOC = gpu.overclockLevel > 0,
+        condPct = (gpu.condition * 100).toInt();
     final tempColor = switch (gpu.tempStatus) {
       'critical' => Colors.red,
       'warning' => Colors.orange,
@@ -233,7 +222,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                           ),
-                          if (isOverclocked) ...[
+                          if (isOC) ...[
                             const SizedBox(width: 4),
                             _badge(
                               'OC',
@@ -247,6 +236,10 @@ class _HomePageState extends State<HomePage> {
                             Colors.blue.shade700,
                             Colors.blue.shade50,
                           ),
+                          if (!gpu.isPowered) ...[
+                            const SizedBox(width: 4),
+                            _badge('OFF', Colors.white, Colors.grey.shade600),
+                          ],
                           if (isDead) ...[
                             const SizedBox(width: 4),
                             _badge('DEAD', Colors.white, Colors.grey),
@@ -300,7 +293,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '$conditionPercent%',
+                  '$condPct%',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -314,36 +307,41 @@ class _HomePageState extends State<HomePage> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (!isDead) ...[
-                  _actionButton(
-                    label: isOverclocked ? 'Stock' : 'OC',
-                    icon: Icons.speed,
-                    color: isOverclocked ? Colors.grey : Colors.deepOrange,
-                    onTap: () => vm.toggleOverclock(gpu.instanceId),
+                  _btn(
+                    gpu.isPowered ? 'ON' : 'OFF',
+                    gpu.isPowered ? Icons.power_settings_new : Icons.power_off,
+                    gpu.isPowered ? Colors.green : Colors.grey,
+                    () => vm.togglePower(gpu.instanceId),
+                  ),
+                  const SizedBox(width: 6),
+                  _btn(
+                    isOC ? 'Stock' : 'OC',
+                    Icons.speed,
+                    isOC ? Colors.grey : Colors.deepOrange,
+                    () => vm.toggleOverclock(gpu.instanceId),
                   ),
                   const SizedBox(width: 6),
                   _coinSwitcher(gpu, vm),
                   const SizedBox(width: 6),
                   if (vm.upgradeCost(gpu.instanceId) > 0)
-                    _actionButton(
-                      label: 'Up \$${vm.upgradeCost(gpu.instanceId)}',
-                      icon: Icons.upgrade,
-                      color: vm.canUpgrade(gpu.instanceId)
+                    _btn(
+                      'Up \$${vm.upgradeCost(gpu.instanceId)}',
+                      Icons.upgrade,
+                      vm.canUpgrade(gpu.instanceId)
                           ? Colors.amber
                           : Colors.grey,
-                      onTap: vm.canUpgrade(gpu.instanceId)
+                      vm.canUpgrade(gpu.instanceId)
                           ? () => vm.upgradeGpu(gpu.instanceId)
                           : null,
                     ),
                 ],
                 if (vm.repairCost(gpu.instanceId) > 0) ...[
                   if (!isDead) const SizedBox(width: 6),
-                  _actionButton(
-                    label: 'Fix \$${vm.repairCost(gpu.instanceId)}',
-                    icon: Icons.build,
-                    color: vm.canRepair(gpu.instanceId)
-                        ? Colors.blue
-                        : Colors.grey,
-                    onTap: vm.canRepair(gpu.instanceId)
+                  _btn(
+                    'Fix \$${vm.repairCost(gpu.instanceId)}',
+                    Icons.build,
+                    vm.canRepair(gpu.instanceId) ? Colors.blue : Colors.grey,
+                    vm.canRepair(gpu.instanceId)
                         ? () => vm.repairGpu(gpu.instanceId)
                         : null,
                   ),
@@ -359,12 +357,11 @@ class _HomePageState extends State<HomePage> {
   Widget _coinSwitcher(GpuDisplayInfo gpu, GameViewModel vm) {
     final coins = vm.coins;
     if (coins.length < 2) return const SizedBox.shrink();
-
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 40),
       tooltip: 'Switch coin',
-      onSelected: (coinId) => vm.setMiningCoin(gpu.instanceId, coinId),
+      onSelected: (id) => vm.setMiningCoin(gpu.instanceId, id),
       itemBuilder: (_) => coins
           .map(
             (c) => PopupMenuItem(
@@ -380,80 +377,66 @@ class _HomePageState extends State<HomePage> {
             ),
           )
           .toList(),
-      child: _actionButton(
-        label: gpu.miningCoinName,
-        icon: Icons.currency_bitcoin,
-        color: Colors.blue,
-        onTap: null,
+      child: _btn(
+        gpu.miningCoinName,
+        Icons.currency_bitcoin,
+        Colors.blue,
+        null,
       ),
     );
   }
 
-  Widget _badge(String text, Color fg, Color bg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(3),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 9, color: fg, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
+  Widget _badge(String text, Color fg, Color bg) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(3),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(fontSize: 9, color: fg, fontWeight: FontWeight.bold),
+    ),
+  );
 
-  Widget _actionButton({
-    required String label,
-    required IconData icon,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
-    return SizedBox(
-      height: 28,
-      child: ElevatedButton.icon(
-        icon: Icon(icon, size: 12),
-        label: Text(label, style: const TextStyle(fontSize: 10)),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          backgroundColor: color.withAlpha(onTap != null ? 255 : 80),
-          foregroundColor: Colors.white,
+  Widget _btn(String label, IconData icon, Color color, VoidCallback? onTap) =>
+      SizedBox(
+        height: 28,
+        child: ElevatedButton.icon(
+          icon: Icon(icon, size: 12),
+          label: Text(label, style: const TextStyle(fontSize: 10)),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            backgroundColor: color.withAlpha(onTap != null ? 255 : 80),
+            foregroundColor: Colors.white,
+          ),
+          onPressed: onTap,
         ),
-        onPressed: onTap,
-      ),
-    );
-  }
+      );
 
-  Widget _bottomBar(GameViewModel vm) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        border: Border(top: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: Row(
-        children: [
-          Text(
-            'Slots: ${vm.usedSlots}/${vm.totalSlots}',
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+  Widget _bottomBar(GameViewModel vm) => Container(
+    padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade100,
+      border: Border(top: BorderSide(color: Colors.grey.shade300)),
+    ),
+    child: Row(
+      children: [
+        Text(
+          'Slots: ${vm.usedSlots}/${vm.totalSlots}',
+          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+        ),
+        const Spacer(),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.sell, size: 16),
+          label: Text('Sell All \$${vm.totalHoldingsValue.toStringAsFixed(2)}'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontSize: 12),
           ),
-          const Spacer(),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.sell, size: 16),
-            label: Text(
-              'Sell All \$${vm.totalHoldingsValue.toStringAsFixed(2)}',
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              textStyle: const TextStyle(fontSize: 12),
-            ),
-            onPressed: vm.totalHoldingsValue > 0
-                ? () => vm.sellAllCoins()
-                : null,
-          ),
-        ],
-      ),
-    );
-  }
+          onPressed: vm.totalHoldingsValue > 0 ? () => vm.sellAllCoins() : null,
+        ),
+      ],
+    ),
+  );
 }

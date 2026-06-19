@@ -66,6 +66,7 @@ class GameViewModel {
         modelId: gpu.modelId,
         miningCoinId: gpu.miningCoinId,
         miningCoinName: coin?.name ?? 'BTC',
+        isPowered: gpu.isPowered,
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
@@ -140,6 +141,7 @@ class GameViewModel {
   bool buySlot() => _state.buySlot();
   void setMiningCoin(String gpuId, String coinId) =>
       _state.setMiningCoin(gpuId, coinId);
+  void togglePower(String gpuId) => _state.togglePower(gpuId);
 }
 
 class ShopGpuEntry {
@@ -162,6 +164,7 @@ class GpuDisplayInfo {
   final String modelId;
   final String miningCoinId;
   final String miningCoinName;
+  final bool isPowered;
   final double temperature;
   final double condition;
   final int overclockLevel;
@@ -174,6 +177,7 @@ class GpuDisplayInfo {
     required this.modelId,
     required this.miningCoinId,
     required this.miningCoinName,
+    required this.isPowered,
     required this.temperature,
     required this.condition,
     required this.overclockLevel,

@@ -21,6 +21,9 @@ class ThermalSystem {
       if (gpu.condition <= 0) {
         return gpu.copyWith(temperature: 25); // dead card, ambient
       }
+      if (!gpu.isPowered) {
+        return gpu.copyWith(temperature: 25); // turned off
+      }
 
       // Base temp from the GPU model's spec
       final model = GpuCatalog.byId(gpu.modelId);

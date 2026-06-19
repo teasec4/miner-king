@@ -15,6 +15,7 @@ class WearSystem {
       final temp = gpu.temperature;
       if (temp <= 70) return gpu; // safe zone, no wear
       if (gpu.condition <= 0) return gpu; // already dead
+      if (!gpu.isPowered) return gpu; // turned off – no wear
 
       // Base wear rate per tick based on temperature
       final wearRate = temp <= 90
