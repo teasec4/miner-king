@@ -1,7 +1,6 @@
 import '../models/loan.dart';
 
-/// Available loan products.
-/// Interest rate is per HOUR. Small loans have higher rates (unsecured).
+/// Available loan products. Interest rate is per HOUR.
 class LoanCatalog {
   LoanCatalog._();
 
@@ -9,25 +8,22 @@ class LoanCatalog {
     id: 'small',
     name: 'Quick Loan',
     principal: 500,
-    interestPerMinute: 0.0005, // 3% per hour
+    interestPerMinute: 0.00083,
   );
-
   static final medium = Loan(
     id: 'medium',
     name: 'Business Loan',
     principal: 2000,
-    interestPerMinute: 0.00033, // 2% per hour
+    interestPerMinute: 0.00058,
   );
-
   static final large = Loan(
     id: 'large',
     name: 'Expansion Loan',
     principal: 8000,
-    interestPerMinute: 0.00025, // 1.5% per hour
+    interestPerMinute: 0.00042,
   );
 
   static final all = [small, medium, large];
-
   static Loan? byId(String id) {
     try {
       return all.firstWhere((l) => l.id == id);

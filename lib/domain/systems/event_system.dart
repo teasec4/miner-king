@@ -22,17 +22,19 @@ class EventSystem {
     // ── Tick active events ──
     final updatedEvents = <GameEvent>[];
     for (final e in game.activeEvents) {
-      if (e.isInstant) continue; // already applied, stays forever
-      final remaining = e.remainingTicks - 1;
-      if (remaining <= 0) {
-        g = _removeEvent(g, e);
-      } else {
+      if (e.isInstant) {
+        // Instant events show for 60 ticks then auto-remove
+        final remaining = e.remainingTicks - 1;
+        if (remaining <= -60) continue; // expired
         updatedEvents.add(e.copyWith(remainingTicks: remaining));
+      } else {
+        final remaining = e.remainingTicks - 1;
+        if (remaining <= 0) {
+          g = _removeEvent(g, e);
+        } else {
+          updatedEvents.add(e.copyWith(remainingTicks: remaining));
+        }
       }
-    }
-    // Keep instant events
-    for (final e in game.activeEvents.where((e) => e.isInstant)) {
-      updatedEvents.add(e);
     }
     g = g.copyWith(activeEvents: updatedEvents);
 

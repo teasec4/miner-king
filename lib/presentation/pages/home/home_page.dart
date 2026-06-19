@@ -404,7 +404,7 @@ class _HomePageState extends State<HomePage> {
                           const Spacer(),
                           if (!dead && gpu.isPowered)
                             Text(
-                              '+\$${gpu.revenuePerHour.toStringAsFixed(1)}/h',
+                              '${gpu.miningCoinName} +\$${gpu.revenuePerHour.toStringAsFixed(1)}/h',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
