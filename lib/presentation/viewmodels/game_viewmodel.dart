@@ -8,7 +8,9 @@ import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
+import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/loan.dart';
+import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/credit_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
@@ -83,6 +85,13 @@ class GameViewModel {
     return _game.farm.gpuList.map((gpu) {
       final model = GpuCatalog.byId(gpu.modelId);
       final coin = CoinCatalog.byId(gpu.miningCoinId);
+      final hashrate = _gpuHashrate(gpu, model);
+      final revenuePerHour =
+          hashrate *
+          0.0002 *
+          (coin?.baseReward ?? 1) *
+          3600 *
+          (coin?.price ?? 0);
       return GpuDisplayInfo(
         instanceId: gpu.id,
         modelName: model?.name ?? 'Unknown',
@@ -90,6 +99,7 @@ class GameViewModel {
         miningCoinId: gpu.miningCoinId,
         miningCoinName: coin?.name ?? 'BTC',
         isPowered: gpu.isPowered,
+        revenuePerHour: revenuePerHour,
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
@@ -97,6 +107,19 @@ class GameViewModel {
         tempStatus: ThermalSystem.status(gpu.temperature),
       );
     }).toList();
+  }
+
+  double _gpuHashrate(GpuInstance gpu, GpuModel? model) {
+    if (gpu.condition <= 0 || !gpu.isPowered || model == null) return 0;
+    double base = model.baseHashrate;
+    if (gpu.overclockLevel > 0) base *= 1 + 0.2 * gpu.overclockLevel;
+    if (_game.perks.any((p) => p.effect == PerkEffect.siliconLottery)) {
+      base *= 1.1;
+    }
+    if (_game.perks.any((p) => p.effect == PerkEffect.riskLover)) {
+      base *= 1.5;
+    }
+    return base * gpu.condition;
   }
 
   bool canUpgrade(String instanceId) {
@@ -194,6 +217,7 @@ class GpuDisplayInfo {
   final String miningCoinId;
   final String miningCoinName;
   final bool isPowered;
+  final double revenuePerHour;
   final double temperature;
   final double condition;
   final int overclockLevel;
@@ -207,6 +231,7 @@ class GpuDisplayInfo {
     required this.miningCoinId,
     required this.miningCoinName,
     required this.isPowered,
+    required this.revenuePerHour,
     required this.temperature,
     required this.condition,
     required this.overclockLevel,

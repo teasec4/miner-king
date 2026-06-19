@@ -52,6 +52,27 @@ class ShopPage extends StatelessWidget {
                 onBuy: () => vm.buySlot(),
               ),
 
+            // GPUs
+            _section('GPUs'),
+            ...vm.shopGpus.map((e) {
+              final m = e.model;
+              return _upgradeCard(
+                icon: Icons.memory,
+                color: Colors.deepPurple,
+                title: m.name,
+                subtitle:
+                    '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
+                price: m.price,
+                canBuy: e.canBuy,
+                onBuy: () => vm.buyGpu(m),
+                hint: !e.hasSlots
+                    ? 'No slots'
+                    : !e.canAfford
+                    ? 'Need \$${m.price - vm.money.toInt()}'
+                    : null,
+              );
+            }),
+
             // Cooling
             _section('Cooling'),
             ...CoolingCatalog.all.map((c) {
@@ -95,26 +116,24 @@ class ShopPage extends StatelessWidget {
               ),
             ),
 
-            // GPUs
-            _section('GPUs'),
-            ...vm.shopGpus.map((e) {
-              final m = e.model;
-              return _upgradeCard(
-                icon: Icons.memory,
-                color: Colors.deepPurple,
-                title: m.name,
-                subtitle:
-                    '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
-                price: m.price,
-                canBuy: e.canBuy,
-                onBuy: () => vm.buyGpu(m),
-                hint: !e.hasSlots
-                    ? 'No slots'
-                    : !e.canAfford
-                    ? 'Need \$${m.price - vm.money.toInt()}'
-                    : null,
-              );
-            }),
+            // Solar
+            _section('Solar Panels'),
+            Text(
+              'Generated: ${vm.solarPower.toStringAsFixed(0)}W',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            ...SolarCatalog.all.map(
+              (s) => _upgradeCard(
+                icon: Icons.solar_power,
+                color: Colors.amber,
+                title: s.name,
+                subtitle: '+${s.powerGen.toStringAsFixed(0)}W generation',
+                price: s.price,
+                canBuy: vm.money >= s.price,
+                onBuy: () => vm.buySolar(s),
+              ),
+            ),
           ],
         ),
       ),

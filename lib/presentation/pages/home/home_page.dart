@@ -405,6 +405,16 @@ class _HomePageState extends State<HomePage> {
                               color: tempColor,
                             ),
                           ),
+                          const Spacer(),
+                          if (!isDead && gpu.isPowered)
+                            Text(
+                              '+\$${gpu.revenuePerHour.toStringAsFixed(1)}/h',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green.shade600,
+                              ),
+                            ),
                         ],
                       ),
                     ],
