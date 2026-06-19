@@ -7,6 +7,7 @@ import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/investment_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
+import 'package:crypto_king/domain/catalogs/property_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
@@ -484,6 +485,19 @@ class GameState extends ChangeNotifier {
     _game = _game.copyWith(
       money: _game.money - amount,
       activeInvestments: [..._game.activeInvestments, inv],
+    );
+    notifyListeners();
+    return true;
+  }
+
+  bool buyProperty(String propertyId) {
+    final p = PropertyCatalog.byId(propertyId);
+    if (p == null) return false;
+    if (_game.money < p.price) return false;
+    if (_game.properties.contains(propertyId)) return false;
+    _game = _game.copyWith(
+      money: _game.money - p.price,
+      properties: [..._game.properties, propertyId],
     );
     notifyListeners();
     return true;

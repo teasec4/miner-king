@@ -9,6 +9,7 @@ import 'investment_system.dart';
 import 'job_system.dart';
 import 'market_system.dart';
 import 'mining_system.dart';
+import 'property_system.dart';
 import 'thermal_system.dart';
 import 'wear_system.dart';
 
@@ -61,7 +62,10 @@ class TickSystem {
     // 11. Process investments
     g = InvestmentSystem.update(g);
 
-    // 12. Advance tick
+    // 12. Collect property rent
+    g = PropertySystem.update(g);
+
+    // 13. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
     return (g, newEvent);

@@ -16,6 +16,7 @@ class Game {
   final List<GameEvent> activeEvents;
   final List<Loan> activeLoans;
   final List<ActiveInvestment> activeInvestments;
+  final List<String> properties;
   final double marketMood;
   final Map<String, int> loanRepayments;
   final String? activeJobId;
@@ -40,6 +41,7 @@ class Game {
     this.activeEvents = const [],
     this.activeLoans = const [],
     this.activeInvestments = const [],
+    this.properties = const [],
     this.marketMood = 0,
     this.loanRepayments = const {},
     this.activeJobId,
@@ -75,6 +77,7 @@ class Game {
     List<GameEvent>? activeEvents,
     List<Loan>? activeLoans,
     List<ActiveInvestment>? activeInvestments,
+    List<String>? properties,
     double? marketMood,
     Map<String, int>? loanRepayments,
     String? activeJobId,
@@ -99,6 +102,7 @@ class Game {
       activeEvents: activeEvents ?? this.activeEvents,
       activeLoans: activeLoans ?? this.activeLoans,
       activeInvestments: activeInvestments ?? this.activeInvestments,
+      properties: properties ?? this.properties,
       marketMood: marketMood ?? this.marketMood,
       loanRepayments: loanRepayments ?? this.loanRepayments,
       activeJobId: activeJobId ?? this.activeJobId,

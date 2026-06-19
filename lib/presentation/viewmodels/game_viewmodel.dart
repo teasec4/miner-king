@@ -97,6 +97,8 @@ class GameViewModel {
   double get totalDebt => CreditSystem.totalDebt(_game);
   List<ActiveInvestment> get activeInvestments => _game.activeInvestments;
   bool invest(String id, double amount) => _state.invest(id, amount);
+  List<String> get properties => _game.properties;
+  bool buyProperty(String id) => _state.buyProperty(id);
 
   bool isLoanUnlocked(String loanId) {
     final tiers = ['small', 'medium', 'large'];

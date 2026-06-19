@@ -13,12 +13,32 @@ class CourseSystem {
     final ticks = game.character == CharacterType.student ? 1.25 : 1.0;
     final left = (game.courseTicksLeft - ticks).ceil().clamp(0, 999999);
     if (left <= 0) {
-      // Course completed!
+      // Course completed! Use constructor to null-ify activeCourseId
       final completed = [...game.completedCourses, courseId];
-      return game.copyWith(
+      return Game(
+        money: game.money,
+        holdings: game.holdings,
+        coins: game.coins,
+        electricityRate: game.electricityRate,
+        farm: game.farm,
+        activeModifiers: game.activeModifiers,
+        activeEvents: game.activeEvents,
+        activeLoans: game.activeLoans,
+        activeInvestments: game.activeInvestments,
+        properties: game.properties,
+        marketMood: game.marketMood,
+        loanRepayments: game.loanRepayments,
+        activeJobId: game.activeJobId,
+        jobExperience: game.jobExperience,
+        completedCourses: completed,
         activeCourseId: null,
         courseTicksLeft: 0,
-        completedCourses: completed,
+        employees: game.employees,
+        officeId: game.officeId,
+        unseenEvents: game.unseenEvents,
+        character: game.character,
+        perks: game.perks,
+        tick: game.tick,
       );
     }
     return game.copyWith(courseTicksLeft: left);
