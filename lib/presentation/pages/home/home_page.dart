@@ -12,7 +12,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  GameEvent? _bannerEvent;
+  GameEvent? _expandedEvent;
 
   @override
   void initState() {
@@ -21,9 +21,9 @@ class _HomePageState extends State<HomePage> {
       final vm = context.read<GameViewModel>();
       vm.startTicks();
       context.read<GameState>().onEvent = (e) {
-        setState(() => _bannerEvent = e);
+        setState(() => _expandedEvent = e); // auto-expand new event
         Future.delayed(const Duration(seconds: 5), () {
-          if (mounted) setState(() => _bannerEvent = null);
+          if (mounted) setState(() => _expandedEvent = null);
         });
       };
     });
@@ -36,82 +36,117 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Mining Rig'), centerTitle: true),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            if (_bannerEvent != null) _eventBanner(_bannerEvent!),
-            if (vm.activeEvents.isNotEmpty) _activeEventsRow(vm),
-            _resourcesBar(vm),
-            const Divider(height: 1),
-            Expanded(child: _gpuList(vm)),
-            _bottomBar(vm),
+            Column(
+              children: [
+                _resourcesBar(vm),
+                const Divider(height: 1),
+                Expanded(child: _gpuList(vm)),
+                _bottomBar(vm),
+              ],
+            ),
+            // Event overlay — top-right corner
+            if (vm.activeEvents.isNotEmpty) _eventOverlay(vm),
           ],
         ),
       ),
     );
   }
 
-  Widget _eventBanner(GameEvent e) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    color: Colors.deepPurple.shade50,
-    child: Row(
-      children: [
-        const Icon(
-          Icons.notifications_active,
-          color: Colors.deepPurple,
-          size: 20,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                e.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.deepPurple,
-                ),
-              ),
-              Text(
-                e.description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.deepPurple.shade300,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (e.durationTicks > 0)
-          Text(
-            '${e.remainingTicks}s',
-            style: TextStyle(fontSize: 12, color: Colors.deepPurple.shade300),
-          ),
-      ],
-    ),
-  );
-
-  Widget _activeEventsRow(GameViewModel vm) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-    child: Wrap(
-      spacing: 6,
-      children: vm.activeEvents
-          .map(
-            (e) => Chip(
-              avatar: Icon(
-                Icons.warning_amber,
-                size: 14,
-                color: Colors.deepOrange,
-              ),
-              label: Text(e.name, style: const TextStyle(fontSize: 10)),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              backgroundColor: Colors.orange.shade50,
+  Widget _eventOverlay(GameViewModel vm) => Positioned(
+    top: 8,
+    right: 8,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: vm.activeEvents.map((e) {
+        final isExpanded = _expandedEvent?.id == e.id;
+        return GestureDetector(
+          onTap: () => setState(() => _expandedEvent = isExpanded ? null : e),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.all(10),
+            width: isExpanded ? 220 : 140,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.shade600,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
             ),
-          )
-          .toList(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.warning_amber,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    if (!isExpanded) ...[
+                      Flexible(
+                        child: Text(
+                          e.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (e.durationTicks > 0)
+                        Text(
+                          '${e.remainingTicks}s',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
+                        ),
+                    ],
+                  ],
+                ),
+                if (isExpanded) ...[
+                  Text(
+                    e.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    e.description,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (e.durationTicks > 0)
+                        Text(
+                          '⏱ ${e.remainingTicks}s remaining',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 10,
+                          ),
+                        ),
+                      const Spacer(),
+                      Text(
+                        'tap to collapse',
+                        style: TextStyle(color: Colors.white30, fontSize: 9),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     ),
   );
 

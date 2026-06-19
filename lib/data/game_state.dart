@@ -179,7 +179,7 @@ class GameState extends ChangeNotifier {
     if (model == null) return false;
 
     final damage = 1.0 - gpu.condition;
-    final cost = (model.price * 0.3 * damage).round();
+    final cost = (model.price * 0.1 * damage).round();
     if (_game.money < cost) return false;
 
     final newList = [..._game.farm.gpuList];

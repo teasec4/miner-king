@@ -63,7 +63,7 @@ class ThermalSystem {
 
   /// Returns a temperature status string for display.
   static String status(double temp) {
-    if (temp < 70) return 'normal';
+    if (temp < 65) return 'normal';
     if (temp < 90) return 'warning';
     return 'critical';
   }

@@ -53,28 +53,33 @@ void main() {
     });
     test('status returns correct values', () {
       expect(ThermalSystem.status(50), 'normal');
-      expect(ThermalSystem.status(75), 'warning');
+      expect(ThermalSystem.status(70), 'warning');
       expect(ThermalSystem.status(95), 'critical');
     });
   });
 
   group('WearSystem', () {
-    test('no wear at safe temps', () {
+    test('no wear below 65°C', () {
       final state = GameState();
       var game = state.game;
-      game = ThermalSystem.update(game);
+      game = ThermalSystem.update(game); // GTX 1060 = 45°C — safe
       game = WearSystem.update(game);
       expect(game.farm.gpuList.first.condition, 1.0);
     });
-    test('wear accumulates at warning temps', () {
+    test('wear at 70°C (GTX 1060 OC)', () {
       final state = GameState();
       var game = state.game;
-      final gpu = game.farm.gpuList.first.copyWith(temperature: 80);
+      final gpu = game.farm.gpuList.first.copyWith(
+        temperature: 70,
+        overclockLevel: 1,
+      );
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
+      // 70°C: rate = (70-65)/25 * 0.005 = 0.001/tick
       for (var i = 0; i < 100; i++) {
         game = WearSystem.update(game);
       }
-      expect(game.farm.gpuList.first.condition, closeTo(0.925, 0.02));
+      // 100 * 0.001 = 0.1 wear → condition ≈ 0.90
+      expect(game.farm.gpuList.first.condition, closeTo(0.90, 0.02));
     });
   });
 
