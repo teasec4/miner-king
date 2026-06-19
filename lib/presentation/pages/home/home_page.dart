@@ -18,10 +18,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final vm = context.read<GameViewModel>();
-      vm.startTicks();
+      context.read<GameViewModel>().startTicks();
       context.read<GameState>().onEvent = (e) {
-        setState(() => _expandedEvent = e); // auto-expand new event
+        setState(() => _expandedEvent = e);
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted) setState(() => _expandedEvent = null);
         });
@@ -31,8 +30,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final game = context.watch<GameState>();
-    final vm = GameViewModel(game);
+    final vm = GameViewModel(context.watch<GameState>());
     return Scaffold(
       appBar: AppBar(title: const Text('Mining Rig'), centerTitle: true),
       body: SafeArea(
@@ -46,7 +44,6 @@ class _HomePageState extends State<HomePage> {
                 _bottomBar(vm),
               ],
             ),
-            // Event overlay — top-right corner
             if (vm.activeEvents.isNotEmpty) _eventOverlay(vm),
           ],
         ),
@@ -60,14 +57,13 @@ class _HomePageState extends State<HomePage> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: vm.activeEvents.map((e) {
-        final isExpanded = _expandedEvent?.id == e.id;
+        final open = _expandedEvent?.id == e.id;
         return GestureDetector(
-          onTap: () => setState(() => _expandedEvent = isExpanded ? null : e),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+          onTap: () => setState(() => _expandedEvent = open ? null : e),
+          child: Container(
             margin: const EdgeInsets.only(bottom: 4),
             padding: const EdgeInsets.all(10),
-            width: isExpanded ? 240 : 130,
+            width: 190,
             decoration: BoxDecoration(
               color: Colors.deepPurple.shade600,
               borderRadius: BorderRadius.circular(10),
@@ -77,7 +73,6 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
                       Icons.warning_amber,
@@ -85,56 +80,58 @@ class _HomePageState extends State<HomePage> {
                       size: 14,
                     ),
                     const SizedBox(width: 4),
-                    if (!isExpanded) ...[
-                      Flexible(
-                        child: Text(
-                          e.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        e.durationTicks > 0 ? '${e.remainingTicks}s' : 'Now',
+                    Expanded(
+                      child: Text(
+                        e.name,
                         style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10,
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      e.durationTicks > 0 ? '${e.remainingTicks}s' : 'Now',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
+                    ),
                   ],
                 ),
-                if (isExpanded) ...[
-                  Text(
-                    e.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    e.description,
-                    style: const TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    e.durationTicks > 0
-                        ? '⏱ ${e.remainingTicks}s remaining'
-                        : 'Instant effect',
-                    style: const TextStyle(color: Colors.white54, fontSize: 10),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'tap to collapse',
-                    style: TextStyle(color: Colors.white30, fontSize: 9),
-                  ),
-                ],
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: Alignment.topCenter,
+                  child: open
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                e.description,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                e.durationTicks > 0
+                                    ? '\u23F1 ${e.remainingTicks}s remaining'
+                                    : 'Instant effect',
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ],
             ),
           ),
@@ -145,7 +142,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerHour;
-    final profitColor = profit >= 0 ? Colors.green : Colors.red;
+    final c = profit >= 0 ? Colors.green : Colors.red;
     final btc = vm.coinState('btc');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -155,13 +152,13 @@ class _HomePageState extends State<HomePage> {
             children: [
               _chip(
                 Icons.attach_money,
-                '${vm.money.toStringAsFixed(0)}\$',
+                '\$${vm.money.toStringAsFixed(0)}',
                 Colors.green,
               ),
               const SizedBox(width: 8),
               _chip(
                 Icons.account_balance_wallet,
-                '${vm.totalHoldingsValue.toStringAsFixed(0)}\$',
+                '\$${vm.totalHoldingsValue.toStringAsFixed(0)}',
                 Colors.amber,
               ),
               const Spacer(),
@@ -180,7 +177,7 @@ class _HomePageState extends State<HomePage> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: profitColor,
+                      color: c,
                     ),
                   ),
                 ],
@@ -198,13 +195,13 @@ class _HomePageState extends State<HomePage> {
               ),
               if (vm.solarPower > 0) ...[
                 Text(
-                  ' − ${vm.solarPower.toStringAsFixed(0)}W ☀',
+                  ' \u2212 ${vm.solarPower.toStringAsFixed(0)}W \u2600',
                   style: TextStyle(fontSize: 11, color: Colors.amber.shade700),
                 ),
               ],
               const SizedBox(width: 8),
               Text(
-                '−${vm.electricityCostPerHour.toStringAsFixed(2)}\$/h',
+                '\u2212${vm.electricityCostPerHour.toStringAsFixed(2)}\$/h',
                 style: TextStyle(fontSize: 11, color: Colors.red.shade400),
               ),
               const Spacer(),
@@ -215,7 +212,6 @@ class _HomePageState extends State<HomePage> {
                 ),
             ],
           ),
-          // Upgrades row
           if (vm.solarPower > 0 || vm.coolingSystem != 'basic')
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -241,7 +237,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(width: 2),
                     Text(
-                      '${vm.solarPower.toStringAsFixed(0)}W ☀',
+                      '${vm.solarPower.toStringAsFixed(0)}W \u2600',
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.amber.shade600,
@@ -274,15 +270,15 @@ class _HomePageState extends State<HomePage> {
 
   Widget _gpuList(GameViewModel vm) {
     final gpus = vm.gpus;
-    final emptySlots = vm.totalSlots - vm.usedSlots;
-    if (gpus.isEmpty && emptySlots == 0) {
+    final e = vm.totalSlots - vm.usedSlots;
+    if (gpus.isEmpty && e == 0) {
       return const Center(child: Text('No GPUs installed'));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: gpus.length + (emptySlots > 0 ? 1 : 0),
+      itemCount: gpus.length + (e > 0 ? 1 : 0),
       itemBuilder: (_, i) =>
-          i < gpus.length ? _gpuCard(gpus[i], vm) : _emptySlotCard(emptySlots),
+          i < gpus.length ? _gpuCard(gpus[i], vm) : _emptySlotCard(e),
     );
   }
 
@@ -321,15 +317,15 @@ class _HomePageState extends State<HomePage> {
   );
 
   Widget _gpuCard(GpuDisplayInfo gpu, GameViewModel vm) {
-    final isDead = gpu.isDead,
-        isOC = gpu.overclockLevel > 0,
-        condPct = (gpu.condition * 100).toInt();
-    final tempColor = switch (gpu.tempStatus) {
+    final dead = gpu.isDead,
+        oc = gpu.overclockLevel > 0,
+        cp = (gpu.condition * 100).toInt();
+    final tc = switch (gpu.tempStatus) {
       'critical' => Colors.red,
       'warning' => Colors.orange,
       _ => Colors.green,
     };
-    final condColor = isDead
+    final cc = dead
         ? Colors.grey
         : gpu.condition > 0.7
         ? Colors.green
@@ -338,7 +334,7 @@ class _HomePageState extends State<HomePage> {
         : Colors.red;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: isDead ? Colors.grey.shade100 : null,
+      color: dead ? Colors.grey.shade100 : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -349,7 +345,7 @@ class _HomePageState extends State<HomePage> {
                 Icon(
                   Icons.memory,
                   size: 36,
-                  color: isDead ? Colors.grey.shade400 : Colors.deepPurple,
+                  color: dead ? Colors.grey.shade400 : Colors.deepPurple,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -364,11 +360,11 @@ class _HomePageState extends State<HomePage> {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
-                                color: isDead ? Colors.grey.shade500 : null,
+                                color: dead ? Colors.grey.shade500 : null,
                               ),
                             ),
                           ),
-                          if (isOC) ...[
+                          if (oc) ...[
                             const SizedBox(width: 4),
                             _badge(
                               'OC',
@@ -386,7 +382,7 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(width: 4),
                             _badge('OFF', Colors.white, Colors.grey.shade600),
                           ],
-                          if (isDead) ...[
+                          if (dead) ...[
                             const SizedBox(width: 4),
                             _badge('DEAD', Colors.white, Colors.grey),
                           ],
@@ -395,18 +391,18 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(Icons.thermostat, size: 14, color: tempColor),
+                          Icon(Icons.thermostat, size: 14, color: tc),
                           const SizedBox(width: 2),
                           Text(
-                            '${gpu.temperature.toStringAsFixed(0)}°C',
+                            '${gpu.temperature.toStringAsFixed(0)}\u00B0C',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: tempColor,
+                              color: tc,
                             ),
                           ),
                           const Spacer(),
-                          if (!isDead && gpu.isPowered)
+                          if (!dead && gpu.isPowered)
                             Text(
                               '+\$${gpu.revenuePerHour.toStringAsFixed(1)}/h',
                               style: TextStyle(
@@ -432,7 +428,7 @@ class _HomePageState extends State<HomePage> {
                     value: gpu.condition,
                     strokeWidth: 2,
                     backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation(condColor),
+                    valueColor: AlwaysStoppedAnimation(cc),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -443,42 +439,40 @@ class _HomePageState extends State<HomePage> {
                       value: gpu.condition,
                       minHeight: 8,
                       backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation(condColor),
+                      valueColor: AlwaysStoppedAnimation(cc),
                     ),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '$condPct%',
+                  '$cp%',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: condColor,
+                    color: cc,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (!isDead) ...[
-                  _btn(
-                    gpu.isPowered ? 'ON' : 'OFF',
+                if (!dead) ...[
+                  _iconBtn(
                     gpu.isPowered ? Icons.power_settings_new : Icons.power_off,
                     gpu.isPowered ? Colors.green : Colors.grey,
                     () => vm.togglePower(gpu.instanceId),
                   ),
-                  const SizedBox(width: 6),
-                  _btn(
-                    isOC ? 'Stock' : 'OC',
+                  const SizedBox(width: 2),
+                  _iconBtn(
                     Icons.speed,
-                    isOC ? Colors.grey : Colors.deepOrange,
+                    oc ? Colors.deepOrange : Colors.grey.shade400,
                     () => vm.toggleOverclock(gpu.instanceId),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   _coinSwitcher(gpu, vm),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   if (vm.upgradeCost(gpu.instanceId) > 0)
                     _btn(
                       'Up \$${vm.upgradeCost(gpu.instanceId)}',
@@ -492,7 +486,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                 ],
                 if (vm.repairCost(gpu.instanceId) > 0) ...[
-                  if (!isDead) const SizedBox(width: 6),
+                  if (!dead) const SizedBox(width: 4),
                   _btn(
                     'Fix \$${vm.repairCost(gpu.instanceId)}',
                     Icons.build,
@@ -515,7 +509,7 @@ class _HomePageState extends State<HomePage> {
     if (coins.length < 2) return const SizedBox.shrink();
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 40),
+      constraints: const BoxConstraints(minWidth: 32),
       tooltip: 'Switch coin',
       onSelected: (id) => vm.setMiningCoin(gpu.instanceId, id),
       itemBuilder: (_) => coins
@@ -533,12 +527,7 @@ class _HomePageState extends State<HomePage> {
             ),
           )
           .toList(),
-      child: _btn(
-        gpu.miningCoinName,
-        Icons.currency_bitcoin,
-        Colors.blue,
-        null,
-      ),
+      child: _iconBtn(Icons.currency_bitcoin, Colors.blue.shade600, null),
     );
   }
 
@@ -554,14 +543,26 @@ class _HomePageState extends State<HomePage> {
     ),
   );
 
+  Widget _iconBtn(IconData icon, Color color, VoidCallback? onTap) => SizedBox(
+    width: 30,
+    height: 28,
+    child: IconButton(
+      icon: Icon(icon, size: 18),
+      color: color,
+      padding: EdgeInsets.zero,
+      onPressed: onTap,
+      splashRadius: 16,
+    ),
+  );
+
   Widget _btn(String label, IconData icon, Color color, VoidCallback? onTap) =>
       SizedBox(
-        height: 28,
+        height: 26,
         child: ElevatedButton.icon(
           icon: Icon(icon, size: 12),
           label: Text(label, style: const TextStyle(fontSize: 10)),
           style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             backgroundColor: color.withAlpha(onTap != null ? 255 : 80),
             foregroundColor: Colors.white,
           ),

@@ -3,6 +3,7 @@ import 'package:crypto_king/domain/models/market_phase.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class WalletPage extends StatelessWidget {
@@ -190,7 +191,12 @@ class WalletPage extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // ── Sell All ──
+            // Swap button
+            _swapCard(context),
+
+            const SizedBox(height: 12),
+
+            // Sell All
             if (vm.totalHoldingsValue > 0)
               SizedBox(
                 width: double.infinity,
@@ -215,4 +221,54 @@ class WalletPage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _swapCard(BuildContext context) => Card(
+    child: InkWell(
+      onTap: () async {
+        final result = await context.push('/home/swap');
+        if (result != null && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$result'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.swap_horiz, color: Colors.blue),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Swap Coins',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  Text(
+                    'Exchange coins at market rate. 1% fee.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+      ),
+    ),
+  );
 }
