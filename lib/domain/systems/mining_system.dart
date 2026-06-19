@@ -13,6 +13,7 @@ double _effectiveHashrate(
   GpuModel model,
   List<Modifier> modifiers,
   List<Perk> perks,
+  CharacterType? character,
 ) {
   if (gpu.condition <= 0) return 0;
   if (!gpu.isPowered) return 0;
@@ -40,6 +41,8 @@ double _effectiveHashrate(
     final debuff = DebuffCatalog.byId(d);
     if (debuff != null) base *= debuff.hashrateMul;
   }
+  // Character: Miner +25% hashrate
+  if (character == CharacterType.miner) base *= 1.25;
   return base;
 }
 
@@ -64,6 +67,7 @@ class MiningSystem {
         model,
         game.activeModifiers,
         game.perks,
+        game.character,
       );
       if (hashrate <= 0) {
         updatedGpus.add(gpu.copyWith(cycleProgress: gpu.cycleProgress));
@@ -94,7 +98,13 @@ class MiningSystem {
     for (final gpu in game.farm.gpuList) {
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
-      total += _effectiveHashrate(gpu, model, game.activeModifiers, game.perks);
+      total += _effectiveHashrate(
+        gpu,
+        model,
+        game.activeModifiers,
+        game.perks,
+        game.character,
+      );
     }
     return total;
   }

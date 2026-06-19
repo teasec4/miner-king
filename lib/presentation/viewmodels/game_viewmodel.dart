@@ -157,6 +157,7 @@ class GameViewModel {
     }
     final empBonus = EmployeeSystem.hashrateBonus(_game);
     base *= (1 + empBonus);
+    if (_game.character == CharacterType.miner) base *= 1.25;
     return base;
   }
 

@@ -1,5 +1,6 @@
 import '../catalogs/job_catalog.dart';
 import '../models/game.dart';
+import '../models/player_profile.dart';
 
 class JobSystem {
   JobSystem._();
@@ -12,7 +13,8 @@ class JobSystem {
     if (job == null) return game;
 
     final newExp = Map<String, int>.from(game.jobExperience);
-    newExp[jobId] = (newExp[jobId] ?? 0) + 1;
+    final expGain = game.character == CharacterType.hustler ? 2 : 1;
+    newExp[jobId] = (newExp[jobId] ?? 0) + expGain;
 
     // Experience bonus: each expPerLevel EXP = +10% income
     final exp = newExp[jobId] ?? 0;

@@ -35,6 +35,8 @@ class WearSystem {
       }
       // Repair techs reduce wear
       accelerator *= (1 - EmployeeSystem.wearReduction(game));
+      // Character: Engineer -50% wear
+      if (game.character == CharacterType.engineer) accelerator *= 0.5;
 
       var newCondition = (gpu.condition - wearRate * accelerator).clamp(
         0.0,

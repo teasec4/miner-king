@@ -70,7 +70,7 @@ class GameState extends ChangeNotifier {
       name: 'Quick Loan',
       principal: LoanCatalog.small.principal,
       interestPerMinute: LoanCatalog.small.interestPerMinute,
-    )..remaining = LoanCatalog.small.principal * 1.1; // 10% fee
+    )..remaining = LoanCatalog.small.principal * 1.1;
 
     return Game(
       money: 500,
@@ -81,6 +81,74 @@ class GameState extends ChangeNotifier {
       activeJobId: 'fast_food',
       activeLoans: [loan],
     );
+  }
+
+  void setCharacter(CharacterType c) {
+    switch (c) {
+      case CharacterType.miner:
+        // +25% hashrate, GPU 100%, no loan — pure mining start
+        _game = _game.copyWith(
+          money: 300,
+          activeLoans: [], // no debt
+          farm: _game.farm.copyWith(
+            gpuList: [_game.farm.gpuList.first.copyWith(condition: 1.0)],
+          ),
+          character: c,
+        );
+        break;
+      case CharacterType.engineer:
+        // -50% wear, -30% repair, GPU 100%, small loan
+        _game = _game.copyWith(
+          money: 500,
+          farm: _game.farm.copyWith(
+            gpuList: [_game.farm.gpuList.first.copyWith(condition: 1.0)],
+          ),
+          character: c,
+        );
+        break;
+      case CharacterType.businessman:
+        // +$500 cash, -15% shop, small loan
+        _game = _game.copyWith(
+          money: 1000,
+          electricityRate: 0.12 * 0.85,
+          character: c,
+        );
+        break;
+      case CharacterType.hustler:
+        {
+          // +100% job EXP, medium loan ($2200 debt)
+          final medLoan = Loan(
+            id: 'medium',
+            name: 'Business Loan',
+            principal: LoanCatalog.medium.principal,
+            interestPerMinute: LoanCatalog.medium.interestPerMinute,
+          )..remaining = LoanCatalog.medium.principal * 1.1;
+          _game = _game.copyWith(
+            money: 600,
+            activeLoans: [medLoan],
+            character: c,
+          );
+          break;
+        }
+      case CharacterType.student:
+        {
+          // -30% course cost, -20% time, Basic IT done, large loan ($8800 debt)
+          final largeLoan = Loan(
+            id: 'large',
+            name: 'Expansion Loan',
+            principal: LoanCatalog.large.principal,
+            interestPerMinute: LoanCatalog.large.interestPerMinute,
+          )..remaining = LoanCatalog.large.principal * 1.1;
+          _game = _game.copyWith(
+            money: 800,
+            completedCourses: ['basic_it'],
+            activeLoans: [largeLoan],
+            character: c,
+          );
+          break;
+        }
+    }
+    notifyListeners();
   }
 
   void startTicks({Duration interval = const Duration(seconds: 1)}) {
@@ -289,14 +357,18 @@ class GameState extends ChangeNotifier {
   bool enrollCourse(String courseId) {
     final course = CourseCatalog.byId(courseId);
     if (course == null) return false;
-    if (_game.money < course.price) return false;
+    // Student: -30% course cost
+    final price = _game.character == CharacterType.student
+        ? (course.price * 0.7).ceil()
+        : course.price;
+    if (_game.money < price) return false;
     if (_game.activeCourseId != null) return false;
     if (_game.completedCourses.contains(courseId)) return false;
     for (final req in course.requiresCourse) {
       if (!_game.completedCourses.contains(req)) return false;
     }
     _game = _game.copyWith(
-      money: _game.money - course.price,
+      money: _game.money - price,
       activeCourseId: courseId,
       courseTicksLeft: course.durationTicks,
     );
@@ -397,11 +469,6 @@ class GameState extends ChangeNotifier {
 
   // ── Character & Perks ──
 
-  void setCharacter(CharacterType c) {
-    _game = _game.copyWith(character: c);
-    notifyListeners();
-  }
-
   void addPerk(Perk perk) {
     if (_game.perks.any((p) => p.id == perk.id)) return;
     // Apply perk effects
@@ -469,12 +536,12 @@ class GameState extends ChangeNotifier {
     if (index == -1) return false;
     final gpu = _game.farm.gpuList[index];
     if (gpu.condition >= 1.0) return false;
-
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return false;
-
     final damage = 1.0 - gpu.condition;
-    final cost = (model.price * 0.15 * damage).ceil();
+    var cost = (model.price * 0.15 * damage).ceil();
+    // Engineer: -30% repair cost
+    if (_game.character == CharacterType.engineer) cost = (cost * 0.7).ceil();
     if (_game.money < cost) return false;
 
     final newList = [..._game.farm.gpuList];
