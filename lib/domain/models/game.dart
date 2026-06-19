@@ -6,6 +6,7 @@ class Game {
   final double money; // $
   final double coins; // mined crypto
   final double coinPrice; // $ per coin
+  final double electricityRate; // $ per kWh
   final Farm farm;
   final List<Modifier> activeModifiers;
   final int tick; // current tick counter
@@ -15,6 +16,7 @@ class Game {
     required this.coins,
     required this.coinPrice,
     required this.farm,
+    this.electricityRate = 0.12,
     this.activeModifiers = const [],
     this.tick = 0,
   });
@@ -23,6 +25,7 @@ class Game {
     double? money,
     double? coins,
     double? coinPrice,
+    double? electricityRate,
     Farm? farm,
     List<Modifier>? activeModifiers,
     int? tick,
@@ -31,6 +34,7 @@ class Game {
       money: money ?? this.money,
       coins: coins ?? this.coins,
       coinPrice: coinPrice ?? this.coinPrice,
+      electricityRate: electricityRate ?? this.electricityRate,
       farm: farm ?? this.farm,
       activeModifiers: activeModifiers ?? this.activeModifiers,
       tick: tick ?? this.tick,

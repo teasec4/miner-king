@@ -11,7 +11,6 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 /// Holds the [Game] aggregate and drives the simulation via a periodic timer.
-/// This is the single source of truth for all game state.
 class GameState extends ChangeNotifier {
   static final _uuid = const Uuid();
 
@@ -22,7 +21,7 @@ class GameState extends ChangeNotifier {
 
   Game get game => _game;
 
-  // ── Initial state (mock data per architecture.md) ──
+  // ── Initial state ──
 
   static Game _createInitialGame() {
     final gpu = GpuInstance(id: _uuid.v4(), modelId: GpuCatalog.gtx1060.id);
@@ -31,6 +30,7 @@ class GameState extends ChangeNotifier {
       money: 1000,
       coins: 0,
       coinPrice: 42500.0,
+      electricityRate: 0.12,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
     );
   }
@@ -45,7 +45,7 @@ class GameState extends ChangeNotifier {
     });
   }
 
-  // ── Actions ──
+  // ── Economy ──
 
   void sellAllCoins() {
     _game = EconomySystem.sellAllCoins(_game);
@@ -57,7 +57,6 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Buy a GPU model and install it in the farm.
   bool buyGpu(GpuModel model) {
     if (_game.money < model.price) return false;
     if (!_game.farm.hasFreeSlots) return false;
@@ -76,8 +75,6 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  /// Upgrade an existing GPU to the next tier model.
-  /// Simple v0.1: replace GPU with next model in catalog, pay price difference.
   bool upgradeGpu(String instanceId) {
     final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
     if (index == -1) return false;
@@ -86,9 +83,8 @@ class GameState extends ChangeNotifier {
     final currentModel = GpuCatalog.byId(gpu.modelId);
     if (currentModel == null) return false;
 
-    // Find next model in catalog
     final currentIdx = GpuCatalog.all.indexOf(currentModel);
-    if (currentIdx >= GpuCatalog.all.length - 1) return false; // already max
+    if (currentIdx >= GpuCatalog.all.length - 1) return false;
 
     final nextModel = GpuCatalog.all[currentIdx + 1];
     final cost = nextModel.price - currentModel.price;
@@ -104,6 +100,56 @@ class GameState extends ChangeNotifier {
 
     final newList = [..._game.farm.gpuList];
     newList[index] = upgradedGpu;
+
+    _game = _game.copyWith(
+      money: _game.money - cost,
+      farm: _game.farm.copyWith(gpuList: newList),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  // ── Overclock ──
+
+  /// Toggle overclock on a GPU. Max level: 3.
+  void toggleOverclock(String instanceId) {
+    final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
+    if (index == -1) return;
+
+    final gpu = _game.farm.gpuList[index];
+    if (gpu.isBroken) return;
+
+    final newLevel = gpu.overclockLevel > 0 ? 0 : 1;
+
+    final newList = [..._game.farm.gpuList];
+    newList[index] = gpu.copyWith(overclockLevel: newLevel);
+
+    _game = _game.copyWith(farm: _game.farm.copyWith(gpuList: newList));
+    notifyListeners();
+  }
+
+  // ── Repair ──
+
+  /// Repair a broken GPU. Cost = 15% of the GPU model price.
+  bool repairGpu(String instanceId) {
+    final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
+    if (index == -1) return false;
+
+    final gpu = _game.farm.gpuList[index];
+    if (!gpu.isBroken) return false;
+
+    final model = GpuCatalog.byId(gpu.modelId);
+    if (model == null) return false;
+
+    final cost = (model.price * 0.15).round();
+    if (_game.money < cost) return false;
+
+    final newList = [..._game.farm.gpuList];
+    newList[index] = gpu.copyWith(
+      isBroken: false,
+      condition: (gpu.condition - 0.1).clamp(0.3, 1.0), // permanent wear
+      temperature: model.baseTemperature,
+    );
 
     _game = _game.copyWith(
       money: _game.money - cost,
