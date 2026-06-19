@@ -11,6 +11,7 @@ import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
+import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/credit_system.dart';
@@ -94,6 +95,8 @@ class GameViewModel {
   List<Loan> get activeLoans => _game.activeLoans;
   Map<String, int> get loanRepayments => _game.loanRepayments;
   double get totalDebt => CreditSystem.totalDebt(_game);
+  List<ActiveInvestment> get activeInvestments => _game.activeInvestments;
+  bool invest(String id, double amount) => _state.invest(id, amount);
 
   bool isLoanUnlocked(String loanId) {
     final tiers = ['small', 'medium', 'large'];

@@ -4,6 +4,7 @@ import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/course_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/investment_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
@@ -13,6 +14,7 @@ import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
+import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/economy_system.dart';
@@ -463,6 +465,26 @@ class GameState extends ChangeNotifier {
       newLoans[index] = loan.copyWith(remaining: newRemaining);
       _game = _game.copyWith(money: _game.money - toPay, activeLoans: newLoans);
     }
+    notifyListeners();
+    return true;
+  }
+
+  // ── Investments ──
+
+  bool invest(String investId, double amount) {
+    final template = InvestmentCatalog.byId(investId);
+    if (template == null) return false;
+    if (amount < template.minAmount) return false;
+    if (_game.money < amount) return false;
+    final inv = ActiveInvestment(
+      investId: investId,
+      amount: amount,
+      ticksLeft: template.durationTicks,
+    );
+    _game = _game.copyWith(
+      money: _game.money - amount,
+      activeInvestments: [..._game.activeInvestments, inv],
+    );
     notifyListeners();
     return true;
   }

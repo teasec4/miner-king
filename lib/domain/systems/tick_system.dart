@@ -5,6 +5,7 @@ import 'credit_system.dart';
 import 'electricity_system.dart';
 import 'employee_system.dart';
 import 'event_system.dart';
+import 'investment_system.dart';
 import 'job_system.dart';
 import 'market_system.dart';
 import 'mining_system.dart';
@@ -57,7 +58,10 @@ class TickSystem {
     // 10. Process employees + office
     g = EmployeeSystem.update(g);
 
-    // 11. Advance tick
+    // 11. Process investments
+    g = InvestmentSystem.update(g);
+
+    // 12. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
     return (g, newEvent);

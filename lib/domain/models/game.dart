@@ -1,6 +1,7 @@
 import 'coin_state.dart';
 import 'farm.dart';
 import 'game_event.dart';
+import 'investment.dart';
 import 'loan.dart';
 import 'modifier.dart';
 import 'player_profile.dart';
@@ -14,6 +15,7 @@ class Game {
   final List<Modifier> activeModifiers;
   final List<GameEvent> activeEvents;
   final List<Loan> activeLoans;
+  final List<ActiveInvestment> activeInvestments;
   final double marketMood;
   final Map<String, int> loanRepayments;
   final String? activeJobId;
@@ -37,6 +39,7 @@ class Game {
     this.activeModifiers = const [],
     this.activeEvents = const [],
     this.activeLoans = const [],
+    this.activeInvestments = const [],
     this.marketMood = 0,
     this.loanRepayments = const {},
     this.activeJobId,
@@ -71,6 +74,7 @@ class Game {
     List<Modifier>? activeModifiers,
     List<GameEvent>? activeEvents,
     List<Loan>? activeLoans,
+    List<ActiveInvestment>? activeInvestments,
     double? marketMood,
     Map<String, int>? loanRepayments,
     String? activeJobId,
@@ -94,6 +98,7 @@ class Game {
       activeModifiers: activeModifiers ?? this.activeModifiers,
       activeEvents: activeEvents ?? this.activeEvents,
       activeLoans: activeLoans ?? this.activeLoans,
+      activeInvestments: activeInvestments ?? this.activeInvestments,
       marketMood: marketMood ?? this.marketMood,
       loanRepayments: loanRepayments ?? this.loanRepayments,
       activeJobId: activeJobId ?? this.activeJobId,

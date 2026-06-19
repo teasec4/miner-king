@@ -45,7 +45,8 @@ class _HomePageState extends State<HomePage> {
                 _bottomBar(vm),
               ],
             ),
-            if (vm.activeEvents.isNotEmpty) _eventOverlay(vm),
+            if (vm.activeEvents.any((e) => e.category == 'rig'))
+              _eventOverlay(vm),
           ],
         ),
       ),
@@ -57,7 +58,7 @@ class _HomePageState extends State<HomePage> {
     right: 8,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.end,
-      children: vm.activeEvents.map((e) {
+      children: vm.activeEvents.where((e) => e.category == 'rig').map((e) {
         final open = _expandedEvent?.id == e.id;
         return GestureDetector(
           onTap: () => setState(() => _expandedEvent = open ? null : e),
