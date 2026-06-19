@@ -196,6 +196,12 @@ class _HomePageState extends State<HomePage> {
                 '${vm.totalPowerDraw.toStringAsFixed(0)}W',
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
+              if (vm.solarPower > 0) ...[
+                Text(
+                  ' − ${vm.solarPower.toStringAsFixed(0)}W ☀',
+                  style: TextStyle(fontSize: 11, color: Colors.amber.shade700),
+                ),
+              ],
               const SizedBox(width: 8),
               Text(
                 '−${vm.electricityCostPerHour.toStringAsFixed(2)}\$/h',
@@ -209,6 +215,42 @@ class _HomePageState extends State<HomePage> {
                 ),
             ],
           ),
+          // Upgrades row
+          if (vm.solarPower > 0 || vm.coolingSystem != 'basic')
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(
+                children: [
+                  if (vm.coolingSystem != 'basic') ...[
+                    Icon(Icons.ac_unit, size: 12, color: Colors.blue.shade400),
+                    const SizedBox(width: 2),
+                    Text(
+                      vm.coolingLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.blue.shade400,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (vm.solarPower > 0) ...[
+                    Icon(
+                      Icons.solar_power,
+                      size: 12,
+                      color: Colors.amber.shade600,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      '${vm.solarPower.toStringAsFixed(0)}W ☀',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.amber.shade600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
         ],
       ),
     );

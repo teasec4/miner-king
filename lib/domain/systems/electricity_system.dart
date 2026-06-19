@@ -53,8 +53,10 @@ class ElectricitySystem {
     );
   }
 
-  /// Cost per hour for display.
+  /// Cost per hour for display (accounts for solar).
   static double costPerHour(Game game) {
-    return _totalPowerConsumption(game) * game.electricityRate;
+    final netWatts = (_totalPowerConsumption(game) - game.farm.solarPower)
+        .clamp(0, double.infinity);
+    return netWatts * game.electricityRate;
   }
 }

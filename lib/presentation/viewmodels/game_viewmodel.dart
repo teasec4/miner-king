@@ -32,12 +32,25 @@ class GameViewModel {
   double get totalHashrate => MiningSystem.totalHashrate(_game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(_game);
   double get solarPower => ElectricitySystem.solarPower(_game);
+  String get coolingSystem => _game.farm.coolingSystem;
+  String get coolingLabel => switch (_game.farm.coolingSystem) {
+    'fans' => 'Fan Cooling',
+    'water' => 'Water Cooling',
+    'immersion' => 'Immersion',
+    _ => '',
+  };
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
 
   double get netProfitPerHour {
-    final coin = _game.primaryCoin;
-    final mined = MiningSystem.mine(_game)[coin.id] ?? 0;
-    return mined * 3600 * coin.price - electricityCostPerHour;
+    final mined = MiningSystem.mine(_game);
+    double revenue = 0;
+    for (final entry in mined.entries) {
+      final coin = _game.coin(entry.key);
+      if (coin != null) {
+        revenue += entry.value * 3600 * coin.price;
+      }
+    }
+    return revenue - electricityCostPerHour;
   }
 
   /// Holding amount for a coin.
