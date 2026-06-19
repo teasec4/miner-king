@@ -1,14 +1,14 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
+import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
-import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
 
-/// Thin ViewModel – reads from [GameState], exposes display-friendly getters.
 class GameViewModel {
   final GameState _state;
 
@@ -19,35 +19,53 @@ class GameViewModel {
   // ── Display getters ──
 
   double get money => _game.money;
-  double get coins => _game.coins;
-  double get coinPrice => _game.coinPrice;
-  MarketPhase get marketPhase => _game.marketPhase;
-  String get marketLabel => MarketSystem.phaseLabel(_game.marketPhase);
-  String get marketIcon => MarketSystem.phaseIcon(_game.marketPhase);
   double get electricityRate => _game.electricityRate;
   int get tick => _game.tick;
   int get totalSlots => _game.farm.totalSlots;
   int get usedSlots => _game.farm.usedSlots;
 
   double get totalHashrate => MiningSystem.totalHashrate(_game);
-  double get coinsPerSecond => MiningSystem.mine(_game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(_game);
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
 
-  /// Net profit per hour: mining revenue − electricity cost.
   double get netProfitPerHour {
-    final revenue = coinsPerSecond * 3600 * coinPrice;
-    final cost = electricityCostPerHour;
-    return revenue - cost;
+    final coin = _game.primaryCoin;
+    final mined = MiningSystem.mine(_game)[coin.id] ?? 0;
+    return mined * 3600 * coin.price - electricityCostPerHour;
   }
+
+  /// Holding amount for a coin.
+  double holding(String coinId) => _game.holdings[coinId] ?? 0;
+
+  /// All coin states.
+  List<CoinState> get coins => _game.coins;
+
+  /// Coin display info.
+  CoinState? coinState(String id) => _game.coin(id);
+
+  double holdingValue(String coinId) {
+    final c = _game.coin(coinId);
+    return (c?.price ?? 0) * holding(coinId);
+  }
+
+  double get totalHoldingsValue {
+    return _game.coins.fold(0, (sum, c) => sum + holdingValue(c.id));
+  }
+
+  bool canSellCoin(String coinId) => holding(coinId) > 0;
+
+  // ── GPU list ──
 
   List<GpuDisplayInfo> get gpus {
     return _game.farm.gpuList.map((gpu) {
       final model = GpuCatalog.byId(gpu.modelId);
+      final coin = CoinCatalog.byId(gpu.miningCoinId);
       return GpuDisplayInfo(
         instanceId: gpu.id,
         modelName: model?.name ?? 'Unknown',
         modelId: gpu.modelId,
+        miningCoinId: gpu.miningCoinId,
+        miningCoinName: coin?.name ?? 'BTC',
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
@@ -57,17 +75,6 @@ class GameViewModel {
     }).toList();
   }
 
-  List<GpuModel> get availableUpgrades {
-    if (_game.farm.gpuList.isEmpty) return GpuCatalog.all;
-    final current = GpuCatalog.byId(_game.farm.gpuList.first.modelId);
-    if (current == null) return GpuCatalog.all;
-    final idx = GpuCatalog.all.indexOf(current);
-    if (idx < GpuCatalog.all.length - 1) {
-      return [GpuCatalog.all[idx + 1]];
-    }
-    return [];
-  }
-
   bool canUpgrade(String instanceId) {
     final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
     if (gpu == null) return false;
@@ -75,8 +82,7 @@ class GameViewModel {
     if (model == null) return false;
     final idx = GpuCatalog.all.indexOf(model);
     if (idx >= GpuCatalog.all.length - 1) return false;
-    final next = GpuCatalog.all[idx + 1];
-    return _game.money >= (next.price - model.price);
+    return _game.money >= (GpuCatalog.all[idx + 1].price - model.price);
   }
 
   int upgradeCost(String instanceId) {
@@ -89,22 +95,18 @@ class GameViewModel {
     return GpuCatalog.all[idx + 1].price - model.price;
   }
 
-  /// Repair cost: 30% of model price × damage ratio.
   int repairCost(String instanceId) {
     final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
     if (gpu == null || gpu.condition >= 1.0) return 0;
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    final damage = 1.0 - gpu.condition;
-    return (model.price * 0.3 * damage).round();
+    return (model.price * 0.3 * (1.0 - gpu.condition)).round();
   }
 
   bool canRepair(String instanceId) {
     final cost = repairCost(instanceId);
     return cost > 0 && _game.money >= cost;
   }
-
-  bool get canSellCoins => _game.coins > 0;
 
   // ── Slots ──
 
@@ -115,7 +117,6 @@ class GameViewModel {
 
   // ── Shop ──
 
-  /// All GPU models available for purchase.
   List<ShopGpuEntry> get shopGpus {
     return GpuCatalog.all.map((model) {
       return ShopGpuEntry(
@@ -129,6 +130,7 @@ class GameViewModel {
 
   // ── Actions ──
 
+  void sellCoin(String id) => _state.sellCoin(id);
   void sellAllCoins() => _state.sellAllCoins();
   void startTicks() => _state.startTicks();
   bool upgradeGpu(String id) => _state.upgradeGpu(id);
@@ -136,9 +138,10 @@ class GameViewModel {
   bool repairGpu(String id) => _state.repairGpu(id);
   bool buyGpu(GpuModel model) => _state.buyGpu(model);
   bool buySlot() => _state.buySlot();
+  void setMiningCoin(String gpuId, String coinId) =>
+      _state.setMiningCoin(gpuId, coinId);
 }
 
-/// Shop display entry for a GPU model.
 class ShopGpuEntry {
   final GpuModel model;
   final bool canAfford;
@@ -153,21 +156,24 @@ class ShopGpuEntry {
   });
 }
 
-/// Lightweight display info for a GPU.
 class GpuDisplayInfo {
   final String instanceId;
   final String modelName;
   final String modelId;
+  final String miningCoinId;
+  final String miningCoinName;
   final double temperature;
   final double condition;
   final int overclockLevel;
   final bool isDead;
-  final String tempStatus; // 'normal', 'warning', 'critical'
+  final String tempStatus;
 
   const GpuDisplayInfo({
     required this.instanceId,
     required this.modelName,
     required this.modelId,
+    required this.miningCoinId,
+    required this.miningCoinName,
     required this.temperature,
     required this.condition,
     required this.overclockLevel,

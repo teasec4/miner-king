@@ -1,5 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/models/game.dart';
+import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -40,16 +40,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ── Top bar ──
-
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerHour;
     final profitColor = profit >= 0 ? Colors.green : Colors.red;
-    final priceColor = switch (vm.marketPhase) {
-      MarketPhase.bull => Colors.green,
-      MarketPhase.bear => Colors.red,
-      MarketPhase.sideways => Colors.grey,
-    };
+    final btc = vm.coinState('btc');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -64,18 +58,9 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(width: 8),
               _chip(
-                Icons.currency_bitcoin,
-                vm.coins.toStringAsFixed(4),
+                Icons.account_balance_wallet,
+                '${vm.totalHoldingsValue.toStringAsFixed(0)}\$',
                 Colors.amber,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${vm.marketIcon} \$${vm.coinPrice.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: priceColor,
-                ),
               ),
               const Spacer(),
               Column(
@@ -115,10 +100,11 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(fontSize: 11, color: Colors.red.shade400),
               ),
               const Spacer(),
-              Text(
-                '${vm.electricityRate.toStringAsFixed(2)}\$/kWh',
-                style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
-              ),
+              if (btc != null)
+                Text(
+                  '${MarketSystem.phaseIcon(btc.phase)} BTC \$${btc.price.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                ),
             ],
           ),
         ],
@@ -144,25 +130,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ── GPU list ──
-
   Widget _gpuList(GameViewModel vm) {
     final gpus = vm.gpus;
     final emptySlots = vm.totalSlots - vm.usedSlots;
-
     if (gpus.isEmpty && emptySlots == 0) {
       return const Center(child: Text('No GPUs installed'));
     }
-
     final itemCount = gpus.length + (emptySlots > 0 ? 1 : 0);
-
     return ListView.builder(
       padding: const EdgeInsets.all(8),
       itemCount: itemCount,
       itemBuilder: (context, index) {
-        if (index < gpus.length) {
-          return _gpuCard(gpus[index], vm);
-        }
+        if (index < gpus.length) return _gpuCard(gpus[index], vm);
         return _emptySlotCard(vm, emptySlots);
       },
     );
@@ -209,14 +188,11 @@ class _HomePageState extends State<HomePage> {
     final isOverclocked = gpu.overclockLevel > 0;
     final conditionPercent = (gpu.condition * 100).toInt();
 
-    // Temperature color
     final tempColor = switch (gpu.tempStatus) {
       'critical' => Colors.red,
       'warning' => Colors.orange,
       _ => Colors.green,
     };
-
-    // Condition color
     final condColor = isDead
         ? Colors.grey
         : gpu.condition > 0.7
@@ -233,7 +209,6 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Name + badges ──
             Row(
               children: [
                 Icon(
@@ -259,15 +234,21 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           if (isOverclocked) ...[
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 4),
                             _badge(
                               'OC',
                               Colors.deepOrange,
                               Colors.orange.shade100,
                             ),
                           ],
+                          const SizedBox(width: 4),
+                          _badge(
+                            gpu.miningCoinName,
+                            Colors.blue.shade700,
+                            Colors.blue.shade50,
+                          ),
                           if (isDead) ...[
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 4),
                             _badge('DEAD', Colors.white, Colors.grey),
                           ],
                         ],
@@ -292,10 +273,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 8),
-
-            // ── Condition bar ──
             Row(
               children: [
                 SizedBox(
@@ -331,23 +309,23 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-
-            // ── Action buttons ──
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 if (!isDead) ...[
                   _actionButton(
-                    label: isOverclocked ? 'Stock' : 'Overclock',
+                    label: isOverclocked ? 'Stock' : 'OC',
                     icon: Icons.speed,
                     color: isOverclocked ? Colors.grey : Colors.deepOrange,
                     onTap: () => vm.toggleOverclock(gpu.instanceId),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
+                  _coinSwitcher(gpu, vm),
+                  const SizedBox(width: 6),
                   if (vm.upgradeCost(gpu.instanceId) > 0)
                     _actionButton(
-                      label: 'Upgrade \$${vm.upgradeCost(gpu.instanceId)}',
+                      label: 'Up \$${vm.upgradeCost(gpu.instanceId)}',
                       icon: Icons.upgrade,
                       color: vm.canUpgrade(gpu.instanceId)
                           ? Colors.amber
@@ -357,11 +335,10 @@ class _HomePageState extends State<HomePage> {
                           : null,
                     ),
                 ],
-                // Repair button (always visible if damaged)
                 if (vm.repairCost(gpu.instanceId) > 0) ...[
-                  if (!isDead) const SizedBox(width: 8),
+                  if (!isDead) const SizedBox(width: 6),
                   _actionButton(
-                    label: 'Repair \$${vm.repairCost(gpu.instanceId)}',
+                    label: 'Fix \$${vm.repairCost(gpu.instanceId)}',
                     icon: Icons.build,
                     color: vm.canRepair(gpu.instanceId)
                         ? Colors.blue
@@ -379,16 +356,49 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _coinSwitcher(GpuDisplayInfo gpu, GameViewModel vm) {
+    final coins = vm.coins;
+    if (coins.length < 2) return const SizedBox.shrink();
+
+    return PopupMenuButton<String>(
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 40),
+      tooltip: 'Switch coin',
+      onSelected: (coinId) => vm.setMiningCoin(gpu.instanceId, coinId),
+      itemBuilder: (_) => coins
+          .map(
+            (c) => PopupMenuItem(
+              value: c.id,
+              child: Text(
+                '${c.name}  \$${c.price.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontWeight: c.id == gpu.miningCoinId
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                ),
+              ),
+            ),
+          )
+          .toList(),
+      child: _actionButton(
+        label: gpu.miningCoinName,
+        icon: Icons.currency_bitcoin,
+        color: Colors.blue,
+        onTap: null,
+      ),
+    );
+  }
+
   Widget _badge(String text, Color fg, Color bg) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(3),
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 10, color: fg, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: 9, color: fg, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -400,12 +410,12 @@ class _HomePageState extends State<HomePage> {
     VoidCallback? onTap,
   }) {
     return SizedBox(
-      height: 32,
+      height: 28,
       child: ElevatedButton.icon(
-        icon: Icon(icon, size: 14),
-        label: Text(label, style: const TextStyle(fontSize: 11)),
+        icon: Icon(icon, size: 12),
+        label: Text(label, style: const TextStyle(fontSize: 10)),
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           backgroundColor: color.withAlpha(onTap != null ? 255 : 80),
           foregroundColor: Colors.white,
         ),
@@ -413,8 +423,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  // ── Bottom bar ──
 
   Widget _bottomBar(GameViewModel vm) {
     return Container(
@@ -433,14 +441,16 @@ class _HomePageState extends State<HomePage> {
           ElevatedButton.icon(
             icon: const Icon(Icons.sell, size: 16),
             label: Text(
-              'Sell \$${(vm.coins * vm.coinPrice).toStringAsFixed(2)}',
+              'Sell All \$${vm.totalHoldingsValue.toStringAsFixed(2)}',
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
               textStyle: const TextStyle(fontSize: 12),
             ),
-            onPressed: vm.canSellCoins ? () => vm.sellAllCoins() : null,
+            onPressed: vm.totalHoldingsValue > 0
+                ? () => vm.sellAllCoins()
+                : null,
           ),
         ],
       ),

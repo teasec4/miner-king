@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
@@ -11,7 +12,6 @@ import 'package:crypto_king/domain/systems/tick_system.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
-/// Holds the [Game] aggregate and drives the simulation via a periodic timer.
 class GameState extends ChangeNotifier {
   static final _uuid = const Uuid();
 
@@ -22,21 +22,21 @@ class GameState extends ChangeNotifier {
 
   Game get game => _game;
 
-  // ── Initial state ──
-
   static Game _createInitialGame() {
-    final gpu = GpuInstance(id: _uuid.v4(), modelId: GpuCatalog.gtx1060.id);
+    final gpu = GpuInstance(
+      id: _uuid.v4(),
+      modelId: GpuCatalog.gtx1060.id,
+      miningCoinId: 'btc',
+    );
 
     return Game(
       money: 1000,
-      coins: 0,
-      coinPrice: 10.0,
+      holdings: {'btc': 0, 'eth': 0, 'doge': 0},
+      coins: CoinCatalog.initialCoins(),
       electricityRate: 0.12,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
     );
   }
-
-  // ── Tick loop ──
 
   void startTicks({Duration interval = const Duration(seconds: 1)}) {
     _tickTimer?.cancel();
@@ -48,13 +48,13 @@ class GameState extends ChangeNotifier {
 
   // ── Economy ──
 
-  void sellAllCoins() {
-    _game = EconomySystem.sellAllCoins(_game);
+  void sellCoin(String coinId) {
+    _game = EconomySystem.sellCoin(_game, coinId);
     notifyListeners();
   }
 
-  void sellCoins(double amount) {
-    _game = EconomySystem.sellCoins(_game, amount);
+  void sellAllCoins() {
+    _game = EconomySystem.sellAllCoins(_game);
     notifyListeners();
   }
 
@@ -65,6 +65,7 @@ class GameState extends ChangeNotifier {
     final instance = GpuInstance(
       id: _uuid.v4(),
       modelId: model.id,
+      miningCoinId: 'btc', // default to BTC
       temperature: model.baseTemperature,
     );
 
@@ -91,13 +92,7 @@ class GameState extends ChangeNotifier {
     final cost = nextModel.price - currentModel.price;
     if (_game.money < cost) return false;
 
-    final upgradedGpu = GpuInstance(
-      id: instanceId,
-      modelId: nextModel.id,
-      condition: gpu.condition,
-      temperature: nextModel.baseTemperature,
-      overclockLevel: gpu.overclockLevel,
-    );
+    final upgradedGpu = gpu.copyWith(modelId: nextModel.id);
 
     final newList = [..._game.farm.gpuList];
     newList[index] = upgradedGpu;
@@ -110,9 +105,6 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  // ── Slots ──
-
-  /// Buy the next slot tier (motherboard upgrade).
   bool buySlot() {
     final next = SlotCatalog.nextTier(_game.farm.totalSlots);
     if (next == null) return false;
@@ -131,42 +123,44 @@ class GameState extends ChangeNotifier {
   void toggleOverclock(String instanceId) {
     final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
     if (index == -1) return;
-
     final gpu = _game.farm.gpuList[index];
-    if (gpu.condition <= 0) return; // dead card
+    if (gpu.condition <= 0) return;
 
     final newLevel = gpu.overclockLevel > 0 ? 0 : 1;
-
     final newList = [..._game.farm.gpuList];
     newList[index] = gpu.copyWith(overclockLevel: newLevel);
+    _game = _game.copyWith(farm: _game.farm.copyWith(gpuList: newList));
+    notifyListeners();
+  }
 
+  // ── Coin switching ──
+
+  void setMiningCoin(String instanceId, String coinId) {
+    final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
+    if (index == -1) return;
+    final newList = [..._game.farm.gpuList];
+    newList[index] = newList[index].copyWith(miningCoinId: coinId);
     _game = _game.copyWith(farm: _game.farm.copyWith(gpuList: newList));
     notifyListeners();
   }
 
   // ── Repair ──
 
-  /// Repair a GPU. Cost is proportional to damage.
-  /// Full repair cost = 30% of model price.
-  /// Restores condition to 1.0.
   bool repairGpu(String instanceId) {
     final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
     if (index == -1) return false;
-
     final gpu = _game.farm.gpuList[index];
-    if (gpu.condition >= 1.0) return false; // nothing to repair
+    if (gpu.condition >= 1.0) return false;
 
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return false;
 
-    // Cost proportional to damage: 30% of model price * damage
     final damage = 1.0 - gpu.condition;
     final cost = (model.price * 0.3 * damage).round();
     if (_game.money < cost) return false;
 
     final newList = [..._game.farm.gpuList];
     newList[index] = gpu.copyWith(condition: 1.0);
-
     _game = _game.copyWith(
       money: _game.money - cost,
       farm: _game.farm.copyWith(gpuList: newList),

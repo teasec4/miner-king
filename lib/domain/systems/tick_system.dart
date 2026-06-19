@@ -6,19 +6,22 @@ import 'thermal_system.dart';
 import 'wear_system.dart';
 
 /// Main game loop – advances the simulation by one tick.
-/// Orchestrates all systems in order.
 class TickSystem {
   TickSystem._();
 
   static Game tick(Game game) {
     var g = game;
 
-    // 1. Update market (price + phase)
+    // 1. Update market (all coins)
     g = MarketSystem.update(g);
 
-    // 2. Mine coins based on current hashrate
-    final coinsMined = MiningSystem.mine(g);
-    g = g.copyWith(coins: g.coins + coinsMined);
+    // 2. Mine coins — returns per-coin map
+    final mined = MiningSystem.mine(g);
+    final newHoldings = Map<String, double>.from(g.holdings);
+    for (final entry in mined.entries) {
+      newHoldings[entry.key] = (newHoldings[entry.key] ?? 0) + entry.value;
+    }
+    g = g.copyWith(holdings: newHoldings);
 
     // 3. Update temperatures
     g = ThermalSystem.update(g);

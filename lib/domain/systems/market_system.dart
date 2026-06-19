@@ -1,60 +1,58 @@
 import 'dart:math';
 
 import '../models/game.dart';
+import '../models/market_phase.dart';
 
-/// Drives coin price fluctuations and market phase transitions.
+/// Drives coin price fluctuations and market phase transitions for all coins.
 class MarketSystem {
   MarketSystem._();
 
   static final _random = Random();
 
-  // Phase durations (ticks)
   static const _minPhaseTicks = 60;
   static const _maxPhaseTicks = 300;
 
-  /// Update coin price and possibly switch market phase.
+  /// Update all coins' prices and possibly switch market phases.
   static Game update(Game game) {
-    var phase = game.marketPhase;
-    var ticksLeft = game.marketPhaseTicksLeft;
-    var price = game.coinPrice;
+    final updatedCoins = game.coins.map((coin) {
+      var phase = coin.phase;
+      var ticksLeft = coin.phaseTicksLeft;
+      var price = coin.price;
 
-    // ── Check for phase transition ──
-    ticksLeft--;
-    if (ticksLeft <= 0) {
-      phase = _nextPhase(phase);
-      ticksLeft =
-          _minPhaseTicks + _random.nextInt(_maxPhaseTicks - _minPhaseTicks);
-    }
+      ticksLeft--;
+      if (ticksLeft <= 0) {
+        phase = _nextPhase(phase);
+        ticksLeft =
+            _minPhaseTicks + _random.nextInt(_maxPhaseTicks - _minPhaseTicks);
+      }
 
-    // ── Price movement ──
-    final change = _priceChange(phase);
-    price = (price * (1 + change)).clamp(1.0, 100.0);
+      final change = _priceChange(phase, coin.volatility);
+      price = (price * (1 + change)).clamp(0.01, 10000.0);
 
-    return game.copyWith(
-      coinPrice: double.parse(price.toStringAsFixed(2)),
-      marketPhase: phase,
-      marketPhaseTicksLeft: ticksLeft,
-    );
+      return coin.copyWith(
+        price: double.parse(price.toStringAsFixed(2)),
+        phase: phase,
+        phaseTicksLeft: ticksLeft,
+      );
+    }).toList();
+
+    return game.copyWith(coins: updatedCoins);
   }
 
-  /// Pick a new phase (can't stay the same).
   static MarketPhase _nextPhase(MarketPhase current) {
     final others = MarketPhase.values.where((p) => p != current).toList();
     return others[_random.nextInt(others.length)];
   }
 
-  /// Price change % for this tick based on phase.
-  static double _priceChange(MarketPhase phase) {
-    return switch (phase) {
-      MarketPhase.bull =>
-        (_random.nextDouble() * 0.008 + 0.002), // +0.2% to +1.0%
-      MarketPhase.bear =>
-        -(_random.nextDouble() * 0.008 + 0.002), // −0.2% to −1.0%
-      MarketPhase.sideways => (_random.nextDouble() - 0.5) * 0.006, // ±0.3%
+  static double _priceChange(MarketPhase phase, double volatility) {
+    final base = switch (phase) {
+      MarketPhase.bull => (_random.nextDouble() * 0.008 + 0.002),
+      MarketPhase.bear => -(_random.nextDouble() * 0.008 + 0.002),
+      MarketPhase.sideways => (_random.nextDouble() - 0.5) * 0.006,
     };
+    return base * volatility;
   }
 
-  /// Human-readable label for market phase.
   static String phaseLabel(MarketPhase phase) {
     return switch (phase) {
       MarketPhase.bull => 'Bull Market 🟢',
@@ -63,7 +61,6 @@ class MarketSystem {
     };
   }
 
-  /// Direction indicator for display.
   static String phaseIcon(MarketPhase phase) {
     return switch (phase) {
       MarketPhase.bull => '↑',

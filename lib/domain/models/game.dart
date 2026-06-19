@@ -1,15 +1,12 @@
+import 'coin_state.dart';
 import 'farm.dart';
 import 'modifier.dart';
-
-enum MarketPhase { bull, bear, sideways }
 
 /// Root aggregate – contains all game state.
 class Game {
   final double money; // $
-  final double coins; // mined crypto
-  final double coinPrice; // $ per coin
-  final MarketPhase marketPhase;
-  final int marketPhaseTicksLeft; // ticks until phase may change
+  final Map<String, double> holdings; // coinId → amount
+  final List<CoinState> coins; // market state for each coin
   final double electricityRate; // $ per kWh
   final Farm farm;
   final List<Modifier> activeModifiers;
@@ -17,22 +14,30 @@ class Game {
 
   const Game({
     required this.money,
+    required this.holdings,
     required this.coins,
-    required this.coinPrice,
     required this.farm,
-    this.marketPhase = MarketPhase.sideways,
-    this.marketPhaseTicksLeft = 120,
     this.electricityRate = 0.12,
     this.activeModifiers = const [],
     this.tick = 0,
   });
 
+  /// Convenience: get a single coin's state.
+  CoinState? coin(String id) {
+    try {
+      return coins.firstWhere((c) => c.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Convenience: first coin (for backward compatibility).
+  CoinState get primaryCoin => coins.first;
+
   Game copyWith({
     double? money,
-    double? coins,
-    double? coinPrice,
-    MarketPhase? marketPhase,
-    int? marketPhaseTicksLeft,
+    Map<String, double>? holdings,
+    List<CoinState>? coins,
     double? electricityRate,
     Farm? farm,
     List<Modifier>? activeModifiers,
@@ -40,10 +45,8 @@ class Game {
   }) {
     return Game(
       money: money ?? this.money,
+      holdings: holdings ?? this.holdings,
       coins: coins ?? this.coins,
-      coinPrice: coinPrice ?? this.coinPrice,
-      marketPhase: marketPhase ?? this.marketPhase,
-      marketPhaseTicksLeft: marketPhaseTicksLeft ?? this.marketPhaseTicksLeft,
       electricityRate: electricityRate ?? this.electricityRate,
       farm: farm ?? this.farm,
       activeModifiers: activeModifiers ?? this.activeModifiers,

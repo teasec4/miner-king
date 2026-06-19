@@ -1,5 +1,7 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/models/game.dart';
+import 'package:crypto_king/domain/models/coin_state.dart';
+import 'package:crypto_king/domain/models/market_phase.dart';
+import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,176 +14,161 @@ class MarketPage extends StatelessWidget {
     final game = context.watch<GameState>();
     final vm = GameViewModel(game);
 
-    final phaseColor = switch (vm.marketPhase) {
-      MarketPhase.bull => Colors.green,
-      MarketPhase.bear => Colors.red,
-      MarketPhase.sideways => Colors.grey,
-    };
-
     return Scaffold(
       appBar: AppBar(title: const Text('Market'), centerTitle: true),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Coin price card ──
+            // ── Total value ──
             Card(
-              color: phaseColor.withAlpha(15),
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    Icon(Icons.currency_bitcoin, size: 48, color: phaseColor),
-                    const SizedBox(height: 12),
-                    Text(
-                      'BTC / USD',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
+                    const Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.green,
+                      size: 28,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          vm.marketIcon,
+                          'Total Holdings',
                           style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: phaseColor,
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Text(
-                          '\$${vm.coinPrice.toStringAsFixed(2)}',
+                          '\$${vm.totalHoldingsValue.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            fontSize: 36,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: phaseColor.withAlpha(30),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        vm.marketLabel,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: phaseColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ── Your holdings card ──
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                    const Spacer(),
                     Text(
-                      'Your Holdings',
+                      'Cash: \$${vm.money.toStringAsFixed(0)}',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 1,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _holdingRow('Coins', vm.coins.toStringAsFixed(4), 'BTC'),
-                    const SizedBox(height: 8),
-                    _holdingRow(
-                      'Value',
-                      '\$${(vm.coins * vm.coinPrice).toStringAsFixed(2)}',
-                      'USD',
-                    ),
-                    const Divider(height: 24),
-                    _holdingRow(
-                      'Cash',
-                      '\$${vm.money.toStringAsFixed(0)}',
-                      'USD',
                     ),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // ── Sell button ──
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.sell),
-                label: Text(
-                  'Sell All Coins → \$${(vm.coins * vm.coinPrice).toStringAsFixed(2)}',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: vm.marketPhase == MarketPhase.bull
-                      ? Colors.green.shade700
-                      : Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: vm.canSellCoins ? () => vm.sellAllCoins() : null,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // ── Tip ──
-            if (vm.canSellCoins)
-              Text(
-                vm.marketPhase == MarketPhase.bull
-                    ? 'Bull market — price is rising. Hold or sell?'
-                    : vm.marketPhase == MarketPhase.bear
-                    ? 'Bear market — price is falling. Sell before it drops further?'
-                    : 'Sideways market — price is stable. No rush.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-              ),
+            // ── Coin cards ──
+            ...vm.coins.map((coin) => _coinCard(coin, vm)),
           ],
         ),
       ),
     );
   }
 
-  Widget _holdingRow(String label, String value, String currency) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 16)),
-        Row(
+  Widget _coinCard(CoinState coin, GameViewModel vm) {
+    final phaseColor = switch (coin.phase) {
+      MarketPhase.bull => Colors.green,
+      MarketPhase.bear => Colors.red,
+      MarketPhase.sideways => Colors.grey,
+    };
+
+    final amount = vm.holding(coin.id);
+    final value = vm.holdingValue(coin.id);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
           children: [
-            Text(
-              value,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Text(
+                  coin.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  MarketSystem.phaseIcon(coin.phase),
+                  style: TextStyle(fontSize: 14, color: phaseColor),
+                ),
+                const Spacer(),
+                Text(
+                  '\$${coin.price.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            Text(
-              currency,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  MarketSystem.phaseLabel(coin.phase),
+                  style: TextStyle(fontSize: 11, color: phaseColor),
+                ),
+                const Spacer(),
+                Text(
+                  'Vol: ${(coin.volatility * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Reward: ${coin.baseReward}x',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+              ],
             ),
+            if (amount > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    '${amount.toStringAsFixed(4)} ${coin.name}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '= \$${value.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 30,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 11),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      onPressed: () => vm.sellCoin(coin.id),
+                      child: const Text('Sell'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
-      ],
+      ),
     );
   }
 }

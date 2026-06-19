@@ -3,6 +3,7 @@
 class GpuInstance {
   final String id;
   final String modelId;
+  final String miningCoinId; // which coin this GPU mines
   double condition; // 0.0 – 1.0
   double temperature; // current temp in Celsius
   int overclockLevel; // 0 = stock, 1, 2, 3...
@@ -11,6 +12,7 @@ class GpuInstance {
   GpuInstance({
     required this.id,
     required this.modelId,
+    this.miningCoinId = 'btc',
     this.condition = 1.0,
     this.temperature = 50,
     this.overclockLevel = 0,
@@ -20,18 +22,18 @@ class GpuInstance {
   GpuInstance copyWith({
     String? id,
     String? modelId,
+    String? miningCoinId,
     double? condition,
     double? temperature,
     int? overclockLevel,
-    bool? isBroken,
   }) {
     return GpuInstance(
       id: id ?? this.id,
       modelId: modelId ?? this.modelId,
+      miningCoinId: miningCoinId ?? this.miningCoinId,
       condition: condition ?? this.condition,
       temperature: temperature ?? this.temperature,
       overclockLevel: overclockLevel ?? this.overclockLevel,
-      isBroken: isBroken ?? this.isBroken,
     );
   }
 }
