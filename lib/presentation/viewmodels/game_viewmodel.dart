@@ -1,5 +1,4 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
@@ -106,7 +105,7 @@ class GameViewModel {
   List<GpuDisplayInfo> get gpus {
     return _game.farm.gpuList.map((gpu) {
       final model = GpuCatalog.byId(gpu.modelId);
-      final coin = CoinCatalog.byId(gpu.miningCoinId);
+      final coin = _game.coin(gpu.miningCoinId);
       final hashrate = _gpuHashrate(gpu, model);
       // Cycle progress: visible fill on GPU card
       final cycleProgress = gpu.cycleProgress;

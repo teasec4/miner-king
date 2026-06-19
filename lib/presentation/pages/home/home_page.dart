@@ -424,43 +424,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               children: [
-                // Cycle progress bar
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: gpu.isPowered && !dead ? gpu.cycleProgress : 0,
-                      minHeight: 10,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation(
-                        gpu.isPowered && !dead ? Colors.blue : Colors.grey,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '${(gpu.cycleProgress * 100).toInt()}%',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${gpu.miningCoinName} mine',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const Spacer(),
-                // Condition bar (small)
                 SizedBox(
                   width: 14,
                   height: 14,
@@ -480,12 +446,7 @@ class _HomePageState extends State<HomePage> {
                     color: cc,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
+                const Spacer(),
                 if (!dead) ...[
                   _iconBtn(
                     gpu.isPowered ? Icons.power_settings_new : Icons.power_off,
