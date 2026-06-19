@@ -13,6 +13,21 @@ class JobPage extends StatelessWidget {
     return job.salaryPerTick * 60 * (1.0 + level * 0.1);
   }
 
+  String? _jobRequirement(Job job, GameViewModel vm) {
+    switch (job.id) {
+      case 'tech_support':
+        final exp = vm.jobExp('fast_food');
+        if (exp < 100) return 'Need Fast Food Lv2 ($exp/100 EXP)';
+        return null;
+      case 'freelance':
+        final ffExp = vm.jobExp('fast_food');
+        if (ffExp < 200) return 'Need Fast Food Lv3 ($ffExp/200 EXP)';
+        return null;
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = GameViewModel(context.watch<GameState>());
@@ -79,13 +94,6 @@ class JobPage extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
-                          Text(
-                            '⚠ -40% mining',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.red.shade400,
-                            ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -120,8 +128,11 @@ class JobPage extends StatelessWidget {
             const SizedBox(height: 8),
             ...JobCatalog.all.map((j) {
               final income = _jobIncome(j, vm);
+              final req = _jobRequirement(j, vm);
+              final locked = req != null;
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 4),
+                color: locked ? Colors.grey.shade100 : null,
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Row(
@@ -130,12 +141,14 @@ class JobPage extends StatelessWidget {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: locked
+                              ? Colors.grey.shade200
+                              : Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.work_outline,
-                          color: Colors.blue,
+                          color: locked ? Colors.grey : Colors.blue,
                           size: 20,
                         ),
                       ),
@@ -146,38 +159,53 @@ class JobPage extends StatelessWidget {
                           children: [
                             Text(
                               j.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
+                                color: locked ? Colors.grey.shade500 : null,
                               ),
                             ),
-                            Text(
-                              j.description,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
+                            if (locked)
+                              Text(
+                                req,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.red.shade400,
+                                ),
+                              )
+                            else ...[
+                              Text(
+                                j.description,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '\$${income.toStringAsFixed(2)}/min  •  -40% mining speed',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade500,
+                              Text(
+                                '\$${income.toStringAsFixed(2)}/min',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade500,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: locked ? Colors.grey : Colors.blue,
                           foregroundColor: Colors.white,
                         ),
-                        onPressed: activeJob?.id == j.id
+                        onPressed: locked || activeJob?.id == j.id
                             ? null
                             : () => vm.startJob(j.id),
                         child: Text(
-                          activeJob?.id == j.id ? 'Working' : 'Start',
+                          activeJob?.id == j.id
+                              ? 'Working'
+                              : locked
+                              ? 'Locked'
+                              : 'Start',
                         ),
                       ),
                     ],

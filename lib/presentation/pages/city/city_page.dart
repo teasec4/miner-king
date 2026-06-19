@@ -61,7 +61,7 @@ class CityPage extends StatelessWidget {
                       context,
                       Icons.work,
                       'Job',
-                      'Earn cash\n-40% mining speed',
+                      'Earn cash\n+EXP per level',
                       Colors.orange,
                       '/job',
                       badge: vm.activeJobId != null ? _activeBadge() : null,

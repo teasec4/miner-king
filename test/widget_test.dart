@@ -1,4 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
@@ -16,7 +17,7 @@ void main() {
     test('initial state has correct values', () {
       final state = GameState();
       final game = state.game;
-      expect(game.money, 1000);
+      expect(game.money, 500);
       expect(game.holdings['btc'], 0);
       expect(game.holdings['eth'], 0);
       expect(game.holdings['sol'], 0);
@@ -27,6 +28,8 @@ void main() {
       expect(game.primaryCoin.price, 10.0);
       expect(game.electricityRate, 0.12);
       expect(game.farm.gpuList.length, 1);
+      expect(game.farm.gpuList.first.condition, 0.5);
+      expect(game.activeJobId, 'fast_food');
       expect(game.farm.totalSlots, 1);
     });
   });
@@ -35,20 +38,30 @@ void main() {
     test('tick increases holdings and tick counter after cycles', () {
       final state = GameState();
       var game = state.game;
-      // GTX 1060 needs ~5 ticks to complete its first mining cycle
-      for (int i = 0; i < 6; i++) {
+      // Quit job properly (copyWith can't null-ify)
+      game = Game(
+        money: game.money,
+        holdings: game.holdings,
+        coins: game.coins,
+        electricityRate: game.electricityRate,
+        farm: game.farm,
+        activeJobId: null,
+      );
+      // GTX 1060 at 50% condition needs ~10 ticks
+      for (int i = 0; i < 11; i++) {
         (game, _) = TickSystem.tick(game);
       }
       expect(game.holdings['btc']!, greaterThan(0));
-      expect(game.tick, 6);
+      expect(game.tick, 11);
     });
   });
 
   group('ThermalSystem', () {
-    test('temperatures use model base temp', () {
+    test('temperatures use model base temp + worn bonus', () {
       final state = GameState();
       final game = ThermalSystem.update(state.game);
-      expect(game.farm.gpuList.first.temperature, 45.0);
+      // GTX 1060 base 45°C + worn (0.5) bonus 10°C = 55°C
+      expect(game.farm.gpuList.first.temperature, 55.0);
     });
     test('worn card runs hotter', () {
       final state = GameState();
@@ -69,14 +82,18 @@ void main() {
     test('no wear below 65°C', () {
       final state = GameState();
       var game = state.game;
-      game = ThermalSystem.update(game); // GTX 1060 = 45°C — safe
+      game = ThermalSystem.update(game); // GTX 1060 = 55°C — safe
       game = WearSystem.update(game);
-      expect(game.farm.gpuList.first.condition, 1.0);
+      expect(
+        game.farm.gpuList.first.condition,
+        0.5,
+      ); // starts at 0.5, no change below 65
     });
     test('wear at 70°C (GTX 1060 OC)', () {
       final state = GameState();
       var game = state.game;
       final gpu = game.farm.gpuList.first.copyWith(
+        condition: 1.0,
         temperature: 70,
         overclockLevel: 1,
       );
@@ -120,17 +137,21 @@ void main() {
   group('MiningSystem', () {
     test('totalHashrate scales with condition', () {
       final state = GameState();
-      final full = MiningSystem.totalHashrate(state.game);
       var game = state.game;
-      final gpu = game.farm.gpuList.first.copyWith(condition: 0.5);
+      // Fix GPU to 100% first
+      var gpu = game.farm.gpuList.first.copyWith(condition: 1.0);
+      game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
+      final full = MiningSystem.totalHashrate(game);
+      // Halve it
+      gpu = gpu.copyWith(condition: 0.5);
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
       expect(MiningSystem.totalHashrate(game), closeTo(full * 0.5, 0.1));
     });
     test('mine returns per-coin map after enough ticks', () {
       final state = GameState();
       var game = state.game;
-      // GTX 1060 needs ~5 ticks to complete a cycle
-      for (int i = 0; i < 5; i++) {
+      // GTX 1060 at 50% condition needs ~10 ticks for a cycle
+      for (int i = 0; i < 10; i++) {
         final (gpus, mined) = MiningSystem.mine(game);
         if (mined.isNotEmpty) {
           expect(mined.containsKey('btc'), true);

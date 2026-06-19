@@ -152,7 +152,6 @@ class GameViewModel {
       final debuff = DebuffCatalog.byId(d);
       if (debuff != null) base *= debuff.hashrateMul;
     }
-    if (_game.activeJobId != null) base *= 0.6;
     return base;
   }
 

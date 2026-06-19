@@ -60,14 +60,24 @@ class GameState extends ChangeNotifier {
       id: _uuid.v4(),
       modelId: GpuCatalog.gtx1060.id,
       miningCoinId: 'btc',
+      condition: 0.5, // starts half-broken
     );
 
+    final loan = Loan(
+      id: 'small',
+      name: 'Quick Loan',
+      principal: LoanCatalog.small.principal,
+      interestPerMinute: LoanCatalog.small.interestPerMinute,
+    )..remaining = LoanCatalog.small.principal * 1.1; // 10% fee
+
     return Game(
-      money: 1000,
+      money: 500,
       holdings: {'btc': 0, 'eth': 0, 'sol': 0, 'doge': 0, 'pepe': 0, 'usdt': 0},
       coins: CoinCatalog.initialCoins(),
       electricityRate: 0.12,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
+      activeJobId: 'fast_food',
+      activeLoans: [loan],
     );
   }
 
