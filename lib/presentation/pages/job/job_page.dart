@@ -7,6 +7,12 @@ import 'package:provider/provider.dart';
 class JobPage extends StatelessWidget {
   const JobPage({super.key});
 
+  double _jobIncome(Job job, GameViewModel vm) {
+    final exp = vm.jobExp(job.id);
+    final level = exp ~/ 100;
+    return job.salaryPerTick * 60 * (1.0 + level * 0.1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = GameViewModel(context.watch<GameState>());
@@ -42,7 +48,7 @@ class JobPage extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'Earning: \$${(activeJob.salaryPerTick * 60).toStringAsFixed(2)}/min',
+                                  'Earning: \$${_jobIncome(activeJob, vm).toStringAsFixed(2)}/min',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: Colors.green.shade700,
@@ -112,8 +118,9 @@ class JobPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ...JobCatalog.all.map(
-              (j) => Card(
+            ...JobCatalog.all.map((j) {
+              final income = _jobIncome(j, vm);
+              return Card(
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
@@ -152,7 +159,7 @@ class JobPage extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '\$${(j.salaryPerTick * 60).toStringAsFixed(2)}/min  •  -40% mining speed',
+                              '\$${income.toStringAsFixed(2)}/min  •  -40% mining speed',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.grey.shade500,
@@ -176,8 +183,8 @@ class JobPage extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ),
       ),

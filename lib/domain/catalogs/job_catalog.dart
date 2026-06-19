@@ -19,19 +19,19 @@ class JobCatalog {
   static const fastFood = Job(
     id: 'fast_food',
     name: 'Fast Food',
-    salaryPerTick: 0.001,
+    salaryPerTick: 0.01,
     description: 'Flip burgers. Easy money.',
   );
   static const techSupport = Job(
     id: 'tech_support',
     name: 'Tech Support',
-    salaryPerTick: 0.002,
+    salaryPerTick: 0.015,
     description: 'Help people reset routers.',
   );
   static const freelance = Job(
     id: 'freelance',
     name: 'Freelance Dev',
-    salaryPerTick: 0.004,
+    salaryPerTick: 0.02,
     description: 'Code for clients. Good pay.',
   );
 

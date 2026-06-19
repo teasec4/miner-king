@@ -14,8 +14,13 @@ class JobSystem {
     final newExp = Map<String, int>.from(game.jobExperience);
     newExp[jobId] = (newExp[jobId] ?? 0) + 1;
 
+    // Experience bonus: each 100 EXP = +10% income
+    final exp = newExp[jobId] ?? 0;
+    final level = exp ~/ 100;
+    final multiplier = 1.0 + level * 0.1;
+
     return game.copyWith(
-      money: game.money + job.salaryPerTick,
+      money: game.money + job.salaryPerTick * multiplier,
       jobExperience: newExp,
     );
   }
