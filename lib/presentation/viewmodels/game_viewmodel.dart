@@ -78,6 +78,15 @@ class GameViewModel {
   }
 
   List<GameEvent> get activeEvents => _game.activeEvents;
+
+  /// Active events affecting a specific coin (crash/boom).
+  GameEvent? eventForCoin(int coinIdx) {
+    for (final e in _game.activeEvents) {
+      if (e.data != null && e.data!['coinIdx'] == coinIdx) return e;
+    }
+    return null;
+  }
+
   double get marketMood => _game.marketMood;
   List<Loan> get activeLoans => _game.activeLoans;
   Map<String, int> get loanRepayments => _game.loanRepayments;

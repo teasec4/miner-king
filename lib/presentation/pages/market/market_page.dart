@@ -21,7 +21,9 @@ class MarketPage extends StatelessWidget {
           children: [
             _moodGauge(vm.marketMood),
             const SizedBox(height: 12),
-            ...vm.coins.map((c) => _coinCard(c)),
+            ...vm.coins.asMap().entries.map(
+              (e) => _coinCard(e.key, e.value, vm),
+            ),
             const SizedBox(height: 12),
             _swapCard(context),
             const SizedBox(height: 12),
@@ -110,70 +112,104 @@ class MarketPage extends StatelessWidget {
     );
   }
 
-  Widget _coinCard(CoinState coin) {
+  Widget _coinCard(int idx, CoinState coin, GameViewModel vm) {
     final c = switch (coin.phase) {
       MarketPhase.bull => Colors.green,
       MarketPhase.bear => Colors.red,
       _ => Colors.grey,
     };
+    final event = coin.eventImmune ? null : vm.eventForCoin(idx);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: c.withAlpha(30),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  coin.name[0],
-                  style: TextStyle(
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: c.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      coin.name[0],
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: c,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            coin.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${MarketSystem.phaseIcon(coin.phase)} ${MarketSystem.phaseLabel(coin.phase)}',
+                            style: TextStyle(fontSize: 13, color: c),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Mine: ${coin.baseReward}x  Vol: ${(coin.volatility * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '\$${coin.price.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: c,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Active event overlay
+          if (event != null)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: event.id == 'market_crash'
+                      ? Colors.red.shade600
+                      : Colors.green.shade600,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  event.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        coin.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${MarketSystem.phaseIcon(coin.phase)} ${MarketSystem.phaseLabel(coin.phase)}',
-                        style: TextStyle(fontSize: 13, color: c),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Mine: ${coin.baseReward}x  Vol: ${(coin.volatility * 100).toStringAsFixed(0)}%',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '\$${coin.price.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
