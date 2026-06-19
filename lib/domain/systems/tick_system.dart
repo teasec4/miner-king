@@ -1,5 +1,6 @@
 import '../models/game.dart';
 import 'electricity_system.dart';
+import 'market_system.dart';
 import 'mining_system.dart';
 import 'thermal_system.dart';
 import 'wear_system.dart';
@@ -12,20 +13,23 @@ class TickSystem {
   static Game tick(Game game) {
     var g = game;
 
-    // 1. Mine coins based on current hashrate
+    // 1. Update market (price + phase)
+    g = MarketSystem.update(g);
+
+    // 2. Mine coins based on current hashrate
     final coinsMined = MiningSystem.mine(g);
     g = g.copyWith(coins: g.coins + coinsMined);
 
-    // 2. Update temperatures
+    // 3. Update temperatures
     g = ThermalSystem.update(g);
 
-    // 3. Apply wear from heat
+    // 4. Apply wear from heat
     g = WearSystem.update(g);
 
-    // 4. Deduct electricity cost
+    // 5. Deduct electricity cost
     g = ElectricitySystem.update(g);
 
-    // 5. Advance tick
+    // 6. Advance tick
     g = g.copyWith(tick: g.tick + 1);
 
     return g;

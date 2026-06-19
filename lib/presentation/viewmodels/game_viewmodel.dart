@@ -4,6 +4,7 @@ import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
+import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
 
@@ -20,6 +21,9 @@ class GameViewModel {
   double get money => _game.money;
   double get coins => _game.coins;
   double get coinPrice => _game.coinPrice;
+  MarketPhase get marketPhase => _game.marketPhase;
+  String get marketLabel => MarketSystem.phaseLabel(_game.marketPhase);
+  String get marketIcon => MarketSystem.phaseIcon(_game.marketPhase);
   double get electricityRate => _game.electricityRate;
   int get tick => _game.tick;
   int get totalSlots => _game.farm.totalSlots;

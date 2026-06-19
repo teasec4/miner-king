@@ -1,4 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,12 @@ class MarketPage extends StatelessWidget {
     final game = context.watch<GameState>();
     final vm = GameViewModel(game);
 
+    final phaseColor = switch (vm.marketPhase) {
+      MarketPhase.bull => Colors.green,
+      MarketPhase.bear => Colors.red,
+      MarketPhase.sideways => Colors.grey,
+    };
+
     return Scaffold(
       appBar: AppBar(title: const Text('Market'), centerTitle: true),
       body: SafeArea(
@@ -19,15 +26,12 @@ class MarketPage extends StatelessWidget {
           children: [
             // ── Coin price card ──
             Card(
+              color: phaseColor.withAlpha(15),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.currency_bitcoin,
-                      size: 48,
-                      color: Colors.amber,
-                    ),
+                    Icon(Icons.currency_bitcoin, size: 48, color: phaseColor),
                     const SizedBox(height: 12),
                     Text(
                       'BTC / USD',
@@ -37,15 +41,46 @@ class MarketPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      '\$${vm.coinPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          vm.marketIcon,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: phaseColor,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '\$${vm.coinPrice.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: phaseColor.withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        vm.marketLabel,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: phaseColor,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    _trendBadge(),
                   ],
                 ),
               ),
@@ -100,29 +135,30 @@ class MarketPage extends StatelessWidget {
                   'Sell All Coins → \$${(vm.coins * vm.coinPrice).toStringAsFixed(2)}',
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: vm.marketPhase == MarketPhase.bull
+                      ? Colors.green.shade700
+                      : Colors.green,
                   foregroundColor: Colors.white,
                 ),
                 onPressed: vm.canSellCoins ? () => vm.sellAllCoins() : null,
               ),
             ),
+
+            const SizedBox(height: 8),
+
+            // ── Tip ──
+            if (vm.canSellCoins)
+              Text(
+                vm.marketPhase == MarketPhase.bull
+                    ? 'Bull market — price is rising. Hold or sell?'
+                    : vm.marketPhase == MarketPhase.bear
+                    ? 'Bear market — price is falling. Sell before it drops further?'
+                    : 'Sideways market — price is stable. No rush.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _trendBadge() {
-    // Placeholder – will be dynamic in v0.4
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        'Sideways',
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
       ),
     );
   }

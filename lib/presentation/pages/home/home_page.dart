@@ -1,4 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -44,6 +45,11 @@ class _HomePageState extends State<HomePage> {
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerHour;
     final profitColor = profit >= 0 ? Colors.green : Colors.red;
+    final priceColor = switch (vm.marketPhase) {
+      MarketPhase.bull => Colors.green,
+      MarketPhase.bear => Colors.red,
+      MarketPhase.sideways => Colors.grey,
+    };
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -61,6 +67,15 @@ class _HomePageState extends State<HomePage> {
                 Icons.currency_bitcoin,
                 vm.coins.toStringAsFixed(4),
                 Colors.amber,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${vm.marketIcon} \$${vm.coinPrice.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: priceColor,
+                ),
               ),
               const Spacer(),
               Column(

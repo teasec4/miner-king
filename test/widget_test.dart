@@ -1,8 +1,10 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
+import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/systems/economy_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
+import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
@@ -18,6 +20,7 @@ void main() {
       expect(game.money, 1000);
       expect(game.coins, 0);
       expect(game.coinPrice, 10.0);
+      expect(game.marketPhase, MarketPhase.sideways);
       expect(game.electricityRate, 0.12);
       expect(game.farm.gpuList.length, 1);
       expect(game.farm.totalSlots, 1);
@@ -247,6 +250,44 @@ void main() {
       expect(SlotCatalog.nextTier(2)?.price, 1500);
       expect(SlotCatalog.nextTier(4)?.price, 5000);
       expect(SlotCatalog.nextTier(8)?.price, 15000);
+    });
+  });
+
+  group('MarketSystem', () {
+    test('update changes coin price over multiple ticks', () {
+      final state = GameState();
+      var game = state.game;
+      for (var i = 0; i < 100; i++) {
+        game = MarketSystem.update(game);
+      }
+      // Price should have moved after 100 ticks
+      expect(game.coinPrice, isNot(10.0));
+    });
+
+    test('price stays within bounds', () {
+      final state = GameState();
+      var game = state.game;
+      for (var i = 0; i < 1000; i++) {
+        game = MarketSystem.update(game);
+      }
+      expect(game.coinPrice, greaterThanOrEqualTo(1.0));
+      expect(game.coinPrice, lessThanOrEqualTo(100.0));
+    });
+
+    test('phaseLabel returns non-empty string', () {
+      expect(MarketSystem.phaseLabel(MarketPhase.bull).isNotEmpty, true);
+      expect(MarketSystem.phaseLabel(MarketPhase.bear).isNotEmpty, true);
+      expect(MarketSystem.phaseLabel(MarketPhase.sideways).isNotEmpty, true);
+    });
+
+    test('tick includes market update', () {
+      final state = GameState();
+      var game = state.game;
+      for (var i = 0; i < 500; i++) {
+        game = TickSystem.tick(game);
+      }
+      // After many ticks, price should have drifted from initial $10
+      expect(game.coinPrice, isNot(10.0));
     });
   });
 }
