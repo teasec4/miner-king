@@ -12,9 +12,13 @@ class ElectricitySystem {
   /// Calculate electricity cost for one tick and deduct from money.
   static Game update(Game game) {
     final totalWatts = _totalPowerConsumption(game);
-    // Hourly cost = watts * rate (game formula)
-    final costPerHour = totalWatts * game.electricityRate;
-    // Per tick (1 second)
+    // Solar panels offset consumption
+    final netWatts = (totalWatts - game.farm.solarPower).clamp(
+      0,
+      double.infinity,
+    );
+    // Hourly cost = net watts * rate (game formula)
+    final costPerHour = netWatts * game.electricityRate;
     final cost = costPerHour / 3600.0;
 
     final newMoney = ((game.money - cost).clamp(0, double.infinity) as double);
@@ -37,6 +41,17 @@ class ElectricitySystem {
 
   /// Total power draw for display (watts).
   static double totalPowerDraw(Game game) => _totalPowerConsumption(game);
+
+  /// Solar power generated (watts).
+  static double solarPower(Game game) => game.farm.solarPower;
+
+  /// Net power after solar offset.
+  static double netPowerDraw(Game game) {
+    return (_totalPowerConsumption(game) - game.farm.solarPower).clamp(
+      0,
+      double.infinity,
+    );
+  }
 
   /// Cost per hour for display.
   static double costPerHour(Game game) {

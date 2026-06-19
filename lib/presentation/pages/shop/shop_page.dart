@@ -1,4 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
+import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +19,7 @@ class ShopPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ── Money ──
+            // Money
             Row(
               children: [
                 const Icon(Icons.attach_money, color: Colors.green, size: 20),
@@ -38,150 +40,165 @@ class ShopPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // ── Slot upgrade ──
-            if (vm.nextSlotTier != null) _slotUpgradeCard(vm),
+            // Motherboard
+            if (vm.nextSlotTier != null)
+              _upgradeCard(
+                icon: Icons.dashboard,
+                color: Colors.green,
+                title: 'Motherboard → ${vm.nextSlotTier} slots',
+                subtitle: 'Currently ${vm.totalSlots} slots',
+                price: vm.nextSlotCost,
+                canBuy: vm.canBuySlot,
+                onBuy: () => vm.buySlot(),
+              ),
 
-            const SizedBox(height: 8),
+            // Cooling
+            _section('Cooling'),
+            ...CoolingCatalog.all.map((c) {
+              final current = game.game.farm.coolingSystem;
+              final owned = current == c.id;
+              final betterThanCurrent =
+                  ['basic', 'fans', 'water', 'immersion'].indexOf(c.id) >
+                  ['basic', 'fans', 'water', 'immersion'].indexOf(current);
+              return _upgradeCard(
+                icon: Icons.ac_unit,
+                color: Colors.blue,
+                title: c.name,
+                subtitle:
+                    '${c.tempReduction}°C  ${owned
+                        ? "(installed)"
+                        : betterThanCurrent
+                        ? ""
+                        : "(downgrade)"}',
+                price: c.price,
+                canBuy: !owned && vm.money >= c.price,
+                onBuy: () => vm.buyCooling(c),
+              );
+            }),
+
+            // Solar
+            _section('Solar Panels'),
             Text(
-              'GPUs',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1,
+              'Generated: ${vm.solarPower.toStringAsFixed(0)}W',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            ...SolarCatalog.all.map(
+              (s) => _upgradeCard(
+                icon: Icons.solar_power,
+                color: Colors.amber,
+                title: s.name,
+                subtitle: '+${s.powerGen.toStringAsFixed(0)}W generation',
+                price: s.price,
+                canBuy: vm.money >= s.price,
+                onBuy: () => vm.buySolar(s),
               ),
             ),
-            const SizedBox(height: 8),
 
-            // ── GPU list ──
-            ...vm.shopGpus.map((entry) => _gpuShopCard(entry, vm)),
+            // GPUs
+            _section('GPUs'),
+            ...vm.shopGpus.map((e) {
+              final m = e.model;
+              return _upgradeCard(
+                icon: Icons.memory,
+                color: Colors.deepPurple,
+                title: m.name,
+                subtitle:
+                    '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
+                price: m.price,
+                canBuy: e.canBuy,
+                onBuy: () => vm.buyGpu(m),
+                hint: !e.hasSlots
+                    ? 'No slots'
+                    : !e.canAfford
+                    ? 'Need \$${m.price - vm.money.toInt()}'
+                    : null,
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _slotUpgradeCard(GameViewModel vm) {
-    return Card(
-      color: vm.canBuySlot ? Colors.green.shade50 : Colors.grey.shade100,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              Icons.dashboard,
-              size: 36,
-              color: vm.canBuySlot ? Colors.green : Colors.grey,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Motherboard → ${vm.nextSlotTier} slots',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+  Widget _section(String title) => Padding(
+    padding: const EdgeInsets.only(top: 16, bottom: 4),
+    child: Text(
+      title,
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.grey.shade600,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 1,
+      ),
+    ),
+  );
+
+  Widget _upgradeCard({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required int price,
+    required bool canBuy,
+    required VoidCallback onBuy,
+    String? hint,
+  }) => Card(
+    margin: const EdgeInsets.symmetric(vertical: 4),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Icon(icon, size: 36, color: canBuy ? color : Colors.grey.shade400),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Currently ${vm.totalSlots} slots',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
             ),
+          ),
+          if (canBuy)
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: vm.canBuySlot
-                    ? Colors.green
-                    : Colors.grey.shade300,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
               ),
-              onPressed: vm.canBuySlot ? () => vm.buySlot() : null,
-              child: Text('\$${vm.nextSlotCost}'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _gpuShopCard(ShopGpuEntry entry, GameViewModel vm) {
-    final model = entry.model;
-
-    String? hint;
-    if (!entry.hasSlots) {
-      hint = 'No free slots';
-    } else if (!entry.canAfford) {
-      hint = 'Need \$${model.price - vm.money.toInt()} more';
-    }
-
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            const Icon(Icons.memory, size: 40, color: Colors.deepPurple),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    model.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+              onPressed: onBuy,
+              child: Text('\$$price'),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '\$$price',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade500,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${model.baseHashrate.toStringAsFixed(0)} MH/s  •  '
-                    '${model.basePowerConsumption.toStringAsFixed(0)}W  •  '
-                    '${model.baseTemperature.toStringAsFixed(0)}°C',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            ),
-            if (entry.canBuy)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
                 ),
-                onPressed: () => vm.buyGpu(model),
-                child: Text('\$${model.price}'),
-              )
-            else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
+                if (hint != null)
                   Text(
-                    '\$${model.price}',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade500,
-                    ),
+                    hint,
+                    style: TextStyle(fontSize: 10, color: Colors.red.shade400),
                   ),
-                  if (hint != null)
-                    Text(
-                      hint,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.red.shade400,
-                      ),
-                    ),
-                ],
-              ),
-          ],
-        ),
+              ],
+            ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

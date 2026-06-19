@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
+import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
+import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
@@ -134,6 +136,30 @@ class GameState extends ChangeNotifier {
     _game = _game.copyWith(
       money: _game.money - next.price,
       farm: _game.farm.copyWith(totalSlots: next.slots),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  bool buyCooling(CoolingUpgrade upgrade) {
+    if (_game.money < upgrade.price) return false;
+    if (_game.farm.coolingSystem == upgrade.id) return false;
+    _game = _game.copyWith(
+      money: _game.money - upgrade.price,
+      farm: _game.farm.copyWith(coolingSystem: upgrade.id),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  bool buySolar(SolarUpgrade upgrade) {
+    if (_game.money < upgrade.price) return false;
+    // Solar panels stack (additive)
+    _game = _game.copyWith(
+      money: _game.money - upgrade.price,
+      farm: _game.farm.copyWith(
+        solarPower: _game.farm.solarPower + upgrade.powerGen,
+      ),
     );
     notifyListeners();
     return true;

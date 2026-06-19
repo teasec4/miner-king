@@ -2,6 +2,8 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
+import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
+import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
@@ -29,6 +31,7 @@ class GameViewModel {
 
   double get totalHashrate => MiningSystem.totalHashrate(_game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(_game);
+  double get solarPower => ElectricitySystem.solarPower(_game);
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
 
   double get netProfitPerHour {
@@ -150,6 +153,8 @@ class GameViewModel {
   bool repairGpu(String id) => _state.repairGpu(id);
   bool buyGpu(GpuModel model) => _state.buyGpu(model);
   bool buySlot() => _state.buySlot();
+  bool buyCooling(CoolingUpgrade u) => _state.buyCooling(u);
+  bool buySolar(SolarUpgrade u) => _state.buySolar(u);
   void setMiningCoin(String gpuId, String coinId) =>
       _state.setMiningCoin(gpuId, coinId);
   void togglePower(String gpuId) => _state.togglePower(gpuId);
