@@ -17,8 +17,8 @@ double _effectiveHashrate(
 
   double base = model.baseHashrate;
 
-  if (gpu.overclockLevel > 0) {
-    base *= 1 + 0.2 * gpu.overclockLevel;
+  if (gpu.effectiveOverclock > 0) {
+    base *= 1 + 0.2 * gpu.effectiveOverclock;
   }
 
   // Perk: Silicon Lottery +10%

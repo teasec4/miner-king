@@ -78,7 +78,9 @@ class EventSystem {
           final gpu = g.farm.gpuList[idx];
           // Boost via overclockLevel +1 permanently
           final newList = [...g.farm.gpuList];
-          newList[idx] = gpu.copyWith(overclockLevel: gpu.overclockLevel + 1);
+          newList[idx] = gpu.copyWith(
+            siliconLotteryLevel: gpu.siliconLotteryLevel + 1,
+          );
           g = g.copyWith(farm: g.farm.copyWith(gpuList: newList));
         }
         break;

@@ -319,6 +319,7 @@ class _HomePageState extends State<HomePage> {
   Widget _gpuCard(GpuDisplayInfo gpu, GameViewModel vm) {
     final dead = gpu.isDead,
         oc = gpu.overclockLevel > 0,
+        sl = gpu.siliconLotteryLevel > 0,
         cp = (gpu.condition * 100).toInt();
     final tc = switch (gpu.tempStatus) {
       'critical' => Colors.red,
@@ -371,6 +372,10 @@ class _HomePageState extends State<HomePage> {
                               Colors.deepOrange,
                               Colors.orange.shade100,
                             ),
+                          ],
+                          if (sl) ...[
+                            const SizedBox(width: 4),
+                            _badge('SL', Colors.purple, Colors.purple.shade50),
                           ],
                           const SizedBox(width: 4),
                           _badge(
@@ -485,7 +490,8 @@ class _HomePageState extends State<HomePage> {
                           : null,
                     ),
                 ],
-                if (vm.repairCost(gpu.instanceId) > 0) ...[
+                if (vm.repairCost(gpu.instanceId) > 0 ||
+                    gpu.condition < 1.0) ...[
                   if (!dead) const SizedBox(width: 4),
                   _btn(
                     'Fix \$${vm.repairCost(gpu.instanceId)}',

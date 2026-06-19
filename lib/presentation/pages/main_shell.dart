@@ -20,29 +20,19 @@ class _MainShellState extends State<MainShell> {
   ];
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Expanded(
-        child: IndexedStack(index: _currentIndex, children: _tabs),
-      ),
-      BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        selectedItemColor: Colors.deepPurple,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.memory), label: 'Rig'),
-          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Wallet'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.show_chart),
-            label: 'Market',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.location_city),
-            label: 'City',
-          ),
-        ],
-      ),
-    ],
+  Widget build(BuildContext context) => Scaffold(
+    body: IndexedStack(index: _currentIndex, children: _tabs),
+    bottomNavigationBar: BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: _currentIndex,
+      onTap: (i) => setState(() => _currentIndex = i),
+      selectedItemColor: Colors.deepPurple,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.memory), label: 'Rig'),
+        BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Wallet'),
+        BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Market'),
+        BottomNavigationBarItem(icon: Icon(Icons.location_city), label: 'City'),
+      ],
+    ),
   );
 }

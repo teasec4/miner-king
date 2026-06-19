@@ -1,14 +1,12 @@
-/// A concrete GPU installed in the farm.
-/// References a [GpuModel] template and holds runtime state.
 class GpuInstance {
   final String id;
   final String modelId;
-  final String miningCoinId; // which coin this GPU mines
-  final bool isPowered; // can be turned off to save electricity
-  double condition; // 0.0 – 1.0
-  double temperature; // current temp in Celsius
-  int overclockLevel; // 0 = stock, 1, 2, 3...
-  bool isBroken;
+  final String miningCoinId;
+  final bool isPowered;
+  double condition;
+  double temperature;
+  int overclockLevel;
+  int siliconLotteryLevel;
 
   GpuInstance({
     required this.id,
@@ -18,8 +16,10 @@ class GpuInstance {
     this.condition = 1.0,
     this.temperature = 50,
     this.overclockLevel = 0,
-    this.isBroken = false,
+    this.siliconLotteryLevel = 0,
   });
+
+  int get effectiveOverclock => overclockLevel + siliconLotteryLevel;
 
   GpuInstance copyWith({
     String? id,
@@ -29,6 +29,7 @@ class GpuInstance {
     double? condition,
     double? temperature,
     int? overclockLevel,
+    int? siliconLotteryLevel,
   }) {
     return GpuInstance(
       id: id ?? this.id,
@@ -38,6 +39,7 @@ class GpuInstance {
       condition: condition ?? this.condition,
       temperature: temperature ?? this.temperature,
       overclockLevel: overclockLevel ?? this.overclockLevel,
+      siliconLotteryLevel: siliconLotteryLevel ?? this.siliconLotteryLevel,
     );
   }
 }

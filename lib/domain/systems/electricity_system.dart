@@ -34,7 +34,7 @@ class ElectricitySystem {
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
       // Overclock adds 10% power per level
-      total += model.basePowerConsumption * (1 + gpu.overclockLevel * 0.1);
+      total += model.basePowerConsumption * (1 + gpu.effectiveOverclock * 0.1);
     }
     return total;
   }

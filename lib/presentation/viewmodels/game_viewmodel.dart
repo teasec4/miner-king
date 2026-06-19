@@ -103,6 +103,7 @@ class GameViewModel {
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
+        siliconLotteryLevel: gpu.siliconLotteryLevel,
         isDead: gpu.condition <= 0,
         tempStatus: ThermalSystem.status(gpu.temperature),
       );
@@ -112,7 +113,7 @@ class GameViewModel {
   double _gpuHashrate(GpuInstance gpu, GpuModel? model) {
     if (gpu.condition <= 0 || !gpu.isPowered || model == null) return 0;
     double base = model.baseHashrate;
-    if (gpu.overclockLevel > 0) base *= 1 + 0.2 * gpu.overclockLevel;
+    if (gpu.effectiveOverclock > 0) base *= 1 + 0.2 * gpu.effectiveOverclock;
     if (_game.perks.any((p) => p.effect == PerkEffect.siliconLottery)) {
       base *= 1.1;
     }
@@ -147,12 +148,14 @@ class GameViewModel {
     if (gpu == null || gpu.condition >= 1.0) return 0;
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    return (model.price * 0.05 * (1.0 - gpu.condition)).round();
+    final cost = (model.price * 0.1 * (1.0 - gpu.condition)).ceil();
+    return cost;
   }
 
   bool canRepair(String instanceId) {
-    final cost = repairCost(instanceId);
-    return cost > 0 && _game.money >= cost;
+    final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
+    if (gpu == null || gpu.condition >= 1.0) return false;
+    return _game.money >= repairCost(instanceId);
   }
 
   // ── Slots ──
@@ -221,6 +224,7 @@ class GpuDisplayInfo {
   final double temperature;
   final double condition;
   final int overclockLevel;
+  final int siliconLotteryLevel;
   final bool isDead;
   final String tempStatus;
 
@@ -235,6 +239,7 @@ class GpuDisplayInfo {
     required this.temperature,
     required this.condition,
     required this.overclockLevel,
+    required this.siliconLotteryLevel,
     required this.isDead,
     required this.tempStatus,
   });

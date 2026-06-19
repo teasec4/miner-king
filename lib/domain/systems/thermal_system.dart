@@ -50,7 +50,7 @@ class ThermalSystem {
       }
 
       // Overclock adds heat
-      temp += gpu.overclockLevel * 25.0;
+      temp += gpu.effectiveOverclock * 25.0;
 
       // Worn cards run hotter: up to +20°C when near death
       temp += (1 - gpu.condition) * 20.0;
