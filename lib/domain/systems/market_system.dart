@@ -28,12 +28,12 @@ class MarketSystem {
 
       // Price change: base volatility * mood amplification
       final change = _priceChange(phase, coin.volatility, mood);
-      price = (price * (1 + change)).clamp(0.01, 10000.0);
+      price = (price * (1 + change)).clamp(0.01, 999999.0);
 
-      // Coin-specific micro-event (random tiny swing per coin character)
+      // Coin-specific micro-event
       if (coin.microEventRate > 0 && _r.nextDouble() < coin.microEventRate) {
         final micro = (_r.nextDouble() - 0.45) * coin.volatility * 0.03;
-        price = (price * (1 + micro)).clamp(0.01, 10000.0);
+        price = (price * (1 + micro)).clamp(0.01, 999999.0);
       }
 
       return coin.copyWith(

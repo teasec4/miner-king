@@ -79,31 +79,31 @@ void main() {
   });
 
   group('WearSystem', () {
-    test('no wear below 65°C', () {
+    test('no wear below 50°C', () {
       final state = GameState();
       var game = state.game;
-      game = ThermalSystem.update(game); // GTX 1060 = 55°C — safe
+      final gpu = game.farm.gpuList.first.copyWith(
+        temperature: 45,
+        condition: 1.0,
+      );
+      game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
       game = WearSystem.update(game);
-      expect(
-        game.farm.gpuList.first.condition,
-        0.5,
-      ); // starts at 0.5, no change below 65
+      expect(game.farm.gpuList.first.condition, 1.0);
     });
-    test('wear at 70°C (GTX 1060 OC)', () {
+    test('wear at 70°C', () {
       final state = GameState();
       var game = state.game;
       final gpu = game.farm.gpuList.first.copyWith(
         condition: 1.0,
         temperature: 70,
-        overclockLevel: 1,
       );
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
-      // 70°C: rate = (70-65)/25 * 0.0005 = 0.0001/tick
-      // 100 ticks = 0.01 wear → condition ≈ 0.99
+      // 70°C: rate = (70-50)/40 * 0.001 = 0.0005/tick
+      // 100 ticks = 0.05 wear → condition ≈ 0.95
       for (var i = 0; i < 100; i++) {
         game = WearSystem.update(game);
       }
-      expect(game.farm.gpuList.first.condition, closeTo(0.99, 0.005));
+      expect(game.farm.gpuList.first.condition, closeTo(0.95, 0.005));
     });
   });
 

@@ -111,7 +111,7 @@ class EventSystem {
             event.data = {'coinIdx': idx, 'oldPrice': coin.price};
             final newCoins = [...g.coins];
             newCoins[idx] = coin.copyWith(
-              price: (coin.price * 0.6).clamp(0.01, 10000),
+              price: (coin.price * 0.6).clamp(0.01, 999999),
             );
             g = g.copyWith(coins: newCoins);
           }
@@ -127,7 +127,7 @@ class EventSystem {
             event.data = {'coinIdx': idx, 'oldPrice': coin.price};
             final newCoins = [...g.coins];
             newCoins[idx] = coin.copyWith(
-              price: (coin.price * 1.3).clamp(0.01, 10000),
+              price: (coin.price * 1.3).clamp(0.01, 999999),
             );
             g = g.copyWith(coins: newCoins);
           }
