@@ -10,6 +10,7 @@ import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/models/loan.dart';
+import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/economy_system.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
 import 'package:flutter/foundation.dart';
@@ -177,6 +178,34 @@ class GameState extends ChangeNotifier {
     _game = _game.copyWith(money: _game.money - toPay, activeLoans: newLoans);
     notifyListeners();
     return true;
+  }
+
+  // ── Character & Perks ──
+
+  void setCharacter(CharacterType c) {
+    _game = _game.copyWith(character: c);
+    notifyListeners();
+  }
+
+  void addPerk(Perk perk) {
+    if (_game.perks.any((p) => p.id == perk.id)) return;
+    // Apply perk effects
+    _game = _applyPerkEffect(_game, perk);
+    _game = _game.copyWith(perks: [..._game.perks, perk]);
+    notifyListeners();
+  }
+
+  static Game _applyPerkEffect(Game game, Perk perk) {
+    switch (perk.effect) {
+      case PerkEffect.betterMobo:
+        return game.copyWith(
+          farm: game.farm.copyWith(totalSlots: game.farm.totalSlots + 2),
+        );
+      case PerkEffect.cheapElectricity:
+        return game.copyWith(electricityRate: game.electricityRate * 0.8);
+      default:
+        return game; // applied dynamically in systems
+    }
   }
 
   // ── Overclock ──

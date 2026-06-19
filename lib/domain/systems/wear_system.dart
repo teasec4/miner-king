@@ -1,4 +1,5 @@
 import '../models/game.dart';
+import '../models/player_profile.dart';
 
 /// Gradual GPU degradation system.
 ///
@@ -21,7 +22,11 @@ class WearSystem {
           : 0.0005 + (temp - 90) * 0.0005;
 
       // Worn cards degrade up to 3x faster
-      final accelerator = 1 + (1 - gpu.condition) * 2;
+      var accelerator = 1 + (1 - gpu.condition) * 2;
+      // Perk: Risk Lover +50% wear
+      if (game.perks.any((p) => p.effect == PerkEffect.riskLover)) {
+        accelerator *= 1.5;
+      }
 
       final newCondition = (gpu.condition - wearRate * accelerator).clamp(
         0.0,

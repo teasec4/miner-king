@@ -4,11 +4,13 @@ import '../models/game.dart';
 import '../models/gpu_instance.dart';
 import '../models/gpu_model.dart';
 import '../models/modifier.dart';
+import '../models/player_profile.dart';
 
 double _effectiveHashrate(
   GpuInstance gpu,
   GpuModel model,
   List<Modifier> modifiers,
+  List<Perk> perks,
 ) {
   if (gpu.condition <= 0) return 0;
   if (!gpu.isPowered) return 0;
@@ -17,6 +19,15 @@ double _effectiveHashrate(
 
   if (gpu.overclockLevel > 0) {
     base *= 1 + 0.2 * gpu.overclockLevel;
+  }
+
+  // Perk: Silicon Lottery +10%
+  if (perks.any((p) => p.effect == PerkEffect.siliconLottery)) {
+    base *= 1.1;
+  }
+  // Perk: Risk Lover +50%
+  if (perks.any((p) => p.effect == PerkEffect.riskLover)) {
+    base *= 1.5;
   }
 
   for (final m in modifiers.where((m) => m.stat == AffectedStat.hashrate)) {
@@ -39,7 +50,12 @@ class MiningSystem {
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
 
-      final hashrate = _effectiveHashrate(gpu, model, game.activeModifiers);
+      final hashrate = _effectiveHashrate(
+        gpu,
+        model,
+        game.activeModifiers,
+        game.perks,
+      );
       if (hashrate <= 0) continue;
 
       final coin = CoinCatalog.byId(gpu.miningCoinId);
@@ -60,7 +76,7 @@ class MiningSystem {
     for (final gpu in game.farm.gpuList) {
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
-      total += _effectiveHashrate(gpu, model, game.activeModifiers);
+      total += _effectiveHashrate(gpu, model, game.activeModifiers, game.perks);
     }
     return total;
   }

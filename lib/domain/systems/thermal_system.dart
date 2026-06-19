@@ -1,5 +1,6 @@
 import '../catalogs/gpu_catalog.dart';
 import '../models/game.dart';
+import '../models/player_profile.dart';
 
 /// Calculates GPU temperatures based on model, overclock, cooling, wear, and external factors.
 class ThermalSystem {
@@ -41,6 +42,11 @@ class ThermalSystem {
         if (firstAlive != null && gpu.id == firstAlive.id) {
           temp += 25;
         }
+      }
+
+      // Perk: Efficient Fans -15°C
+      if (game.perks.any((p) => p.effect == PerkEffect.efficientFans)) {
+        temp -= 15;
       }
 
       // Overclock adds heat

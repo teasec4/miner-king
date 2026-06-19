@@ -3,6 +3,7 @@ import 'farm.dart';
 import 'game_event.dart';
 import 'loan.dart';
 import 'modifier.dart';
+import 'player_profile.dart';
 
 /// Root aggregate – contains all game state.
 class Game {
@@ -14,6 +15,8 @@ class Game {
   final List<Modifier> activeModifiers;
   final List<GameEvent> activeEvents;
   final List<Loan> activeLoans;
+  final CharacterType? character;
+  final List<Perk> perks;
   final int tick; // current tick counter
 
   const Game({
@@ -25,6 +28,8 @@ class Game {
     this.activeModifiers = const [],
     this.activeEvents = const [],
     this.activeLoans = const [],
+    this.character,
+    this.perks = const [],
     this.tick = 0,
   });
 
@@ -49,6 +54,8 @@ class Game {
     List<Modifier>? activeModifiers,
     List<GameEvent>? activeEvents,
     List<Loan>? activeLoans,
+    CharacterType? character,
+    List<Perk>? perks,
     int? tick,
   }) {
     return Game(
@@ -60,6 +67,8 @@ class Game {
       activeModifiers: activeModifiers ?? this.activeModifiers,
       activeEvents: activeEvents ?? this.activeEvents,
       activeLoans: activeLoans ?? this.activeLoans,
+      character: character ?? this.character,
+      perks: perks ?? this.perks,
       tick: tick ?? this.tick,
     );
   }
