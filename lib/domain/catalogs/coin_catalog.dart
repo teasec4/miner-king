@@ -28,7 +28,23 @@ class CoinCatalog {
     price: 1.0,
   );
 
-  static final List<CoinState> all = [btc, eth, doge];
+  static final sol = CoinState(
+    id: 'sol',
+    name: 'SOL',
+    baseReward: 1.2,
+    volatility: 1.8,
+    price: 3.0,
+  );
+
+  static final pepe = CoinState(
+    id: 'pepe',
+    name: 'PEPE',
+    baseReward: 3.0,
+    volatility: 5.0,
+    price: 0.10,
+  );
+
+  static final List<CoinState> all = [btc, eth, sol, doge, pepe];
 
   static CoinState? byId(String id) {
     try {

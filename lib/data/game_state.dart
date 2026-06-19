@@ -41,7 +41,7 @@ class GameState extends ChangeNotifier {
 
     return Game(
       money: 1000,
-      holdings: {'btc': 0, 'eth': 0, 'doge': 0},
+      holdings: {'btc': 0, 'eth': 0, 'sol': 0, 'doge': 0, 'pepe': 0},
       coins: CoinCatalog.initialCoins(),
       electricityRate: 0.12,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
