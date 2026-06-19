@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
@@ -15,12 +16,31 @@ class BlackMarketPage extends StatefulWidget {
 
 class _BlackMarketPageState extends State<BlackMarketPage> {
   static final _r = Random();
+  static const _refreshSeconds = 300; // 5 minutes
   late List<_BlackOffer> _offers;
+  int _refreshIn = _refreshSeconds;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _generateOffers();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _refreshIn--;
+        if (_refreshIn <= 0) {
+          _generateOffers();
+          _refreshIn = _refreshSeconds;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   void _generateOffers() {
@@ -53,15 +73,31 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
   @override
   Widget build(BuildContext context) {
     final vm = GameViewModel(context.watch<GameState>());
+    final mins = _refreshIn ~/ 60;
+    final secs = _refreshIn % 60;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Black Market'), centerTitle: true),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              'Shady deals — stats are approximate. GPUs may have hidden flaws.',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            Row(
+              children: [
+                Text(
+                  'Shady deals — stats are approximate.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                const Spacer(),
+                Text(
+                  'Refresh in $mins:${secs.toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Row(
@@ -122,6 +158,14 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.red.shade500,
+                          ),
+                        ),
+                      if (offer.debuffs.isEmpty)
+                        Text(
+                          '✓',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green.shade500,
                           ),
                         ),
                     ],
