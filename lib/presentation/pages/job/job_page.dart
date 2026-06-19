@@ -9,19 +9,31 @@ class JobPage extends StatelessWidget {
 
   double _jobIncome(Job job, GameViewModel vm) {
     final exp = vm.jobExp(job.id);
-    final level = exp ~/ 100;
+    final level = (exp ~/ job.expPerLevel).clamp(0, job.maxLevel);
     return job.salaryPerTick * 60 * (1.0 + level * 0.1);
+  }
+
+  int _jobLevel(Job job, GameViewModel vm) {
+    return (vm.jobExp(job.id) ~/ job.expPerLevel).clamp(0, job.maxLevel);
+  }
+
+  int _jobExpForLevel(Job job, GameViewModel vm) {
+    return vm.jobExp(job.id) % job.expPerLevel;
   }
 
   String? _jobRequirement(Job job, GameViewModel vm) {
     switch (job.id) {
       case 'tech_support':
-        final exp = vm.jobExp('fast_food');
-        if (exp < 100) return 'Need Fast Food Lv2 ($exp/100 EXP)';
+      case 'retail':
+        final ffLv = _jobLevel(JobCatalog.fastFood, vm);
+        final crLv = _jobLevel(JobCatalog.courier, vm);
+        if (ffLv < 5 && crLv < 5) return 'Need Fast Food Lv5 or Courier Lv5';
         return null;
       case 'freelance':
-        final ffExp = vm.jobExp('fast_food');
-        if (ffExp < 200) return 'Need Fast Food Lv3 ($ffExp/200 EXP)';
+      case 'office':
+        final tsLv = _jobLevel(JobCatalog.techSupport, vm);
+        final rtLv = _jobLevel(JobCatalog.retail, vm);
+        if (tsLv < 7 && rtLv < 7) return 'Need Tech Support Lv7 or Retail Lv7';
         return null;
       default:
         return null;
@@ -73,7 +85,7 @@ class JobPage extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Lv ${(vm.jobExp(activeJob.id) / 100).floor() + 1}',
+                            'Lv ${_jobLevel(activeJob, vm)}/${activeJob.maxLevel}',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey.shade600,
@@ -84,7 +96,10 @@ class JobPage extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          _expBar(vm.jobExp(activeJob.id) % 100),
+                          _expBar(
+                            _jobExpForLevel(activeJob, vm),
+                            activeJob.expPerLevel,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'EXP',
@@ -93,7 +108,6 @@ class JobPage extends StatelessWidget {
                               color: Colors.grey.shade500,
                             ),
                           ),
-                          const Spacer(),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -130,6 +144,7 @@ class JobPage extends StatelessWidget {
               final income = _jobIncome(j, vm);
               final req = _jobRequirement(j, vm);
               final locked = req != null;
+              final level = _jobLevel(j, vm);
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 color: locked ? Colors.grey.shade100 : null,
@@ -157,13 +172,27 @@ class JobPage extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              j.name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: locked ? Colors.grey.shade500 : null,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  j.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: locked ? Colors.grey.shade500 : null,
+                                  ),
+                                ),
+                                if (level > 0) ...[
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Lv$level',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.blue.shade400,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                             if (locked)
                               Text(
@@ -219,11 +248,11 @@ class JobPage extends StatelessWidget {
     );
   }
 
-  Widget _expBar(int exp) => Expanded(
+  Widget _expBar(int exp, int maxExp) => Expanded(
     child: ClipRRect(
       borderRadius: BorderRadius.circular(3),
       child: LinearProgressIndicator(
-        value: exp / 100,
+        value: exp / maxExp,
         minHeight: 6,
         backgroundColor: Colors.grey.shade200,
         valueColor: const AlwaysStoppedAnimation(Colors.blue),

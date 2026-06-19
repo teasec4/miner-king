@@ -1,6 +1,7 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
@@ -205,6 +206,15 @@ class GameViewModel {
   int jobExp(String jobId) => _game.jobExperience[jobId] ?? 0;
   void startJob(String id) => _state.startJob(id);
   void quitJob() => _state.quitJob();
+  double get jobIncomePerMin {
+    final id = _game.activeJobId;
+    if (id == null) return 0;
+    final job = JobCatalog.byId(id);
+    if (job == null) return 0;
+    final exp = _game.jobExperience[id] ?? 0;
+    final level = (exp ~/ job.expPerLevel).clamp(0, job.maxLevel);
+    return job.salaryPerTick * 60 * (1.0 + level * 0.1);
+  }
 
   // ── Shop ──
 

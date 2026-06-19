@@ -143,7 +143,9 @@ class _HomePageState extends State<HomePage> {
 
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerMin;
-    final c = profit >= 0 ? Colors.green : Colors.red;
+    final jobIncome = vm.jobIncomePerMin;
+    final total = profit + jobIncome;
+    final tc = total >= 0 ? Colors.green : Colors.red;
     final btc = vm.coinState('btc');
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -174,11 +176,28 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Text(
-                    '${profit >= 0 ? "+" : ""}${profit.toStringAsFixed(2)}\$/min',
+                    '${profit >= 0 ? "+" : ""}${profit.toStringAsFixed(2)}\$/min mine',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: c,
+                      color: profit >= 0 ? Colors.green : Colors.red,
+                    ),
+                  ),
+                  if (jobIncome > 0)
+                    Text(
+                      '+${jobIncome.toStringAsFixed(2)}\$/min job',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  Text(
+                    '${total >= 0 ? "+" : ""}${total.toStringAsFixed(2)}\$/min total',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: tc,
                     ),
                   ),
                 ],
@@ -574,24 +593,11 @@ class _HomePageState extends State<HomePage> {
       color: Colors.grey.shade100,
       border: Border(top: BorderSide(color: Colors.grey.shade300)),
     ),
-    child: Row(
-      children: [
-        Text(
-          'Slots: ${vm.usedSlots}/${vm.totalSlots}',
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-        ),
-        const Spacer(),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.sell, size: 16),
-          label: Text('Sell All \$${vm.totalHoldingsValue.toStringAsFixed(2)}'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            textStyle: const TextStyle(fontSize: 12),
-          ),
-          onPressed: vm.totalHoldingsValue > 0 ? () => vm.sellAllCoins() : null,
-        ),
-      ],
+    child: Center(
+      child: Text(
+        'Slots: ${vm.usedSlots}/${vm.totalSlots}',
+        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+      ),
     ),
   );
 }
