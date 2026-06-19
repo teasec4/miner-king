@@ -20,6 +20,7 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<GameViewModel>().startTicks();
       context.read<GameState>().onEvent = (e) {
+        if (!mounted) return;
         setState(() => _expandedEvent = e);
         Future.delayed(const Duration(seconds: 5), () {
           if (mounted) setState(() => _expandedEvent = null);

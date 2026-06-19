@@ -23,12 +23,24 @@ class GameState extends ChangeNotifier {
 
   Game _game;
   Timer? _tickTimer;
+  Timer? _watchdog;
   GameEvent? lastEvent;
 
   /// Callback when a new event is triggered.
   void Function(GameEvent)? onEvent;
 
-  GameState() : _game = _createInitialGame();
+  GameState() : _game = _createInitialGame() {
+    _startWatchdog();
+  }
+
+  void _startWatchdog() {
+    _watchdog?.cancel();
+    _watchdog = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (_tickTimer == null || !_tickTimer!.isActive) {
+        startTicks();
+      }
+    });
+  }
 
   Game get game => _game;
 
@@ -51,6 +63,12 @@ class GameState extends ChangeNotifier {
   void startTicks({Duration interval = const Duration(seconds: 1)}) {
     _tickTimer?.cancel();
     _tickTimer = Timer.periodic(interval, (_) {
+      _safeTick();
+    });
+  }
+
+  void _safeTick() {
+    try {
       final (newGame, event) = TickSystem.tick(_game);
       _game = newGame;
       if (event != null) {
@@ -58,7 +76,14 @@ class GameState extends ChangeNotifier {
         onEvent?.call(event);
       }
       notifyListeners();
-    });
+    } catch (_) {
+      // Tick crashed (e.g. callback on dead widget) – restart timer
+      _tickTimer?.cancel();
+      _tickTimer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _safeTick(),
+      );
+    }
   }
 
   // ── Economy ──
@@ -335,6 +360,7 @@ class GameState extends ChangeNotifier {
   @override
   void dispose() {
     _tickTimer?.cancel();
+    _watchdog?.cancel();
     super.dispose();
   }
 }
