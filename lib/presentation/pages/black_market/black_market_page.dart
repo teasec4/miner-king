@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
@@ -16,31 +15,13 @@ class BlackMarketPage extends StatefulWidget {
 
 class _BlackMarketPageState extends State<BlackMarketPage> {
   static final _r = Random();
-  static const _refreshSeconds = 300; // 5 minutes
   late List<_BlackOffer> _offers;
-  int _refreshIn = _refreshSeconds;
-  Timer? _timer;
+  bool _needsRegen = false;
 
   @override
   void initState() {
     super.initState();
     _generateOffers();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() {
-        _refreshIn--;
-        if (_refreshIn <= 0) {
-          _generateOffers();
-          _refreshIn = _refreshSeconds;
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
   }
 
   void _generateOffers() {
@@ -73,8 +54,21 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
   @override
   Widget build(BuildContext context) {
     final vm = GameViewModel(context.watch<GameState>());
-    final mins = _refreshIn ~/ 60;
-    final secs = _refreshIn % 60;
+    final refreshIn = vm.blackMarketRefreshIn;
+
+    // Check if refresh triggered
+    if (refreshIn == 0 && !_needsRegen) {
+      _needsRegen = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _generateOffers();
+          _needsRegen = false;
+        }
+      });
+    }
+
+    final mins = refreshIn ~/ 60;
+    final secs = refreshIn % 60;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Black Market'), centerTitle: true),

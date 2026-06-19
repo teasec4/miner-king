@@ -250,6 +250,8 @@ class GameViewModel {
 
   Map<String, int> get unseenEvents => _game.unseenEvents;
   void clearUnseen(String category) => _state.clearUnseen(category);
+  int get blackMarketRefreshIn => _state.blackMarketRefreshIn;
+  void resetBlackMarketTimer() => _state.resetBlackMarketTimer();
 
   // ── Shop ──
 

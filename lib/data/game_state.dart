@@ -30,6 +30,7 @@ class GameState extends ChangeNotifier {
   Timer? _tickTimer;
   Timer? _watchdog;
   int _lastWatchdogTick = 0;
+  int _nextBmRefresh = 0;
   GameEvent? lastEvent;
 
   /// Callback when a new event is triggered.
@@ -504,6 +505,23 @@ class GameState extends ChangeNotifier {
   }
 
   // ── Events ──
+
+  int get blackMarketRefreshIn {
+    if (_nextBmRefresh == 0) {
+      _nextBmRefresh = _game.tick + 300;
+    }
+    final remaining = _nextBmRefresh - _game.tick;
+    if (remaining <= 0) {
+      _nextBmRefresh = _game.tick + 300;
+      return 0;
+    }
+    return remaining;
+  }
+
+  void resetBlackMarketTimer() {
+    _nextBmRefresh = 0;
+    notifyListeners();
+  }
 
   void clearUnseen(String category) {
     final unseen = Map<String, int>.from(_game.unseenEvents);
