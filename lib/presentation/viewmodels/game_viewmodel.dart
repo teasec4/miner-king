@@ -55,10 +55,7 @@ class GameViewModel {
     _ => 'Stock PSU',
   };
   PsuUpgrade? get nextPsu => PsuCatalog.nextTier(_game.farm.psuTier);
-  bool get canBuyPsu =>
-      nextPsu != null &&
-      _game.money >= nextPsu!.price &&
-      nextPsu!.id != _game.farm.psuTier;
+  bool get canBuyPsu => nextPsu != null && _game.money >= nextPsu!.price;
   bool psuSupports(double watts) =>
       PsuCatalog.supports(_game.farm.psuTier, watts);
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
@@ -319,6 +316,7 @@ class GameViewModel {
   Map<String, int> get unseenEvents => _game.unseenEvents;
   void clearUnseen(String category) => _state.clearUnseen(category);
   int get blackMarketRefreshIn => _state.blackMarketRefreshIn;
+  int get blackMarketGen => _state.blackMarketGen;
   void resetBlackMarketTimer() => _state.resetBlackMarketTimer();
 
   // ── Shop ──
@@ -363,6 +361,16 @@ class GameViewModel {
   bool upgradeGpu(String id) => _state.upgradeGpu(id);
   void toggleOverclock(String id) => _state.toggleOverclock(id);
   bool repairGpu(String id) => _state.repairGpu(id);
+  bool repairDebuff(String gpuId, String debuffId) =>
+      _state.repairDebuff(gpuId, debuffId);
+  int debuffRepairCost(String debuffId) {
+    final debuff = DebuffCatalog.byId(debuffId);
+    if (debuff == null) return 0;
+    var cost = debuff.repairCost;
+    if (_game.character == CharacterType.engineer) cost = (cost * 0.7).ceil();
+    return cost;
+  }
+
   bool buyGpu(GpuModel model) => _state.buyGpu(model);
   bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) =>
       _state.buyBlackMarketGpu(model, price, debuffs);

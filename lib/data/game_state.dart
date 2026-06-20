@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/course_catalog.dart';
+import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/investment_catalog.dart';
 import 'package:crypto_king/domain/catalogs/job_catalog.dart';
@@ -33,6 +34,7 @@ class GameState extends ChangeNotifier {
   Timer? _watchdog;
   int _lastWatchdogTick = 0;
   int _nextBmRefresh = 0;
+  int _bmGen = 0;
   GameEvent? lastEvent;
 
   /// Callback when a new event is triggered.
@@ -185,6 +187,12 @@ class GameState extends ChangeNotifier {
   void _safeTick() {
     try {
       _maybeRefreshPool();
+      // Black Market global timer
+      if (_nextBmRefresh == 0) _nextBmRefresh = _game.tick + 300;
+      if (_game.tick >= _nextBmRefresh) {
+        _bmGen++;
+        _nextBmRefresh = _game.tick + 300;
+      }
       final (newGame, event) = TickSystem.tick(_game);
       _game = newGame;
       if (event != null) {
@@ -580,16 +588,11 @@ class GameState extends ChangeNotifier {
   // ── Events ──
 
   int get blackMarketRefreshIn {
-    if (_nextBmRefresh == 0) {
-      _nextBmRefresh = _game.tick + 300;
-    }
-    final remaining = _nextBmRefresh - _game.tick;
-    if (remaining <= 0) {
-      _nextBmRefresh = _game.tick + 300;
-      return 0;
-    }
-    return remaining;
+    if (_nextBmRefresh == 0) _nextBmRefresh = _game.tick + 300;
+    return (_nextBmRefresh - _game.tick).clamp(0, 9999);
   }
+
+  int get blackMarketGen => _bmGen;
 
   void resetBlackMarketTimer() {
     _nextBmRefresh = 0;
@@ -682,6 +685,30 @@ class GameState extends ChangeNotifier {
 
     final newList = [..._game.farm.gpuList];
     newList[index] = gpu.copyWith(condition: 1.0);
+    _game = _game.copyWith(
+      money: _game.money - cost,
+      farm: _game.farm.copyWith(gpuList: newList),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Remove a specific debuff from a GPU for its repair cost.
+  bool repairDebuff(String instanceId, String debuffId) {
+    final index = _game.farm.gpuList.indexWhere((g) => g.id == instanceId);
+    if (index == -1) return false;
+    final gpu = _game.farm.gpuList[index];
+    if (!gpu.debuffs.contains(debuffId)) return false;
+    final debuff = DebuffCatalog.byId(debuffId);
+    if (debuff == null) return false;
+    var cost = debuff.repairCost;
+    if (_game.character == CharacterType.engineer) cost = (cost * 0.7).ceil();
+    if (_game.money < cost) return false;
+
+    final newList = [..._game.farm.gpuList];
+    newList[index] = gpu.copyWith(
+      debuffs: gpu.debuffs.where((d) => d != debuffId).toList(),
+    );
     _game = _game.copyWith(
       money: _game.money - cost,
       farm: _game.farm.copyWith(gpuList: newList),

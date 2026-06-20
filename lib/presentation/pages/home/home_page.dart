@@ -1,4 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -412,10 +413,10 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(width: 4),
                             _badge('DEAD', Colors.white, Colors.grey),
                           ],
-                          for (final _ in gpu.debuffs) ...[
+                          for (final d in gpu.debuffs) ...[
                             const SizedBox(width: 4),
                             _badge(
-                              '⚠',
+                              _debuffName(d),
                               Colors.red.shade700,
                               Colors.red.shade50,
                             ),
@@ -514,6 +515,19 @@ class _HomePageState extends State<HomePage> {
                         : null,
                   ),
                 ],
+                for (final d in gpu.debuffs) ...[
+                  const SizedBox(width: 4),
+                  _btn(
+                    'Fix ${_debuffName(d)} \$${vm.debuffRepairCost(d)}',
+                    Icons.cleaning_services,
+                    vm.money >= vm.debuffRepairCost(d)
+                        ? Colors.red.shade400
+                        : Colors.grey,
+                    vm.money >= vm.debuffRepairCost(d)
+                        ? () => vm.repairDebuff(gpu.instanceId, d)
+                        : null,
+                  ),
+                ],
               ],
             ),
           ],
@@ -548,6 +562,10 @@ class _HomePageState extends State<HomePage> {
           .toList(),
       child: _iconBtn(Icons.currency_bitcoin, Colors.blue.shade600, null),
     );
+  }
+
+  String _debuffName(String id) {
+    return DebuffCatalog.byId(id)?.name ?? id;
   }
 
   Widget _badge(String text, Color fg, Color bg) => Container(

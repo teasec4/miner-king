@@ -1,6 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -52,6 +51,24 @@ class ShopPage extends StatelessWidget {
                 onBuy: () => vm.buySlot(),
               ),
 
+            // PSU
+            _section('Power Supply'),
+            Text(
+              'Current: ${vm.psuLabel} (max ${vm.psuMaxWatt}W per GPU)',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            if (vm.nextPsu != null)
+              _upgradeCard(
+                icon: Icons.power,
+                color: Colors.orange,
+                title: vm.nextPsu!.name,
+                subtitle: 'Up to ${vm.nextPsu!.maxWattPerGpu}W per GPU',
+                price: vm.nextPsu!.price,
+                canBuy: vm.canBuyPsu,
+                onBuy: () => vm.buyPsu(vm.nextPsu!),
+              ),
+
             // GPUs
             _section('GPUs'),
             ...vm.shopGpus.map((e) {
@@ -101,43 +118,6 @@ class ShopPage extends StatelessWidget {
                 onBuy: () => vm.buyCooling(c),
               );
             }),
-
-            // Solar
-            _section('Solar Panels'),
-            Text(
-              'Generated: ${vm.solarPower.toStringAsFixed(0)}W',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 4),
-            ...SolarCatalog.all.map(
-              (s) => _upgradeCard(
-                icon: Icons.solar_power,
-                color: Colors.amber,
-                title: s.name,
-                subtitle: '+${s.powerGen.toStringAsFixed(0)}W generation',
-                price: s.price,
-                canBuy: vm.money >= s.price,
-                onBuy: () => vm.buySolar(s),
-              ),
-            ),
-
-            // PSU
-            _section('Power Supply'),
-            Text(
-              'Current: ${vm.psuLabel} (max ${vm.psuMaxWatt}W per GPU)',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 4),
-            if (vm.nextPsu != null && vm.nextPsu!.id != vm.psuTier)
-              _upgradeCard(
-                icon: Icons.power,
-                color: Colors.orange,
-                title: vm.nextPsu!.name,
-                subtitle: 'Up to ${vm.nextPsu!.maxWattPerGpu}W per GPU',
-                price: vm.nextPsu!.price,
-                canBuy: vm.canBuyPsu,
-                onBuy: () => vm.buyPsu(vm.nextPsu!),
-              ),
           ],
         ),
       ),

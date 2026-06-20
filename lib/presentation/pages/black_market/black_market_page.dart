@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ class BlackMarketPage extends StatefulWidget {
 class _BlackMarketPageState extends State<BlackMarketPage> {
   static final _r = Random();
   late List<_BlackOffer> _offers;
-  bool _needsRegen = false;
+  int _lastGen = -1;
 
   @override
   void initState() {
@@ -29,7 +30,6 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
     allGpus.shuffle(_r);
     _offers = allGpus.take(3).map((model) {
       final debuffs = <String>[];
-      // Always 1–2 debuffs — no clean cards on black market
       final count = 1 + _r.nextInt(2);
       for (int i = 0; i < count; i++) {
         final available = DebuffCatalog.all
@@ -55,18 +55,17 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
   @override
   Widget build(BuildContext context) {
     final vm = GameViewModel(context.watch<GameState>());
+    final gen = vm.blackMarketGen;
     final refreshIn = vm.blackMarketRefreshIn;
 
-    // Check if refresh triggered
-    if (refreshIn == 0 && !_needsRegen) {
-      _needsRegen = true;
+    // Detect global refresh (even when page was closed)
+    if (_lastGen >= 0 && gen > _lastGen) {
+      _lastGen = gen;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _generateOffers();
-          _needsRegen = false;
-        }
+        if (mounted) _generateOffers();
       });
     }
+    if (_lastGen < 0) _lastGen = gen;
 
     final mins = refreshIn ~/ 60;
     final secs = refreshIn % 60;
@@ -106,6 +105,11 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                 ),
                 const Spacer(),
                 Text(
+                  'PSU: ${vm.psuLabel} (max ${vm.psuMaxWatt}W)',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                ),
+                const SizedBox(width: 8),
+                Text(
                   'Slots: ${vm.usedSlots}/${vm.totalSlots}',
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
@@ -122,7 +126,19 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
   Widget _offerCard(_BlackOffer offer, GameViewModel vm) {
     final m = offer.model;
     final hasSlots = vm.usedSlots < vm.totalSlots;
-    final canBuy = vm.money >= offer.price && hasSlots;
+    final psuOk = vm.psuSupports(m.basePowerConsumption);
+    final canBuy = vm.money >= offer.price && hasSlots && psuOk;
+
+    // Find which PSU is needed
+    String? psuNeeded;
+    if (!psuOk) {
+      for (final psu in PsuCatalog.all) {
+        if (m.basePowerConsumption <= psu.maxWattPerGpu) {
+          psuNeeded = psu.name;
+          break;
+        }
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -161,6 +177,14 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                     offer.approxHash,
                     style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
+                  if (!psuOk)
+                    Text(
+                      'Need $psuNeeded',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -196,7 +220,13 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                           setState(() => _offers.remove(offer));
                         }
                       : null,
-                  child: Text(hasSlots ? 'Buy' : 'No slots'),
+                  child: Text(
+                    !hasSlots
+                        ? 'No slots'
+                        : !psuOk
+                        ? 'Need PSU'
+                        : 'Buy',
+                  ),
                 ),
               ],
             ),

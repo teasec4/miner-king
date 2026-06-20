@@ -38,7 +38,7 @@ class PsuCatalog {
     maxWattPerGpu: 800,
   );
 
-  static final all = [bronze, gold];
+  static final all = [stock, bronze, gold];
 
   static PsuUpgrade? byId(String id) {
     try {
@@ -49,9 +49,9 @@ class PsuCatalog {
   }
 
   static PsuUpgrade? nextTier(String currentId) {
-    final current = byId(currentId);
-    if (current?.nextId == null) return byId(currentId) ?? stock;
-    return byId(current!.nextId!);
+    final current = byId(currentId) ?? stock;
+    if (current.nextId == null) return null;
+    return byId(current.nextId!);
   }
 
   /// Check if a GPU wattage is supported by the current PSU.
