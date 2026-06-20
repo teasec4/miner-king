@@ -1,6 +1,7 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
+import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/pages/home/gpu_detail_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -15,6 +16,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   GameEvent? _expandedEvent;
+  bool _showInventory = false;
 
   @override
   void initState() {
@@ -49,7 +51,16 @@ class _HomePageState extends State<HomePage> {
             ),
             if (vm.activeEvents.any((e) => e.category == 'rig'))
               _eventOverlay(vm),
+            if (_showInventory) _inventoryPanel(vm),
           ],
+        ),
+      ),
+      floatingActionButton: Badge(
+        label: Text('${vm.unequippedInventory.length}'),
+        isLabelVisible: vm.unequippedInventory.isNotEmpty,
+        child: FloatingActionButton.small(
+          onPressed: () => setState(() => _showInventory = !_showInventory),
+          child: const Icon(Icons.inventory),
         ),
       ),
     );
@@ -636,4 +647,135 @@ class _HomePageState extends State<HomePage> {
       ),
     ),
   );
+
+  Widget _inventoryPanel(GameViewModel vm) => Positioned(
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 220,
+    child: Material(
+      elevation: 8,
+      color: Colors.white,
+      borderRadius: const BorderRadius.only(
+        topRight: Radius.circular(16),
+        bottomRight: Radius.circular(16),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  const Icon(Icons.inventory, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Inventory (${vm.inventory.length})',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => setState(() => _showInventory = false),
+                    child: const Icon(Icons.close, size: 18),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            if (vm.inventory.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Empty. Buy items in Shop.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(8),
+                  children: vm.inventory.map((item) {
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      color: item.isEquipped
+                          ? Colors.green.shade50
+                          : Colors.grey.shade50,
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(
+                          _invIcon(item.type),
+                          size: 20,
+                          color: item.isEquipped
+                              ? Colors.green
+                              : Colors.grey.shade600,
+                        ),
+                        title: Text(
+                          item.name,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          item.isEquipped ? 'On GPU' : item.detail,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        trailing: !item.isEquipped
+                            ? _invAction(item, vm)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  IconData _invIcon(String type) => switch (type) {
+    'cooling' => Icons.ac_unit,
+    'psu' => Icons.power,
+    'paste' => Icons.water_drop,
+    'bios' => Icons.tune,
+    'motherboard' => Icons.dashboard,
+    'gpu' => Icons.memory,
+    _ => Icons.inventory,
+  };
+
+  Widget _invAction(InventoryItem item, GameViewModel vm) {
+    final label = item.type == 'gpu' ? 'INSTALL' : 'USE';
+    final color = item.type == 'gpu' ? Colors.deepPurple : Colors.green;
+    final onTap = item.type == 'gpu'
+        ? () => vm.installGpu(item.id)
+        : item.type == 'motherboard'
+        ? () => vm.useMotherboard(item.id)
+        : null;
+    if (onTap == null) return const SizedBox.shrink();
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
 }

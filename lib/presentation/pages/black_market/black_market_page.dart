@@ -125,9 +125,8 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
 
   Widget _offerCard(_BlackOffer offer, GameViewModel vm) {
     final m = offer.model;
-    final hasSlots = vm.usedSlots < vm.totalSlots;
     final psuOk = vm.psuSupports(m.basePowerConsumption);
-    final canBuy = vm.money >= offer.price && hasSlots && psuOk;
+    final canBuy = vm.money >= offer.price && psuOk;
 
     // Find which PSU is needed
     String? psuNeeded;
@@ -220,13 +219,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                           setState(() => _offers.remove(offer));
                         }
                       : null,
-                  child: Text(
-                    !hasSlots
-                        ? 'No slots'
-                        : !psuOk
-                        ? 'Need PSU'
-                        : 'Buy',
-                  ),
+                  child: Text(!psuOk ? 'Need PSU' : 'Buy'),
                 ),
               ],
             ),

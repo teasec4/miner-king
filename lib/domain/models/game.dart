@@ -1,6 +1,7 @@
 import 'coin_state.dart';
 import 'farm.dart';
 import 'game_event.dart';
+import 'inventory_item.dart';
 import 'investment.dart';
 import 'loan.dart';
 import 'modifier.dart';
@@ -29,6 +30,7 @@ class Game {
   final Map<String, int> unseenEvents;
   final List<String> employeePool;
   final int nextPoolRefresh;
+  final List<InventoryItem> inventory;
   final CharacterType? character;
   final List<Perk> perks;
   final int tick;
@@ -56,6 +58,7 @@ class Game {
     this.unseenEvents = const {},
     this.employeePool = const [],
     this.nextPoolRefresh = 0,
+    this.inventory = const [],
     this.character,
     this.perks = const [],
     this.tick = 0,
@@ -94,6 +97,7 @@ class Game {
     Map<String, int>? unseenEvents,
     List<String>? employeePool,
     int? nextPoolRefresh,
+    List<InventoryItem>? inventory,
     CharacterType? character,
     List<Perk>? perks,
     int? tick,
@@ -121,6 +125,7 @@ class Game {
       unseenEvents: unseenEvents ?? this.unseenEvents,
       employeePool: employeePool ?? this.employeePool,
       nextPoolRefresh: nextPoolRefresh ?? this.nextPoolRefresh,
+      inventory: inventory ?? this.inventory,
       character: character ?? this.character,
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,

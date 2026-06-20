@@ -17,8 +17,6 @@ class ThermalSystem {
 
   /// Calculate temperatures for all GPUs and return updated Game.
   static Game update(Game game) {
-    final cooling = _coolingPower[game.farm.coolingSystem] ?? 0.0;
-
     final updatedGpus = game.farm.gpuList.map((gpu) {
       if (gpu.condition <= 0) {
         return gpu.copyWith(temperature: 25); // dead card, ambient
@@ -26,6 +24,10 @@ class ThermalSystem {
       if (!gpu.isPowered) {
         return gpu.copyWith(temperature: 25); // turned off
       }
+
+      // Cooling: per-GPU equipped cooling overrides farm default
+      final gpuCooling = gpu.equippedCooling ?? game.farm.coolingSystem;
+      final cooling = _coolingPower[gpuCooling] ?? 0.0;
 
       // Base temp from the GPU model's spec
       final model = GpuCatalog.byId(gpu.modelId);

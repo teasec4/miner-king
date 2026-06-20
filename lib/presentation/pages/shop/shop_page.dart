@@ -1,5 +1,7 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
+import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,7 +20,6 @@ class ShopPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Money
             Row(
               children: [
                 const Icon(Icons.attach_money, color: Colors.green, size: 20),
@@ -40,34 +41,46 @@ class ShopPage extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Motherboard
-            if (vm.nextSlotTier != null)
-              _upgradeCard(
-                icon: Icons.dashboard,
-                color: Colors.green,
-                title: 'Motherboard → ${vm.nextSlotTier} slots',
-                subtitle: 'Currently ${vm.totalSlots} slots',
-                price: vm.nextSlotCost,
-                canBuy: vm.canBuySlot,
-                onBuy: () => vm.buySlot(),
-              ),
+            _section('Motherboard'),
+            Text(
+              'Buy to install from inventory',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            ...SlotCatalog.tiers
+                .where((t) => t.slots > vm.totalSlots)
+                .map(
+                  (t) => _upgradeCard(
+                    icon: Icons.dashboard,
+                    color: Colors.green,
+                    title: 'Motherboard ${t.slots} slots',
+                    subtitle: _moboGpuLimit(t),
+                    price: t.price,
+                    canBuy: vm.money >= t.price,
+                    onBuy: () => vm.buySlotTier(t),
+                  ),
+                ),
 
             // PSU
             _section('Power Supply'),
             Text(
-              'Current: ${vm.psuLabel} (max ${vm.psuMaxWatt}W per GPU)',
+              'Buy to equip on GPU later',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            if (vm.nextPsu != null)
-              _upgradeCard(
-                icon: Icons.power,
-                color: Colors.orange,
-                title: vm.nextPsu!.name,
-                subtitle: 'Up to ${vm.nextPsu!.maxWattPerGpu}W per GPU',
-                price: vm.nextPsu!.price,
-                canBuy: vm.canBuyPsu,
-                onBuy: () => vm.buyPsu(vm.nextPsu!),
-              ),
+            ...PsuCatalog.all
+                .where((p) => p.id != 'psu_stock')
+                .map(
+                  (p) => _upgradeCard(
+                    icon: Icons.power,
+                    color: Colors.orange,
+                    title: p.name,
+                    subtitle: 'Up to ${p.maxWattPerGpu}W per GPU',
+                    price: p.price,
+                    canBuy: vm.money >= p.price,
+                    onBuy: () => vm.buyPsu(p),
+                  ),
+                ),
 
             // GPUs
             _section('GPUs'),
@@ -85,8 +98,6 @@ class ShopPage extends StatelessWidget {
                 onBuy: () => vm.buyGpu(m),
                 hint: !e.psuOk
                     ? 'Need ${e.psuRequired}'
-                    : !e.hasSlots
-                    ? 'No slots'
                     : !e.canAfford
                     ? 'Need \$${(e.effectivePrice - vm.money.toInt()).clamp(0, 999999)}'
                     : null,
@@ -96,32 +107,39 @@ class ShopPage extends StatelessWidget {
 
             // Cooling
             _section('Cooling'),
-            ...CoolingCatalog.all.map((c) {
-              final current = game.game.farm.coolingSystem;
-              final owned = current == c.id;
-              const order = ['basic', 'fans', 'water', 'immersion'];
-              final currentIdx = order.indexOf(current);
-              final thisIdx = order.indexOf(c.id);
-              final isDowngrade = thisIdx <= currentIdx && !owned;
-              return _upgradeCard(
-                icon: Icons.ac_unit,
-                color: Colors.blue,
-                title: c.name,
-                subtitle:
-                    '${c.tempReduction}°C  ${owned
-                        ? "(installed)"
-                        : isDowngrade
-                        ? "(already have better)"
-                        : ""}',
-                price: c.price,
-                canBuy: !owned && !isDowngrade && vm.money >= c.price,
-                onBuy: () => vm.buyCooling(c),
-              );
-            }),
+            Text(
+              'Buy to equip on GPU later',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            ...CoolingCatalog.all
+                .where((c) => c.id != 'basic')
+                .map(
+                  (c) => _upgradeCard(
+                    icon: Icons.ac_unit,
+                    color: Colors.blue,
+                    title: c.name,
+                    subtitle: '${c.tempReduction}°C',
+                    price: c.price,
+                    canBuy: vm.money >= c.price,
+                    onBuy: () => vm.buyCooling(c),
+                  ),
+                ),
           ],
         ),
       ),
     );
+  }
+
+  String _moboGpuLimit(SlotTier t) {
+    final maxGpu = switch (t.maxGpuTier) {
+      0 => 'GTX 1060',
+      1 => 'RTX 2060',
+      2 => 'RTX 3070',
+      3 => 'RTX 5090',
+      _ => 'Any',
+    };
+    return '${t.slots} slots, max GPU: $maxGpu';
   }
 
   Widget _section(String title) => Padding(
@@ -189,7 +207,7 @@ class ShopPage extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (salePercent != null) ...[
+                    if (salePercent != null)
                       Text(
                         '-$salePercent% ',
                         style: TextStyle(
@@ -198,7 +216,6 @@ class ShopPage extends StatelessWidget {
                           color: Colors.green.shade700,
                         ),
                       ),
-                    ],
                     Text(
                       '\$$price',
                       style: TextStyle(

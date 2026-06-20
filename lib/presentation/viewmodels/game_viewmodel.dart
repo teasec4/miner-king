@@ -12,6 +12,7 @@ import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
+import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
@@ -331,7 +332,7 @@ class GameViewModel {
         effectivePrice: price,
         canAfford: _game.money >= price,
         hasSlots: _game.farm.hasFreeSlots,
-        canBuy: _game.money >= price && _game.farm.hasFreeSlots && psuOk,
+        canBuy: _game.money >= price && psuOk,
         psuOk: psuOk,
         psuRequired: psuOk ? null : _psuNeededFor(model.basePowerConsumption),
       );
@@ -374,10 +375,19 @@ class GameViewModel {
   bool buyGpu(GpuModel model) => _state.buyGpu(model);
   bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) =>
       _state.buyBlackMarketGpu(model, price, debuffs);
-  bool buySlot() => _state.buySlot();
+  bool buySlotTier(SlotTier tier) => _state.buySlotTier(tier);
   bool buyCooling(CoolingUpgrade u) => _state.buyCooling(u);
   bool buySolar(SolarUpgrade u) => _state.buySolar(u);
   bool buyPsu(PsuUpgrade u) => _state.buyPsu(u);
+  List<InventoryItem> get inventory => _game.inventory;
+  List<InventoryItem> get unequippedInventory =>
+      _game.inventory.where((i) => !i.isEquipped).toList();
+  bool equipToGpu(String itemId, String gpuId) =>
+      _state.equipToGpu(itemId, gpuId);
+  bool unequipFromGpu(String gpuId, String type) =>
+      _state.unequipFromGpu(gpuId, type);
+  bool useMotherboard(String itemId) => _state.useMotherboard(itemId);
+  bool installGpu(String itemId) => _state.installGpu(itemId);
   void setMiningCoin(String gpuId, String coinId) =>
       _state.setMiningCoin(gpuId, coinId);
   void togglePower(String gpuId) => _state.togglePower(gpuId);

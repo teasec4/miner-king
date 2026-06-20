@@ -18,6 +18,7 @@ import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
+import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
@@ -250,33 +251,58 @@ class GameState extends ChangeNotifier {
     final hasSale = _game.activeEvents.any((e) => e.id == 'gpu_sale');
     final price = hasSale ? (model.price * 0.7).ceil() : model.price;
     if (_game.money < price) return false;
-    if (!_game.farm.hasFreeSlots) return false;
     // PSU check: GPU wattage must be within PSU limit
     if (!PsuCatalog.supports(_game.farm.psuTier, model.basePowerConsumption)) {
       return false;
     }
-
-    final instance = GpuInstance(
-      id: _uuid.v4(),
-      modelId: model.id,
-      miningCoinId: 'btc',
-      temperature: model.baseTemperature,
+    // GPU goes to inventory
+    _addToInventory(
+      'gpu',
+      model.id,
+      model.name,
+      '${model.baseHashrate.toStringAsFixed(0)} MH/s, ${model.basePowerConsumption.toStringAsFixed(0)}W',
     );
-
-    _game = _game.copyWith(
-      money: _game.money - price,
-      farm: _game.farm.copyWith(gpuList: [..._game.farm.gpuList, instance]),
-    );
+    _game = _game.copyWith(money: _game.money - price);
     notifyListeners();
     return true;
   }
 
   bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) {
     if (_game.money < price) return false;
-    if (!_game.farm.hasFreeSlots) return false;
     if (!PsuCatalog.supports(_game.farm.psuTier, model.basePowerConsumption)) {
       return false;
     }
+    // Black market GPU goes to inventory with debuff data
+    _addToInventory(
+      'gpu',
+      model.id,
+      model.name,
+      '${model.baseHashrate.toStringAsFixed(0)} MH/s, ${model.basePowerConsumption.toStringAsFixed(0)}W',
+      data: {'debuffs': debuffs},
+    );
+    _game = _game.copyWith(money: _game.money - price);
+    notifyListeners();
+    return true;
+  }
+
+  /// Install a GPU from inventory into the rig.
+  bool installGpu(String inventoryItemId) {
+    final invIdx = _game.inventory.indexWhere((i) => i.id == inventoryItemId);
+    if (invIdx == -1) return false;
+    final item = _game.inventory[invIdx];
+    if (item.type != 'gpu') return false;
+
+    final model = GpuCatalog.byId(item.itemId);
+    if (model == null) return false;
+
+    // Check motherboard can handle this GPU tier
+    if (!SlotCatalog.canInstallGpu(_game.farm.totalSlots, model.id)) {
+      return false;
+    }
+
+    final debuffs =
+        (item.data?['debuffs'] as List?)?.cast<String>() ?? <String>[];
+
     final instance = GpuInstance(
       id: _uuid.v4(),
       modelId: model.id,
@@ -284,12 +310,34 @@ class GameState extends ChangeNotifier {
       temperature: model.baseTemperature,
       debuffs: debuffs,
     );
+
+    final newInventory = [..._game.inventory];
+    newInventory.removeAt(invIdx);
+
     _game = _game.copyWith(
-      money: _game.money - price,
+      inventory: newInventory,
       farm: _game.farm.copyWith(gpuList: [..._game.farm.gpuList, instance]),
     );
     notifyListeners();
     return true;
+  }
+
+  void _addToInventory(
+    String type,
+    String itemId,
+    String name,
+    String detail, {
+    Map<String, dynamic>? data,
+  }) {
+    final item = InventoryItem(
+      id: _uuid.v4(),
+      itemId: itemId,
+      type: type,
+      name: name,
+      detail: detail,
+      data: data,
+    );
+    _game = _game.copyWith(inventory: [..._game.inventory, item]);
   }
 
   bool upgradeGpu(String instanceId) {
@@ -320,38 +368,35 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  bool buySlot() {
-    final next = SlotCatalog.nextTier(_game.farm.totalSlots);
-    if (next == null) return false;
-    if (_game.money < next.price) return false;
-
-    _game = _game.copyWith(
-      money: _game.money - next.price,
-      farm: _game.farm.copyWith(totalSlots: next.slots),
+  bool buySlotTier(SlotTier tier) {
+    if (_game.money < tier.price) return false;
+    if (tier.slots <= _game.farm.totalSlots) return false;
+    _addToInventory(
+      'motherboard',
+      'mobo_${tier.slots}',
+      'Motherboard ${tier.slots} slots',
+      '${tier.slots} slots',
     );
+    _game = _game.copyWith(money: _game.money - tier.price);
     notifyListeners();
     return true;
   }
 
   bool buyCooling(CoolingUpgrade upgrade) {
     if (_game.money < upgrade.price) return false;
-    if (_game.farm.coolingSystem == upgrade.id) return false;
-    // Only allow upgrades (not downgrades)
-    const order = ['basic', 'fans', 'water', 'immersion'];
-    final currentIdx = order.indexOf(_game.farm.coolingSystem);
-    final newIdx = order.indexOf(upgrade.id);
-    if (newIdx <= currentIdx) return false;
-    _game = _game.copyWith(
-      money: _game.money - upgrade.price,
-      farm: _game.farm.copyWith(coolingSystem: upgrade.id),
+    _addToInventory(
+      'cooling',
+      upgrade.id,
+      upgrade.name,
+      '${upgrade.tempReduction}°C',
     );
+    _game = _game.copyWith(money: _game.money - upgrade.price);
     notifyListeners();
     return true;
   }
 
   bool buySolar(SolarUpgrade upgrade) {
     if (_game.money < upgrade.price) return false;
-    // Solar panels stack (additive)
     _game = _game.copyWith(
       money: _game.money - upgrade.price,
       farm: _game.farm.copyWith(
@@ -364,13 +409,107 @@ class GameState extends ChangeNotifier {
 
   bool buyPsu(PsuUpgrade upgrade) {
     if (_game.money < upgrade.price) return false;
-    if (_game.farm.psuTier == upgrade.id) return false;
-    // Only allow upgrades, not downgrades
-    final next = PsuCatalog.nextTier(_game.farm.psuTier);
-    if (next == null || next.id != upgrade.id) return false;
+    _addToInventory(
+      'psu',
+      upgrade.id,
+      upgrade.name,
+      '${upgrade.maxWattPerGpu}W',
+    );
+    _game = _game.copyWith(money: _game.money - upgrade.price);
+    notifyListeners();
+    return true;
+  }
+
+  /// Equip an inventory item to a GPU slot.
+  bool equipToGpu(String inventoryItemId, String gpuId) {
+    final invIdx = _game.inventory.indexWhere((i) => i.id == inventoryItemId);
+    if (invIdx == -1) return false;
+    final item = _game.inventory[invIdx];
+    if (item.isEquipped) return false;
+
+    final gpuIdx = _game.farm.gpuList.indexWhere((g) => g.id == gpuId);
+    if (gpuIdx == -1) return false;
+    final gpu = _game.farm.gpuList[gpuIdx];
+
+    final newGpu = switch (item.type) {
+      'cooling' => gpu.copyWith(equippedCooling: item.itemId),
+      'psu' => gpu.copyWith(equippedPsu: item.itemId),
+      'paste' => gpu.copyWith(equippedPaste: item.itemId),
+      'bios' => gpu.copyWith(equippedBios: item.itemId),
+      _ => null,
+    };
+    if (newGpu == null) return false;
+
+    final newInventory = [..._game.inventory];
+    newInventory[invIdx] = item.copyWith(equippedToGpu: gpuId);
+    final newGpus = [..._game.farm.gpuList];
+    newGpus[gpuIdx] = newGpu;
+
     _game = _game.copyWith(
-      money: _game.money - upgrade.price,
-      farm: _game.farm.copyWith(psuTier: upgrade.id),
+      inventory: newInventory,
+      farm: _game.farm.copyWith(gpuList: newGpus),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Unequip an item from a GPU back to inventory.
+  bool unequipFromGpu(String gpuId, String type) {
+    final gpuIdx = _game.farm.gpuList.indexWhere((g) => g.id == gpuId);
+    if (gpuIdx == -1) return false;
+    final gpu = _game.farm.gpuList[gpuIdx];
+
+    final invIdx = _game.inventory.indexWhere(
+      (i) => i.equippedToGpu == gpuId && i.type == type,
+    );
+    if (invIdx == -1) return false;
+
+    final newGpu = switch (type) {
+      'cooling' => gpu.copyWith(equippedCooling: null),
+      'psu' => gpu.copyWith(equippedPsu: null),
+      'paste' => gpu.copyWith(equippedPaste: null),
+      'bios' => gpu.copyWith(equippedBios: null),
+      _ => null,
+    };
+    if (newGpu == null) return false;
+
+    final newInventory = [..._game.inventory];
+    newInventory[invIdx] = _game.inventory[invIdx].copyWith(
+      equippedToGpu: null,
+    );
+    final newGpus = [..._game.farm.gpuList];
+    newGpus[gpuIdx] = newGpu;
+
+    _game = _game.copyWith(
+      inventory: newInventory,
+      farm: _game.farm.copyWith(gpuList: newGpus),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Use a motherboard item from inventory (adds slots).
+  bool useMotherboard(String inventoryItemId) {
+    final invIdx = _game.inventory.indexWhere((i) => i.id == inventoryItemId);
+    if (invIdx == -1) return false;
+    final item = _game.inventory[invIdx];
+    if (item.type != 'motherboard') return false;
+
+    final moboSlots = switch (item.itemId) {
+      'mobo_2' => 2,
+      'mobo_4' => 4,
+      'mobo_8' => 8,
+      'mobo_12' => 12,
+      _ => 0,
+    };
+    if (moboSlots <= _game.farm.totalSlots) return false;
+
+    final newInventory = [..._game.inventory];
+    newInventory.removeAt(invIdx);
+
+    _game = _game.copyWith(
+      inventory: newInventory,
+      farm: _game.farm.copyWith(totalSlots: moboSlots),
     );
     notifyListeners();
     return true;
