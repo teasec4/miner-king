@@ -56,6 +56,11 @@ class _CharacterSelectPageState extends State<CharacterSelectPage> {
                     Colors.indigo,
                     Colors.indigo.shade50,
                   ),
+                  CharacterType.debug => (
+                    Icons.bug_report,
+                    Colors.grey,
+                    Colors.grey.shade200,
+                  ),
                 };
                 final selected = _selected == c;
                 return Padding(

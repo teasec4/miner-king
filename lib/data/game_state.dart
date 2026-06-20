@@ -137,7 +137,6 @@ class GameState extends ChangeNotifier {
         }
       case CharacterType.student:
         {
-          // -30% course cost, -20% time, Basic IT done, large loan ($8800 debt)
           final largeLoan = Loan(
             id: 'large',
             name: 'Expansion Loan',
@@ -152,6 +151,24 @@ class GameState extends ChangeNotifier {
           );
           break;
         }
+      case CharacterType.debug:
+        _game = _game.copyWith(
+          money: 100000,
+          completedCourses: [
+            'basic_it',
+            'management',
+            'data_analytics',
+            'marketing',
+            'programming',
+            'business',
+          ],
+          activeLoans: [],
+          farm: _game.farm.copyWith(
+            gpuList: [_game.farm.gpuList.first.copyWith(condition: 1.0)],
+          ),
+          character: c,
+        );
+        break;
     }
     notifyListeners();
   }

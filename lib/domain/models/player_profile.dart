@@ -4,7 +4,8 @@ enum CharacterType {
   engineer('Engineer', '-50% wear, -30% repair, GPU 100%'),
   businessman('Businessman', '+\$500, -15% shop, small loan \$550'),
   hustler('Hustler', '+100% job EXP, medium loan \$2200'),
-  student('Student', '-30% courses, Basic IT done, large loan \$8800');
+  student('Student', '-30% courses, Basic IT done, large loan \$8800'),
+  debug('Debug Mode', '\$100000 cash, all courses, GPU 100%');
 
   final String name;
   final String description;

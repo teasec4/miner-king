@@ -19,6 +19,54 @@ class MarketPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Active market events
+            ...vm.activeEvents
+                .where((e) => e.category == 'market')
+                .map(
+                  (e) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: e.id == 'market_crash'
+                          ? Colors.red.shade50
+                          : Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          e.id == 'market_crash'
+                              ? Icons.trending_down
+                              : Icons.trending_up,
+                          color: e.id == 'market_crash'
+                              ? Colors.red
+                              : Colors.green,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            e.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: e.id == 'market_crash'
+                                  ? Colors.red.shade700
+                                  : Colors.green.shade700,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${e.remainingTicks}s',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             _moodGauge(vm.marketMood),
             const SizedBox(height: 12),
             ...vm.coins.asMap().entries.map(
