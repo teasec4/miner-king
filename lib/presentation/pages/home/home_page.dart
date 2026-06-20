@@ -2,6 +2,7 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
+import 'package:crypto_king/presentation/pages/home/gpu_detail_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -358,179 +359,194 @@ class _HomePageState extends State<HomePage> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: dead ? Colors.grey.shade100 : null,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.memory,
-                  size: 36,
-                  color: dead ? Colors.grey.shade400 : Colors.deepPurple,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              gpu.modelName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: dead ? Colors.grey.shade500 : null,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => GpuDetailPage(instanceId: gpu.instanceId),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.memory,
+                    size: 36,
+                    color: dead ? Colors.grey.shade400 : Colors.deepPurple,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                gpu.modelName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: dead ? Colors.grey.shade500 : null,
+                                ),
                               ),
                             ),
-                          ),
-                          if (oc) ...[
+                            if (oc) ...[
+                              const SizedBox(width: 4),
+                              _badge(
+                                'OC',
+                                Colors.deepOrange,
+                                Colors.orange.shade100,
+                              ),
+                            ],
+                            if (sl) ...[
+                              const SizedBox(width: 4),
+                              _badge(
+                                'SL',
+                                Colors.purple,
+                                Colors.purple.shade50,
+                              ),
+                            ],
                             const SizedBox(width: 4),
                             _badge(
-                              'OC',
-                              Colors.deepOrange,
-                              Colors.orange.shade100,
+                              gpu.miningCoinName,
+                              Colors.blue.shade700,
+                              Colors.blue.shade50,
                             ),
+                            if (!gpu.isPowered) ...[
+                              const SizedBox(width: 4),
+                              _badge('OFF', Colors.white, Colors.grey.shade600),
+                            ],
+                            if (dead) ...[
+                              const SizedBox(width: 4),
+                              _badge('DEAD', Colors.white, Colors.grey),
+                            ],
+                            for (final d in gpu.debuffs) ...[
+                              const SizedBox(width: 4),
+                              _badge(
+                                _debuffName(d),
+                                Colors.red.shade700,
+                                Colors.red.shade50,
+                              ),
+                            ],
                           ],
-                          if (sl) ...[
-                            const SizedBox(width: 4),
-                            _badge('SL', Colors.purple, Colors.purple.shade50),
-                          ],
-                          const SizedBox(width: 4),
-                          _badge(
-                            gpu.miningCoinName,
-                            Colors.blue.shade700,
-                            Colors.blue.shade50,
-                          ),
-                          if (!gpu.isPowered) ...[
-                            const SizedBox(width: 4),
-                            _badge('OFF', Colors.white, Colors.grey.shade600),
-                          ],
-                          if (dead) ...[
-                            const SizedBox(width: 4),
-                            _badge('DEAD', Colors.white, Colors.grey),
-                          ],
-                          for (final d in gpu.debuffs) ...[
-                            const SizedBox(width: 4),
-                            _badge(
-                              _debuffName(d),
-                              Colors.red.shade700,
-                              Colors.red.shade50,
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(Icons.thermostat, size: 14, color: tc),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${gpu.temperature.toStringAsFixed(0)}\u00B0C',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: tc,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (!dead && gpu.isPowered)
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.thermostat, size: 14, color: tc),
+                            const SizedBox(width: 2),
                             Text(
-                              '\$${gpu.revenuePerMin.toStringAsFixed(1)}/min',
+                              '${gpu.temperature.toStringAsFixed(0)}\u00B0C',
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.green.shade600,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: tc,
                               ),
                             ),
-                        ],
+                            const Spacer(),
+                            if (!dead && gpu.isPowered)
+                              Text(
+                                '\$${gpu.revenuePerMin.toStringAsFixed(1)}/min',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade600,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      value: gpu.condition,
+                      strokeWidth: 2,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation(cc),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$cp%',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: cc,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (!dead) ...[
+                    _iconBtn(
+                      gpu.isPowered
+                          ? Icons.power_settings_new
+                          : Icons.power_off,
+                      gpu.isPowered ? Colors.green : Colors.grey,
+                      () => vm.togglePower(gpu.instanceId),
+                    ),
+                    const SizedBox(width: 2),
+                    _iconBtn(
+                      Icons.speed,
+                      oc ? Colors.deepOrange : Colors.grey.shade400,
+                      () => vm.toggleOverclock(gpu.instanceId),
+                    ),
+                    const SizedBox(width: 4),
+                    _coinSwitcher(gpu, vm),
+                    const SizedBox(width: 4),
+                    if (vm.upgradeCost(gpu.instanceId) > 0)
+                      _btn(
+                        'Up \$${vm.upgradeCost(gpu.instanceId)}',
+                        Icons.upgrade,
+                        vm.canUpgrade(gpu.instanceId)
+                            ? Colors.amber
+                            : Colors.grey,
+                        vm.canUpgrade(gpu.instanceId)
+                            ? () => vm.upgradeGpu(gpu.instanceId)
+                            : null,
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    value: gpu.condition,
-                    strokeWidth: 2,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation(cc),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '$cp%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: cc,
-                  ),
-                ),
-                const Spacer(),
-                if (!dead) ...[
-                  _iconBtn(
-                    gpu.isPowered ? Icons.power_settings_new : Icons.power_off,
-                    gpu.isPowered ? Colors.green : Colors.grey,
-                    () => vm.togglePower(gpu.instanceId),
-                  ),
-                  const SizedBox(width: 2),
-                  _iconBtn(
-                    Icons.speed,
-                    oc ? Colors.deepOrange : Colors.grey.shade400,
-                    () => vm.toggleOverclock(gpu.instanceId),
-                  ),
-                  const SizedBox(width: 4),
-                  _coinSwitcher(gpu, vm),
-                  const SizedBox(width: 4),
-                  if (vm.upgradeCost(gpu.instanceId) > 0)
+                  ],
+                  if (vm.repairCost(gpu.instanceId) > 0 ||
+                      gpu.condition < 1.0) ...[
+                    if (!dead) const SizedBox(width: 4),
                     _btn(
-                      'Up \$${vm.upgradeCost(gpu.instanceId)}',
-                      Icons.upgrade,
-                      vm.canUpgrade(gpu.instanceId)
-                          ? Colors.amber
-                          : Colors.grey,
-                      vm.canUpgrade(gpu.instanceId)
-                          ? () => vm.upgradeGpu(gpu.instanceId)
+                      'Fix \$${vm.repairCost(gpu.instanceId)}',
+                      Icons.build,
+                      vm.canRepair(gpu.instanceId) ? Colors.blue : Colors.grey,
+                      vm.canRepair(gpu.instanceId)
+                          ? () => vm.repairGpu(gpu.instanceId)
                           : null,
                     ),
+                  ],
+                  for (final d in gpu.debuffs) ...[
+                    const SizedBox(width: 4),
+                    _btn(
+                      'Fix ${_debuffName(d)} \$${vm.debuffRepairCost(d)}',
+                      Icons.cleaning_services,
+                      vm.money >= vm.debuffRepairCost(d)
+                          ? Colors.red.shade400
+                          : Colors.grey,
+                      vm.money >= vm.debuffRepairCost(d)
+                          ? () => vm.repairDebuff(gpu.instanceId, d)
+                          : null,
+                    ),
+                  ],
                 ],
-                if (vm.repairCost(gpu.instanceId) > 0 ||
-                    gpu.condition < 1.0) ...[
-                  if (!dead) const SizedBox(width: 4),
-                  _btn(
-                    'Fix \$${vm.repairCost(gpu.instanceId)}',
-                    Icons.build,
-                    vm.canRepair(gpu.instanceId) ? Colors.blue : Colors.grey,
-                    vm.canRepair(gpu.instanceId)
-                        ? () => vm.repairGpu(gpu.instanceId)
-                        : null,
-                  ),
-                ],
-                for (final d in gpu.debuffs) ...[
-                  const SizedBox(width: 4),
-                  _btn(
-                    'Fix ${_debuffName(d)} \$${vm.debuffRepairCost(d)}',
-                    Icons.cleaning_services,
-                    vm.money >= vm.debuffRepairCost(d)
-                        ? Colors.red.shade400
-                        : Colors.grey,
-                    vm.money >= vm.debuffRepairCost(d)
-                        ? () => vm.repairDebuff(gpu.instanceId, d)
-                        : null,
-                  ),
-                ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
