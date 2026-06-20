@@ -213,18 +213,6 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
                             : Colors.grey.shade600,
                         onTap: () => vm.toggleOverclock(widget.instanceId),
                       ),
-                      if (vm.upgradeCost(widget.instanceId) > 0)
-                        _actionBtn(
-                          icon: Icons.upgrade,
-                          label:
-                              'Upgrade \$${vm.upgradeCost(widget.instanceId)}',
-                          color: vm.canUpgrade(widget.instanceId)
-                              ? Colors.amber
-                              : Colors.grey,
-                          onTap: vm.canUpgrade(widget.instanceId)
-                              ? () => vm.upgradeGpu(widget.instanceId)
-                              : null,
-                        ),
                     ],
                     if (vm.repairCost(widget.instanceId) > 0 ||
                         gpu.condition < 1.0)

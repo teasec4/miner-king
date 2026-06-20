@@ -96,9 +96,7 @@ class ShopPage extends StatelessWidget {
                 price: e.effectivePrice,
                 canBuy: e.canBuy,
                 onBuy: () => vm.buyGpu(m),
-                hint: !e.psuOk
-                    ? 'Need ${e.psuRequired}'
-                    : !e.canAfford
+                hint: !e.canAfford
                     ? 'Need \$${(e.effectivePrice - vm.money.toInt()).clamp(0, 999999)}'
                     : null,
                 salePercent: hasSale ? 30 : null,

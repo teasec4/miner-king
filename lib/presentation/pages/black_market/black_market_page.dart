@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
-import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -105,11 +104,6 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                 ),
                 const Spacer(),
                 Text(
-                  'PSU: ${vm.psuLabel} (max ${vm.psuMaxWatt}W)',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                ),
-                const SizedBox(width: 8),
-                Text(
                   'Slots: ${vm.usedSlots}/${vm.totalSlots}',
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
@@ -125,19 +119,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
 
   Widget _offerCard(_BlackOffer offer, GameViewModel vm) {
     final m = offer.model;
-    final psuOk = vm.psuSupports(m.basePowerConsumption);
-    final canBuy = vm.money >= offer.price && psuOk;
-
-    // Find which PSU is needed
-    String? psuNeeded;
-    if (!psuOk) {
-      for (final psu in PsuCatalog.all) {
-        if (m.basePowerConsumption <= psu.maxWattPerGpu) {
-          psuNeeded = psu.name;
-          break;
-        }
-      }
-    }
+    final canBuy = vm.money >= offer.price;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -176,14 +158,6 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                     offer.approxHash,
                     style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
-                  if (!psuOk)
-                    Text(
-                      'Need $psuNeeded',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.red.shade400,
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -219,7 +193,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                           setState(() => _offers.remove(offer));
                         }
                       : null,
-                  child: Text(!psuOk ? 'Need PSU' : 'Buy'),
+                  child: const Text('Buy'),
                 ),
               ],
             ),

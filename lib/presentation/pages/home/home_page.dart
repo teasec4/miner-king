@@ -46,7 +46,6 @@ class _HomePageState extends State<HomePage> {
                 _resourcesBar(vm),
                 const Divider(height: 1),
                 Expanded(child: _gpuList(vm)),
-                _bottomBar(vm),
               ],
             ),
             if (vm.activeEvents.any((e) => e.category == 'rig'))
@@ -304,49 +303,106 @@ class _HomePageState extends State<HomePage> {
 
   Widget _gpuList(GameViewModel vm) {
     final gpus = vm.gpus;
-    final e = vm.totalSlots - vm.usedSlots;
-    if (gpus.isEmpty && e == 0) {
-      return const Center(child: Text('No GPUs installed'));
-    }
-    return ListView.builder(
+    final totalSlots = vm.totalSlots;
+    return ListView(
       padding: const EdgeInsets.all(8),
-      itemCount: gpus.length + (e > 0 ? 1 : 0),
-      itemBuilder: (_, i) =>
-          i < gpus.length ? _gpuCard(gpus[i], vm) : _emptySlotCard(e),
+      children: [
+        // Motherboard card
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade700,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    topRight: Radius.circular(14),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.dashboard, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Motherboard — $totalSlots slots',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${gpus.length}/$totalSlots',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Slots
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  children: List.generate(totalSlots, (i) {
+                    final gpu = i < gpus.length ? gpus[i] : null;
+                    if (gpu != null) {
+                      return _gpuCard(gpu, vm);
+                    }
+                    return _emptySlotCard(i + 1);
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _emptySlotCard(int count) => Card(
-    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    color: Colors.grey.shade100,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Icon(Icons.memory, size: 36, color: Colors.grey.shade400),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$count empty slot${count > 1 ? "s" : ""}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-                Text(
-                  'Go to Shop to buy a GPU',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                ),
-              ],
+  Widget _emptySlotCard(int slotNum) => Container(
+    margin: const EdgeInsets.symmetric(vertical: 4),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.memory, size: 32, color: Colors.grey.shade400),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Slot $slotNum — Empty',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
             ),
-          ),
-          Icon(Icons.chevron_right, color: Colors.grey.shade400),
-        ],
-      ),
+            Text(
+              'Install GPU from inventory',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+            ),
+          ],
+        ),
+      ],
     ),
   );
 
@@ -517,17 +573,6 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(width: 4),
                     _coinSwitcher(gpu, vm),
                     const SizedBox(width: 4),
-                    if (vm.upgradeCost(gpu.instanceId) > 0)
-                      _btn(
-                        'Up \$${vm.upgradeCost(gpu.instanceId)}',
-                        Icons.upgrade,
-                        vm.canUpgrade(gpu.instanceId)
-                            ? Colors.amber
-                            : Colors.grey,
-                        vm.canUpgrade(gpu.instanceId)
-                            ? () => vm.upgradeGpu(gpu.instanceId)
-                            : null,
-                      ),
                   ],
                   if (vm.repairCost(gpu.instanceId) > 0 ||
                       gpu.condition < 1.0) ...[
@@ -633,20 +678,6 @@ class _HomePageState extends State<HomePage> {
           onPressed: onTap,
         ),
       );
-
-  Widget _bottomBar(GameViewModel vm) => Container(
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: Colors.grey.shade100,
-      border: Border(top: BorderSide(color: Colors.grey.shade300)),
-    ),
-    child: Center(
-      child: Text(
-        'Slots: ${vm.usedSlots}/${vm.totalSlots}',
-        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-      ),
-    ),
-  );
 
   Widget _inventoryPanel(GameViewModel vm) => Positioned(
     top: 0,

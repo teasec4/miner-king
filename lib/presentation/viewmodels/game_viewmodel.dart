@@ -326,24 +326,13 @@ class GameViewModel {
     final sale = hasGpuSale;
     return GpuCatalog.all.map((model) {
       final price = sale ? (model.price * 0.7).ceil() : model.price;
-      final psuOk = psuSupports(model.basePowerConsumption);
       return ShopGpuEntry(
         model: model,
         effectivePrice: price,
         canAfford: _game.money >= price,
-        hasSlots: _game.farm.hasFreeSlots,
-        canBuy: _game.money >= price && psuOk,
-        psuOk: psuOk,
-        psuRequired: psuOk ? null : _psuNeededFor(model.basePowerConsumption),
+        canBuy: _game.money >= price,
       );
     }).toList();
-  }
-
-  String? _psuNeededFor(double watts) {
-    for (final psu in PsuCatalog.all) {
-      if (watts <= psu.maxWattPerGpu) return psu.name;
-    }
-    return null;
   }
 
   // ── Actions ──
@@ -397,19 +386,13 @@ class ShopGpuEntry {
   final GpuModel model;
   final int effectivePrice;
   final bool canAfford;
-  final bool hasSlots;
   final bool canBuy;
-  final bool psuOk;
-  final String? psuRequired;
 
   const ShopGpuEntry({
     required this.model,
     required this.effectivePrice,
     required this.canAfford,
-    required this.hasSlots,
     required this.canBuy,
-    required this.psuOk,
-    this.psuRequired,
   });
 }
 

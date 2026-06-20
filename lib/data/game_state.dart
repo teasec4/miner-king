@@ -86,7 +86,7 @@ class GameState extends ChangeNotifier {
       holdings: {'btc': 0, 'eth': 0, 'sol': 0, 'doge': 0, 'pepe': 0, 'usdt': 0},
       coins: CoinCatalog.initialCoins(),
       electricityRate: 0.12,
-      farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
+      farm: Farm(gpuList: [gpu], totalSlots: 2, coolingSystem: 'basic'),
       activeJobId: 'food_l1',
       activeLoans: [loan],
     );
@@ -251,10 +251,6 @@ class GameState extends ChangeNotifier {
     final hasSale = _game.activeEvents.any((e) => e.id == 'gpu_sale');
     final price = hasSale ? (model.price * 0.7).ceil() : model.price;
     if (_game.money < price) return false;
-    // PSU check: GPU wattage must be within PSU limit
-    if (!PsuCatalog.supports(_game.farm.psuTier, model.basePowerConsumption)) {
-      return false;
-    }
     // GPU goes to inventory
     _addToInventory(
       'gpu',
@@ -269,9 +265,6 @@ class GameState extends ChangeNotifier {
 
   bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) {
     if (_game.money < price) return false;
-    if (!PsuCatalog.supports(_game.farm.psuTier, model.basePowerConsumption)) {
-      return false;
-    }
     // Black market GPU goes to inventory with debuff data
     _addToInventory(
       'gpu',
@@ -474,8 +467,15 @@ class GameState extends ChangeNotifier {
     if (newGpu == null) return false;
 
     final newInventory = [..._game.inventory];
-    newInventory[invIdx] = _game.inventory[invIdx].copyWith(
-      equippedToGpu: null,
+    final oldItem = _game.inventory[invIdx];
+    newInventory[invIdx] = InventoryItem(
+      id: oldItem.id,
+      itemId: oldItem.itemId,
+      type: oldItem.type,
+      name: oldItem.name,
+      detail: oldItem.detail,
+      equippedToGpu: null, // explicitly set to null
+      data: oldItem.data,
     );
     final newGpus = [..._game.farm.gpuList];
     newGpus[gpuIdx] = newGpu;

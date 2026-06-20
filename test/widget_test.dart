@@ -30,7 +30,7 @@ void main() {
       expect(game.farm.gpuList.length, 1);
       expect(game.farm.gpuList.first.condition, 0.5);
       expect(game.activeJobId, 'food_l1');
-      expect(game.farm.totalSlots, 1);
+      expect(game.farm.totalSlots, 2);
     });
   });
 
