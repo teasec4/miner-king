@@ -26,11 +26,11 @@ void main() {
       expect(game.holdings['usdt'], 0);
       expect(game.coins.length, 6);
       expect(game.primaryCoin.price, 10.0);
-      expect(game.electricityRate, 0.12);
+      expect(game.electricityRate, 0.25);
       expect(game.farm.gpuList.length, 1);
       expect(game.farm.gpuList.first.condition, 0.5);
       expect(game.activeJobId, 'food_l1');
-      expect(game.farm.totalSlots, 2);
+      expect(game.farm.totalSlots, 1);
     });
   });
 
@@ -47,12 +47,12 @@ void main() {
         farm: game.farm,
         activeJobId: null,
       );
-      // GTX 1060 at 50% condition needs ~10 ticks
-      for (int i = 0; i < 11; i++) {
+      // GTX 1060 at 50% condition needs more ticks with new rates
+      for (int i = 0; i < 20; i++) {
         (game, _) = TickSystem.tick(game);
       }
       expect(game.holdings['btc']!, greaterThan(0));
-      expect(game.tick, 11);
+      expect(game.tick, 20);
     });
   });
 
@@ -114,7 +114,7 @@ void main() {
     });
     test('costPerHour uses game formula', () {
       final state = GameState();
-      expect(ElectricitySystem.costPerHour(state.game), closeTo(14.40, 0.01));
+      expect(ElectricitySystem.costPerHour(state.game), closeTo(30.0, 0.01));
     });
   });
 
@@ -150,8 +150,8 @@ void main() {
     test('mine returns per-coin map after enough ticks', () {
       final state = GameState();
       var game = state.game;
-      // GTX 1060 at 50% condition needs ~10 ticks for a cycle
-      for (int i = 0; i < 10; i++) {
+      // GTX 1060 at 50% condition needs ~14 ticks for a cycle now
+      for (int i = 0; i < 14; i++) {
         final (gpus, mined) = MiningSystem.mine(game);
         if (mined.isNotEmpty) {
           expect(mined.containsKey('btc'), true);

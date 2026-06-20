@@ -74,16 +74,16 @@ class MiningSystem {
         continue;
       }
 
-      // Progress per tick: hashrate * 0.02 (10 MH/s → 0.2/tick → 5s cycle)
+      // Progress per tick: hashrate * 0.015 (10 MH/s → 0.15/tick → ~7s cycle)
       final empBonus = EmployeeSystem.hashrateBonus(game);
-      var progress = gpu.cycleProgress + hashrate * 0.02 * (1 + empBonus);
+      var progress = gpu.cycleProgress + hashrate * 0.015 * (1 + empBonus);
       if (progress >= 1.0) {
         // Cycle complete — grant reward
         final completions = progress.floor();
         progress -= completions;
         final coin = CoinCatalog.byId(gpu.miningCoinId);
         final reward = coin?.baseReward ?? 1.0;
-        final amount = 0.01 * reward * completions;
+        final amount = 0.008 * reward * completions;
         produced[gpu.miningCoinId] = (produced[gpu.miningCoinId] ?? 0) + amount;
       }
       updatedGpus.add(gpu.copyWith(cycleProgress: progress));

@@ -3,6 +3,7 @@ import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
+import 'package:crypto_king/domain/catalogs/paste_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
@@ -53,10 +54,9 @@ class GameViewModel {
   String get psuLabel => switch (_game.farm.psuTier) {
     'psu_bronze' => 'Bronze PSU',
     'psu_gold' => 'Gold PSU',
+    'psu_platinum' => 'Platinum PSU',
     _ => 'Stock PSU',
   };
-  PsuUpgrade? get nextPsu => PsuCatalog.nextTier(_game.farm.psuTier);
-  bool get canBuyPsu => nextPsu != null && _game.money >= nextPsu!.price;
   bool psuSupports(double watts) =>
       PsuCatalog.supports(_game.farm.psuTier, watts);
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
@@ -71,7 +71,8 @@ class GameViewModel {
       if (hashrate <= 0) continue;
       final coin = _game.coin(gpu.miningCoinId);
       if (coin != null) {
-        revenue += hashrate * 0.02 * 60 * 0.01 * (coin.baseReward) * coin.price;
+        revenue +=
+            hashrate * 0.015 * 60 * 0.008 * (coin.baseReward) * coin.price;
       }
     }
     return revenue - electricityCostPerMin;
@@ -133,7 +134,7 @@ class GameViewModel {
       // Cycle progress: visible fill on GPU card
       final cycleProgress = gpu.cycleProgress;
       // Revenue per cycle completion
-      final cycleReward = 0.01 * (coin?.baseReward ?? 1);
+      final cycleReward = 0.008 * (coin?.baseReward ?? 1);
       final revenuePerCycle = cycleReward * (coin?.price ?? 0);
       return GpuDisplayInfo(
         instanceId: gpu.id,
@@ -143,8 +144,8 @@ class GameViewModel {
         miningCoinName: coin?.name ?? 'BTC',
         isPowered: gpu.isPowered,
         revenuePerHour:
-            hashrate * 0.02 * cycleReward * 3600 * (coin?.price ?? 0),
-        revenuePerMin: hashrate * 0.02 * cycleReward * 60 * (coin?.price ?? 0),
+            hashrate * 0.015 * cycleReward * 3600 * (coin?.price ?? 0),
+        revenuePerMin: hashrate * 0.015 * cycleReward * 60 * (coin?.price ?? 0),
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
@@ -205,7 +206,7 @@ class GameViewModel {
     if (gpu == null || gpu.condition >= 1.0) return 0;
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    final cost = (model.price * 0.15 * (1.0 - gpu.condition)).ceil();
+    final cost = (model.price * 0.30 * (1.0 - gpu.condition)).ceil();
     return cost;
   }
 
@@ -368,6 +369,7 @@ class GameViewModel {
   bool buyCooling(CoolingUpgrade u) => _state.buyCooling(u);
   bool buySolar(SolarUpgrade u) => _state.buySolar(u);
   bool buyPsu(PsuUpgrade u) => _state.buyPsu(u);
+  bool buyPaste(PasteUpgrade u) => _state.buyPaste(u);
   List<InventoryItem> get inventory => _game.inventory;
   List<InventoryItem> get unequippedInventory =>
       _game.inventory.where((i) => !i.isEquipped).toList();
@@ -377,6 +379,23 @@ class GameViewModel {
       _state.unequipFromGpu(gpuId, type);
   bool useMotherboard(String itemId) => _state.useMotherboard(itemId);
   bool installGpu(String itemId) => _state.installGpu(itemId);
+
+  /// Upgrade an equipped item to the next tier (GPU/cooling/PSU).
+  /// Returns true if successful.
+  bool upgradeEquipped(String gpuId, String type) {
+    return _state.upgradeEquipped(gpuId, type);
+  }
+
+  /// Cost to upgrade equipped item on a GPU.
+  int equippedUpgradeCost(String gpuId, String type) {
+    return _state.equippedUpgradeCost(gpuId, type);
+  }
+
+  /// Next tier name for equipped item.
+  String? equippedNextTier(String gpuId, String type) {
+    return _state.equippedNextTier(gpuId, type);
+  }
+
   void setMiningCoin(String gpuId, String coinId) =>
       _state.setMiningCoin(gpuId, coinId);
   void togglePower(String gpuId) => _state.togglePower(gpuId);

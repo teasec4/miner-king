@@ -327,6 +327,42 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
         .firstOrNull;
   }
 
+  int _gpuUpgradeCost(GameViewModel vm, GpuDisplayInfo gpu) {
+    final cost = vm.equippedUpgradeCost(gpu.instanceId, 'gpu');
+    if (cost <= 0 || vm.money < cost) return 0;
+    return cost;
+  }
+
+  int _slotUpgradeCost(GameViewModel vm, String gpuId, String type) {
+    final cost = vm.equippedUpgradeCost(gpuId, type);
+    if (cost <= 0 || vm.money < cost) return 0;
+    return cost;
+  }
+
+  Widget _upArrow(int cost) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+    decoration: BoxDecoration(
+      color: Colors.amber.shade100,
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: Colors.amber.shade300),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.arrow_upward, size: 8, color: Colors.amber.shade800),
+        const SizedBox(width: 1),
+        Text(
+          '$cost',
+          style: TextStyle(
+            fontSize: 7,
+            fontWeight: FontWeight.bold,
+            color: Colors.amber.shade800,
+          ),
+        ),
+      ],
+    ),
+  );
+
   // ── Equipment layout ──
 
   Widget _equipmentLayout(
@@ -341,28 +377,53 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
     child: Stack(
       alignment: Alignment.center,
       children: [
-        Container(
-          width: 140,
-          height: 180,
-          decoration: BoxDecoration(
-            color: Colors.deepPurple.shade50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.deepPurple.shade200, width: 2),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.memory, size: 48, color: Colors.deepPurple.shade300),
-              const SizedBox(height: 8),
-              Text(
-                'GPU',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.deepPurple.shade400,
+        // Central GPU card with upgrade arrow
+        GestureDetector(
+          onTap: () {
+            final cost = vm.equippedUpgradeCost(gpu.instanceId, 'gpu');
+            if (cost > 0 && vm.money >= cost) {
+              vm.upgradeEquipped(gpu.instanceId, 'gpu');
+            }
+          },
+          child: Container(
+            width: 140,
+            height: 180,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.deepPurple.shade200, width: 2),
+            ),
+            child: Stack(
+              children: [
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.memory,
+                        size: 48,
+                        color: Colors.deepPurple.shade300,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'GPU',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.deepPurple.shade400,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                if (_gpuUpgradeCost(vm, gpu) > 0)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: _upArrow(_gpuUpgradeCost(vm, gpu)),
+                  ),
+              ],
+            ),
           ),
         ),
         Positioned(
@@ -375,6 +436,10 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
             cooling?.detail ?? 'Stock',
             onTap: cooling != null
                 ? () => vm.unequipFromGpu(gpu.instanceId, 'cooling')
+                : null,
+            upgradeCost: _slotUpgradeCost(vm, gpu.instanceId, 'cooling'),
+            onUpgrade: _slotUpgradeCost(vm, gpu.instanceId, 'cooling') > 0
+                ? () => vm.upgradeEquipped(gpu.instanceId, 'cooling')
                 : null,
           ),
         ),
@@ -389,6 +454,10 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
             onTap: psu != null
                 ? () => vm.unequipFromGpu(gpu.instanceId, 'psu')
                 : null,
+            upgradeCost: _slotUpgradeCost(vm, gpu.instanceId, 'psu'),
+            onUpgrade: _slotUpgradeCost(vm, gpu.instanceId, 'psu') > 0
+                ? () => vm.upgradeEquipped(gpu.instanceId, 'psu')
+                : null,
           ),
         ),
         Positioned(
@@ -401,6 +470,10 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
             paste?.detail ?? 'None',
             onTap: paste != null
                 ? () => vm.unequipFromGpu(gpu.instanceId, 'paste')
+                : null,
+            upgradeCost: _slotUpgradeCost(vm, gpu.instanceId, 'paste'),
+            onUpgrade: _slotUpgradeCost(vm, gpu.instanceId, 'paste') > 0
+                ? () => vm.upgradeEquipped(gpu.instanceId, 'paste')
                 : null,
           ),
         ),
@@ -428,6 +501,8 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
     Color color,
     String detail, {
     VoidCallback? onTap,
+    int? upgradeCost,
+    VoidCallback? onUpgrade,
   }) => GestureDetector(
     onTap: onTap,
     child: Container(
@@ -466,6 +541,37 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
             Text(
               'tap to remove',
               style: TextStyle(fontSize: 7, color: Colors.grey.shade500),
+            ),
+          if (onUpgrade != null && upgradeCost != null)
+            GestureDetector(
+              onTap: onUpgrade,
+              child: Container(
+                margin: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.arrow_upward,
+                      size: 8,
+                      color: Colors.amber.shade800,
+                    ),
+                    Text(
+                      '\$$upgradeCost',
+                      style: TextStyle(
+                        fontSize: 7,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
         ],
       ),

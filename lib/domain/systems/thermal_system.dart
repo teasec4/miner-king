@@ -1,5 +1,6 @@
 import '../catalogs/debuff_catalog.dart';
 import '../catalogs/gpu_catalog.dart';
+import '../catalogs/paste_catalog.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
 
@@ -66,6 +67,12 @@ class ThermalSystem {
 
       // Cooling reduces heat
       temp += cooling;
+
+      // Thermal paste
+      if (gpu.equippedPaste != null) {
+        final paste = PasteCatalog.byId(gpu.equippedPaste!);
+        if (paste != null) temp += paste.tempReduction;
+      }
 
       // Clamp to reasonable range
       temp = temp.clamp(20.0, 150.0);

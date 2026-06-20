@@ -1,3 +1,5 @@
+import 'gpu_catalog.dart';
+
 /// Slot upgrade tier.
 class SlotTier {
   final int slots;
@@ -18,7 +20,7 @@ class SlotCatalog {
   SlotCatalog._();
 
   static const tiers = [
-    SlotTier(slots: 1, price: 0, maxGpuTier: 0), // Basic: GTX 1060 only
+    SlotTier(slots: 1, price: 500, maxGpuTier: 0),
     SlotTier(slots: 2, price: 3000, maxGpuTier: 1), // Dual: up to RTX 2060
     SlotTier(slots: 4, price: 12000, maxGpuTier: 2), // Quad: up to RTX 3070
     SlotTier(slots: 8, price: 50000, maxGpuTier: 3), // Octa: up to RTX 5090
@@ -39,7 +41,7 @@ class SlotCatalog {
     final tier = tiers.where((t) => t.slots == totalSlots).firstOrNull;
     if (tier == null) return false;
     if (tier.maxGpuTier < 0) return true;
-    final gpuIdx = gpuTierOrder.indexOf(gpuModelId);
+    final gpuIdx = GpuCatalog.indexOf(gpuModelId);
     return gpuIdx >= 0 && gpuIdx <= tier.maxGpuTier;
   }
 

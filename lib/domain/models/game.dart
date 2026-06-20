@@ -40,7 +40,7 @@ class Game {
     required this.holdings,
     required this.coins,
     required this.farm,
-    this.electricityRate = 0.12,
+    this.electricityRate = 0.25,
     this.activeModifiers = const [],
     this.activeEvents = const [],
     this.activeLoans = const [],

@@ -1,5 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
+import 'package:crypto_king/domain/catalogs/paste_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -47,19 +48,17 @@ class ShopPage extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            ...SlotCatalog.tiers
-                .where((t) => t.slots > vm.totalSlots)
-                .map(
-                  (t) => _upgradeCard(
-                    icon: Icons.dashboard,
-                    color: Colors.green,
-                    title: 'Motherboard ${t.slots} slots',
-                    subtitle: _moboGpuLimit(t),
-                    price: t.price,
-                    canBuy: vm.money >= t.price,
-                    onBuy: () => vm.buySlotTier(t),
-                  ),
-                ),
+            ...SlotCatalog.tiers.map(
+              (t) => _upgradeCard(
+                icon: Icons.dashboard,
+                color: Colors.green,
+                title: 'Motherboard ${t.slots} slots',
+                subtitle: _moboGpuLimit(t),
+                price: t.price,
+                canBuy: vm.money >= t.price,
+                onBuy: () => vm.buySlotTier(t),
+              ),
+            ),
 
             // PSU
             _section('Power Supply'),
@@ -68,19 +67,17 @@ class ShopPage extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            ...PsuCatalog.all
-                .where((p) => p.id != 'psu_stock')
-                .map(
-                  (p) => _upgradeCard(
-                    icon: Icons.power,
-                    color: Colors.orange,
-                    title: p.name,
-                    subtitle: 'Up to ${p.maxWattPerGpu}W per GPU',
-                    price: p.price,
-                    canBuy: vm.money >= p.price,
-                    onBuy: () => vm.buyPsu(p),
-                  ),
-                ),
+            ...PsuCatalog.all.map(
+              (p) => _upgradeCard(
+                icon: Icons.power,
+                color: Colors.orange,
+                title: p.name,
+                subtitle: 'Up to ${p.maxWattPerGpu}W per GPU',
+                price: p.price,
+                canBuy: vm.money >= p.price,
+                onBuy: () => vm.buyPsu(p),
+              ),
+            ),
 
             // GPUs
             _section('GPUs'),
@@ -110,19 +107,36 @@ class ShopPage extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            ...CoolingCatalog.all
-                .where((c) => c.id != 'basic')
-                .map(
-                  (c) => _upgradeCard(
-                    icon: Icons.ac_unit,
-                    color: Colors.blue,
-                    title: c.name,
-                    subtitle: '${c.tempReduction}°C',
-                    price: c.price,
-                    canBuy: vm.money >= c.price,
-                    onBuy: () => vm.buyCooling(c),
-                  ),
-                ),
+            ...CoolingCatalog.all.map(
+              (c) => _upgradeCard(
+                icon: Icons.ac_unit,
+                color: Colors.blue,
+                title: c.name,
+                subtitle: '${c.tempReduction}°C',
+                price: c.price,
+                canBuy: vm.money >= c.price,
+                onBuy: () => vm.buyCooling(c),
+              ),
+            ),
+
+            // Thermal Paste
+            _section('Thermal Paste'),
+            Text(
+              'Buy to equip on GPU later',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            ...PasteCatalog.all.map(
+              (p) => _upgradeCard(
+                icon: Icons.water_drop,
+                color: Colors.teal,
+                title: p.name,
+                subtitle: '${p.tempReduction}°C',
+                price: p.price,
+                canBuy: vm.money >= p.price,
+                onBuy: () => vm.buyPaste(p),
+              ),
+            ),
           ],
         ),
       ),
