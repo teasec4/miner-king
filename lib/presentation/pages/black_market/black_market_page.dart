@@ -29,7 +29,8 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
     allGpus.shuffle(_r);
     _offers = allGpus.take(3).map((model) {
       final debuffs = <String>[];
-      final count = _r.nextInt(3);
+      // Always 1–2 debuffs — no clean cards on black market
+      final count = 1 + _r.nextInt(2);
       for (int i = 0; i < count; i++) {
         final available = DebuffCatalog.all
             .where((d) => !debuffs.contains(d.id))
@@ -152,14 +153,6 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.red.shade500,
-                          ),
-                        ),
-                      if (offer.debuffs.isEmpty)
-                        Text(
-                          '✓',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.green.shade500,
                           ),
                         ),
                     ],

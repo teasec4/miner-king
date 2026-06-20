@@ -3,6 +3,7 @@ import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
+import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
@@ -45,6 +46,21 @@ class GameViewModel {
     'immersion' => 'Immersion',
     _ => '',
   };
+  String get psuTier => _game.farm.psuTier;
+  int get psuMaxWatt =>
+      PsuCatalog.byId(_game.farm.psuTier)?.maxWattPerGpu ?? 150;
+  String get psuLabel => switch (_game.farm.psuTier) {
+    'psu_bronze' => 'Bronze PSU',
+    'psu_gold' => 'Gold PSU',
+    _ => 'Stock PSU',
+  };
+  PsuUpgrade? get nextPsu => PsuCatalog.nextTier(_game.farm.psuTier);
+  bool get canBuyPsu =>
+      nextPsu != null &&
+      _game.money >= nextPsu!.price &&
+      nextPsu!.id != _game.farm.psuTier;
+  bool psuSupports(double watts) =>
+      PsuCatalog.supports(_game.farm.psuTier, watts);
   double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
   double get electricityCostPerMin => electricityCostPerHour / 60;
 
@@ -311,14 +327,24 @@ class GameViewModel {
     final sale = hasGpuSale;
     return GpuCatalog.all.map((model) {
       final price = sale ? (model.price * 0.7).ceil() : model.price;
+      final psuOk = psuSupports(model.basePowerConsumption);
       return ShopGpuEntry(
         model: model,
         effectivePrice: price,
         canAfford: _game.money >= price,
         hasSlots: _game.farm.hasFreeSlots,
-        canBuy: _game.money >= price && _game.farm.hasFreeSlots,
+        canBuy: _game.money >= price && _game.farm.hasFreeSlots && psuOk,
+        psuOk: psuOk,
+        psuRequired: psuOk ? null : _psuNeededFor(model.basePowerConsumption),
       );
     }).toList();
+  }
+
+  String? _psuNeededFor(double watts) {
+    for (final psu in PsuCatalog.all) {
+      if (watts <= psu.maxWattPerGpu) return psu.name;
+    }
+    return null;
   }
 
   // ── Actions ──
@@ -343,6 +369,7 @@ class GameViewModel {
   bool buySlot() => _state.buySlot();
   bool buyCooling(CoolingUpgrade u) => _state.buyCooling(u);
   bool buySolar(SolarUpgrade u) => _state.buySolar(u);
+  bool buyPsu(PsuUpgrade u) => _state.buyPsu(u);
   void setMiningCoin(String gpuId, String coinId) =>
       _state.setMiningCoin(gpuId, coinId);
   void togglePower(String gpuId) => _state.togglePower(gpuId);
@@ -354,6 +381,8 @@ class ShopGpuEntry {
   final bool canAfford;
   final bool hasSlots;
   final bool canBuy;
+  final bool psuOk;
+  final String? psuRequired;
 
   const ShopGpuEntry({
     required this.model,
@@ -361,6 +390,8 @@ class ShopGpuEntry {
     required this.canAfford,
     required this.hasSlots,
     required this.canBuy,
+    required this.psuOk,
+    this.psuRequired,
   });
 }
 

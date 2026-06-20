@@ -66,10 +66,12 @@ class ShopPage extends StatelessWidget {
                 price: e.effectivePrice,
                 canBuy: e.canBuy,
                 onBuy: () => vm.buyGpu(m),
-                hint: !e.hasSlots
+                hint: !e.psuOk
+                    ? 'Need ${e.psuRequired}'
+                    : !e.hasSlots
                     ? 'No slots'
                     : !e.canAfford
-                    ? 'Need \$${e.effectivePrice - vm.money.toInt()}'
+                    ? 'Need \$${(e.effectivePrice - vm.money.toInt()).clamp(0, 999999)}'
                     : null,
                 salePercent: hasSale ? 30 : null,
               );
@@ -118,6 +120,24 @@ class ShopPage extends StatelessWidget {
                 onBuy: () => vm.buySolar(s),
               ),
             ),
+
+            // PSU
+            _section('Power Supply'),
+            Text(
+              'Current: ${vm.psuLabel} (max ${vm.psuMaxWatt}W per GPU)',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            if (vm.nextPsu != null && vm.nextPsu!.id != vm.psuTier)
+              _upgradeCard(
+                icon: Icons.power,
+                color: Colors.orange,
+                title: vm.nextPsu!.name,
+                subtitle: 'Up to ${vm.nextPsu!.maxWattPerGpu}W per GPU',
+                price: vm.nextPsu!.price,
+                canBuy: vm.canBuyPsu,
+                onBuy: () => vm.buyPsu(vm.nextPsu!),
+              ),
           ],
         ),
       ),

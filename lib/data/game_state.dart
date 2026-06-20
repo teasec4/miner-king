@@ -9,6 +9,7 @@ import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/domain/catalogs/property_catalog.dart';
+import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/models/farm.dart';
@@ -242,11 +243,15 @@ class GameState extends ChangeNotifier {
     final price = hasSale ? (model.price * 0.7).ceil() : model.price;
     if (_game.money < price) return false;
     if (!_game.farm.hasFreeSlots) return false;
+    // PSU check: GPU wattage must be within PSU limit
+    if (!PsuCatalog.supports(_game.farm.psuTier, model.basePowerConsumption)) {
+      return false;
+    }
 
     final instance = GpuInstance(
       id: _uuid.v4(),
       modelId: model.id,
-      miningCoinId: 'btc', // default to BTC
+      miningCoinId: 'btc',
       temperature: model.baseTemperature,
     );
 
@@ -261,6 +266,9 @@ class GameState extends ChangeNotifier {
   bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) {
     if (_game.money < price) return false;
     if (!_game.farm.hasFreeSlots) return false;
+    if (!PsuCatalog.supports(_game.farm.psuTier, model.basePowerConsumption)) {
+      return false;
+    }
     final instance = GpuInstance(
       id: _uuid.v4(),
       modelId: model.id,
@@ -341,6 +349,20 @@ class GameState extends ChangeNotifier {
       farm: _game.farm.copyWith(
         solarPower: _game.farm.solarPower + upgrade.powerGen,
       ),
+    );
+    notifyListeners();
+    return true;
+  }
+
+  bool buyPsu(PsuUpgrade upgrade) {
+    if (_game.money < upgrade.price) return false;
+    if (_game.farm.psuTier == upgrade.id) return false;
+    // Only allow upgrades, not downgrades
+    final next = PsuCatalog.nextTier(_game.farm.psuTier);
+    if (next == null || next.id != upgrade.id) return false;
+    _game = _game.copyWith(
+      money: _game.money - upgrade.price,
+      farm: _game.farm.copyWith(psuTier: upgrade.id),
     );
     notifyListeners();
     return true;
