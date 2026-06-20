@@ -4,6 +4,7 @@ import '../models/game.dart';
 class EmployeeSystem {
   EmployeeSystem._();
 
+  /// Process one tick: pay salaries, apply income effects, pay rent.
   static Game update(Game game) {
     final officeId = game.officeId;
     if (officeId == null) return game;
@@ -11,6 +12,7 @@ class EmployeeSystem {
     if (office == null) return game;
 
     var money = game.money;
+    final hired = game.employees.toSet();
 
     for (final empId in game.employees) {
       final emp = EmployeeCatalog.byId(empId);
@@ -19,19 +21,28 @@ class EmployeeSystem {
       // Pay salary
       money -= emp.salaryPerTick;
 
-      // Apply effect
+      // Apply income-generating effects
       switch (emp.effect) {
         case EmployeeEffect.trader:
-          // Income based on market mood: base + mood bonus
-          final moodBonus = 1.0 + game.marketMood * 0.5;
-          money += emp.effectValue * moodBonus;
+          // Can lose money in fear, profit in greed.
+          // Range: mood=-1 → -40%, mood=+1 → +100% of base.
+          // With FinTech synergy: bonus × 1.2
+          final synergyMult = _synergyActive('fintech', hired) ? 1.20 : 1.0;
+          final mood = game.marketMood;
+          // Non-linear: 0.7× mood for moderate swings, amplified at extremes
+          final factor = mood > 0
+              ? mood * 0.7 + mood * mood * 0.3
+              : mood * 0.7 - mood * mood * 0.3;
+          money += emp.effectValue * factor * synergyMult;
           break;
         case EmployeeEffect.sales:
           money += emp.effectValue;
           break;
         case EmployeeEffect.miner:
         case EmployeeEffect.repair:
-          // Applied in other systems (MiningSystem, WearSystem)
+        case EmployeeEffect.electrician:
+        case EmployeeEffect.security:
+          // Applied in other systems (MiningSystem, WearSystem, ElectricitySystem, EventSystem)
           break;
       }
     }
@@ -45,27 +56,80 @@ class EmployeeSystem {
     return game.copyWith(money: money.clamp(0, double.infinity));
   }
 
-  /// Returns combined hashrate bonus from mining supervisors (0.0-1.0).
+  // ── Passive effects queried by other systems ──
+
+  /// Returns hashrate bonus from supervisor (unique, 0 or 1 instance).
   static double hashrateBonus(Game game) {
-    double bonus = 0;
     for (final empId in game.employees) {
       final emp = EmployeeCatalog.byId(empId);
       if (emp != null && emp.effect == EmployeeEffect.miner) {
-        bonus += emp.effectValue;
+        var base = emp.effectValue;
+        // Optimized Mining synergy: bonus +5% hashrate
+        if (_synergyActive('optimized', game.employees.toSet())) base += 0.05;
+        return base;
       }
     }
-    return bonus;
+    return 0;
   }
 
-  /// Returns combined wear reduction from repair techs (0.0-1.0).
+  /// Returns wear reduction from repair tech (unique).
   static double wearReduction(Game game) {
-    double reduction = 0;
     for (final empId in game.employees) {
       final emp = EmployeeCatalog.byId(empId);
       if (emp != null && emp.effect == EmployeeEffect.repair) {
-        reduction += emp.effectValue;
+        var base = emp.effectValue;
+        // Optimized Mining synergy: bonus -5% wear
+        if (_synergyActive('optimized', game.employees.toSet())) base += 0.05;
+        return base.clamp(0.0, 0.9);
       }
     }
-    return reduction.clamp(0.0, 0.9);
+    return 0;
+  }
+
+  /// Returns electricity cost reduction from electrician (unique).
+  static double electricityReduction(Game game) {
+    for (final empId in game.employees) {
+      final emp = EmployeeCatalog.byId(empId);
+      if (emp != null && emp.effect == EmployeeEffect.electrician) {
+        var base = emp.effectValue;
+        // Efficient Farm synergy: bonus -5% electricity
+        if (_synergyActive('efficient', game.employees.toSet())) base += 0.05;
+        return base;
+      }
+    }
+    return 0;
+  }
+
+  /// Returns event risk reduction from security guard (unique).
+  static double eventChanceReduction(Game game) {
+    for (final empId in game.employees) {
+      final emp = EmployeeCatalog.byId(empId);
+      if (emp != null && emp.effect == EmployeeEffect.security) {
+        return emp.effectValue;
+      }
+    }
+    return 0;
+  }
+
+  /// Returns event duration reduction from security guard (unique).
+  static double eventDurationReduction(Game game) {
+    for (final empId in game.employees) {
+      final emp = EmployeeCatalog.byId(empId);
+      if (emp != null && emp.effect == EmployeeEffect.security) {
+        return emp.effectValue;
+      }
+    }
+    return 0;
+  }
+
+  static bool _synergyActive(String synergyId, Set<String> hired) {
+    final syn = EmployeeSynergy.all.where((s) => s.id == synergyId).firstOrNull;
+    if (syn == null) return false;
+    return hired.contains(syn.empA) && hired.contains(syn.empB);
+  }
+
+  /// Active synergies for display.
+  static List<EmployeeSynergy> activeSynergies(Game game) {
+    return EmployeeSynergy.activeFor(game.employees.toSet());
   }
 }

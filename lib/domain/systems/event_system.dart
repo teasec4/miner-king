@@ -2,6 +2,7 @@ import 'dart:math';
 import '../catalogs/event_catalog.dart';
 import '../models/game.dart';
 import '../models/game_event.dart';
+import 'employee_system.dart';
 
 /// Triggers random events and manages active event durations.
 class EventSystem {
@@ -13,6 +14,9 @@ class EventSystem {
     var g = game;
     GameEvent? triggered;
 
+    // Security guard: event duration reduction
+    final durationReduction = EmployeeSystem.eventDurationReduction(g);
+
     // ── Tick active events ──
     final updatedEvents = <GameEvent>[];
     for (final e in game.activeEvents) {
@@ -21,7 +25,9 @@ class EventSystem {
         if (remaining <= -60) continue;
         updatedEvents.add(e.copyWith(remainingTicks: remaining));
       } else {
-        final remaining = e.remainingTicks - 1;
+        // Security makes events tick down faster
+        final decay = 1.0 + durationReduction;
+        final remaining = (e.remainingTicks - decay).ceil();
         if (remaining <= 0) {
           g = _removeEvent(g, e);
         } else {
@@ -36,7 +42,9 @@ class EventSystem {
     if (_nextEventIn <= 0) {
       _nextEventIn = 60 + _random.nextInt(240);
       if (g.activeEvents.length < 3) {
-        final event = _pickRandomEvent(g);
+        // Security: skip rig events sometimes
+        final securityReduction = EmployeeSystem.eventChanceReduction(g);
+        final event = _pickRandomEvent(g, securityReduction);
         if (event != null) {
           g = _applyEvent(g, event);
           // Mark as unseen in the event's category
@@ -51,10 +59,17 @@ class EventSystem {
     return (g, triggered);
   }
 
-  static GameEvent? _pickRandomEvent(Game game) {
+  static GameEvent? _pickRandomEvent(Game game, double securityReduction) {
     // Pick from a random category, weighted
+    // Security reduces chance of picking 'rig' category
     final cats = ['rig', 'market', 'city'];
-    final cat = cats[_random.nextInt(cats.length)];
+    var cat = cats[_random.nextInt(cats.length)];
+    // If security is active and we rolled 'rig', chance to reroll
+    if (cat == 'rig' &&
+        securityReduction > 0 &&
+        _random.nextDouble() < securityReduction) {
+      cat = cats[_random.nextInt(cats.length)]; // reroll once
+    }
     var pool = switch (cat) {
       'rig' => EventCatalog.rigEvents,
       'market' => EventCatalog.marketEvents,

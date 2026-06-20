@@ -36,6 +36,8 @@ class CourseSystem {
         employees: game.employees,
         officeId: game.officeId,
         unseenEvents: game.unseenEvents,
+        employeePool: game.employeePool,
+        nextPoolRefresh: game.nextPoolRefresh,
         character: game.character,
         perks: game.perks,
         tick: game.tick,

@@ -1,5 +1,6 @@
 import '../catalogs/gpu_catalog.dart';
 import '../models/game.dart';
+import 'employee_system.dart';
 
 /// Calculates electricity costs per tick.
 ///
@@ -18,7 +19,10 @@ class ElectricitySystem {
       double.infinity,
     );
     // Hourly cost = net watts * rate (game formula)
-    final costPerHour = netWatts * game.electricityRate;
+    var costPerHour = netWatts * game.electricityRate;
+    // Electrician employee: -% electricity cost
+    final elecReduction = EmployeeSystem.electricityReduction(game);
+    if (elecReduction > 0) costPerHour *= (1 - elecReduction);
     final cost = costPerHour / 3600.0;
 
     final newMoney = ((game.money - cost).clamp(0, double.infinity) as double);

@@ -183,6 +183,7 @@ class GameState extends ChangeNotifier {
 
   void _safeTick() {
     try {
+      _maybeRefreshPool();
       final (newGame, event) = TickSystem.tick(_game);
       _game = newGame;
       if (event != null) {
@@ -369,10 +370,20 @@ class GameState extends ChangeNotifier {
       activeModifiers: _game.activeModifiers,
       activeEvents: _game.activeEvents,
       activeLoans: _game.activeLoans,
+      activeInvestments: _game.activeInvestments,
+      properties: _game.properties,
       marketMood: _game.marketMood,
       loanRepayments: _game.loanRepayments,
       activeJobId: null,
       jobExperience: _game.jobExperience,
+      completedCourses: _game.completedCourses,
+      activeCourseId: _game.activeCourseId,
+      courseTicksLeft: _game.courseTicksLeft,
+      employees: _game.employees,
+      officeId: _game.officeId,
+      unseenEvents: _game.unseenEvents,
+      employeePool: _game.employeePool,
+      nextPoolRefresh: _game.nextPoolRefresh,
       character: _game.character,
       perks: _game.perks,
       tick: _game.tick,
@@ -407,16 +418,31 @@ class GameState extends ChangeNotifier {
   // ── Office ──
 
   bool buyOffice(String officeId) {
-    final office = OfficeCatalog.byId(officeId);
-    if (office == null) return false;
-    if (_game.money < office.price) return false;
-    if (_game.officeId == officeId) return false;
-    _game = _game.copyWith(
-      money: _game.money - office.price,
-      officeId: officeId,
-    );
+    // Sequential upgrade only: must be exactly the next tier
+    final next = OfficeCatalog.nextTier(_game.officeId);
+    if (next == null || next.id != officeId) return false;
+    if (_game.money < next.price) return false;
+    _game = _game.copyWith(money: _game.money - next.price, officeId: officeId);
     notifyListeners();
     return true;
+  }
+
+  /// Refresh the pool of available employees (3-4 random).
+  void refreshEmployeePool() {
+    final all = EmployeeCatalog.all.map((e) => e.id).toList();
+    all.shuffle();
+    _game = _game.copyWith(
+      employeePool: all.take(all.length > 4 ? 4 : all.length).toList(),
+      nextPoolRefresh: _game.tick + 300,
+    );
+    notifyListeners();
+  }
+
+  /// Check and auto-refresh expired pool.
+  void _maybeRefreshPool() {
+    if (_game.employeePool.isEmpty || _game.tick >= _game.nextPoolRefresh) {
+      refreshEmployeePool();
+    }
   }
 
   bool hireEmployee(String empId) {
@@ -425,6 +451,7 @@ class GameState extends ChangeNotifier {
         : null;
     if (office == null) return false;
     if (_game.employees.length >= office.slots) return false;
+    // Each employee type is unique (can only hire one of each)
     if (_game.employees.contains(empId)) return false;
     _game = _game.copyWith(employees: [..._game.employees, empId]);
     notifyListeners();

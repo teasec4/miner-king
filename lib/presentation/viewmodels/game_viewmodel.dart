@@ -279,9 +279,19 @@ class GameViewModel {
 
   String? get officeId => _game.officeId;
   List<String> get employees => _game.employees;
+  List<String> get employeePool => _game.employeePool;
+  int get nextPoolRefresh => _game.nextPoolRefresh;
+  int get poolRefreshIn => (_game.nextPoolRefresh - _game.tick).clamp(0, 9999);
+  List<Employee> get availableEmployees => _game.employeePool
+      .map((id) => EmployeeCatalog.byId(id))
+      .whereType<Employee>()
+      .toList();
+  List<EmployeeSynergy> get activeSynergies =>
+      EmployeeSystem.activeSynergies(_game);
   bool buyOffice(String id) => _state.buyOffice(id);
   bool hireEmployee(String id) => _state.hireEmployee(id);
   void fireEmployee(String id) => _state.fireEmployee(id);
+  void refreshEmployeePool() => _state.refreshEmployeePool();
   int get officeSlots {
     final id = _game.officeId;
     if (id == null) return 0;

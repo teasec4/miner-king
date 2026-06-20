@@ -27,6 +27,8 @@ class Game {
   final List<String> employees;
   final String? officeId;
   final Map<String, int> unseenEvents;
+  final List<String> employeePool;
+  final int nextPoolRefresh;
   final CharacterType? character;
   final List<Perk> perks;
   final int tick;
@@ -52,6 +54,8 @@ class Game {
     this.employees = const [],
     this.officeId,
     this.unseenEvents = const {},
+    this.employeePool = const [],
+    this.nextPoolRefresh = 0,
     this.character,
     this.perks = const [],
     this.tick = 0,
@@ -88,6 +92,8 @@ class Game {
     List<String>? employees,
     String? officeId,
     Map<String, int>? unseenEvents,
+    List<String>? employeePool,
+    int? nextPoolRefresh,
     CharacterType? character,
     List<Perk>? perks,
     int? tick,
@@ -113,6 +119,8 @@ class Game {
       employees: employees ?? this.employees,
       officeId: officeId ?? this.officeId,
       unseenEvents: unseenEvents ?? this.unseenEvents,
+      employeePool: employeePool ?? this.employeePool,
+      nextPoolRefresh: nextPoolRefresh ?? this.nextPoolRefresh,
       character: character ?? this.character,
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,
