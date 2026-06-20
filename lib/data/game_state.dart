@@ -5,6 +5,7 @@ import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/course_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/investment_catalog.dart';
+import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/domain/catalogs/property_catalog.dart';
@@ -82,7 +83,7 @@ class GameState extends ChangeNotifier {
       coins: CoinCatalog.initialCoins(),
       electricityRate: 0.12,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
-      activeJobId: 'fast_food',
+      activeJobId: 'food_l1',
       activeLoans: [loan],
     );
   }
@@ -332,6 +333,12 @@ class GameState extends ChangeNotifier {
   void startJob(String jobId) {
     _game = _game.copyWith(activeJobId: jobId);
     notifyListeners();
+  }
+
+  /// Start working in a career path at current level.
+  void startPath(List<Job> path, int level) {
+    final title = JobCatalog.titleForPath(path, level);
+    if (title != null) startJob(title.id);
   }
 
   void quitJob() {

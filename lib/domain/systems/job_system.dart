@@ -20,13 +20,57 @@ class JobSystem {
     final exp = newExp[jobId] ?? 0;
     final level = (exp ~/ job.expPerLevel).clamp(0, job.maxLevel);
     final multiplier = 1.0 + level * 0.1;
+    // Diploma bonus: check completed courses
+    var diplomaBonus = 1.0;
+    // Find which path this job belongs to
+    for (final entry in JobCatalog.paths.entries) {
+      final name = entry.key;
+      final path = entry.value;
+      if (path.any((j) => j.id == jobId)) {
+        switch (name) {
+          case 'Tech & IT':
+            if (game.completedCourses.contains('basic_it')) {
+              diplomaBonus += 0.20;
+            }
+            if (game.completedCourses.contains('data_analytics')) {
+              diplomaBonus += 0.20;
+            }
+            if (game.completedCourses.contains('programming')) {
+              diplomaBonus += 0.20;
+            }
+          case 'Business & Finance':
+            if (game.completedCourses.contains('management')) {
+              diplomaBonus += 0.20;
+            }
+            if (game.completedCourses.contains('data_analytics')) {
+              diplomaBonus += 0.20;
+            }
+            if (game.completedCourses.contains('marketing')) {
+              diplomaBonus += 0.20;
+            }
+          case 'Creative & Media':
+            if (game.completedCourses.contains('marketing')) {
+              diplomaBonus += 0.20;
+            }
+          case 'Engineering':
+            if (game.completedCourses.contains('programming')) {
+              diplomaBonus += 0.20;
+            }
+          default:
+        }
+        if (game.completedCourses.contains('business')) diplomaBonus += 0.25;
+        break;
+      }
+    }
     // Job Fair event: double salary
     final fairBonus = game.activeEvents.any((e) => e.id == 'job_fair')
         ? 2.0
         : 1.0;
 
     return game.copyWith(
-      money: game.money + job.salaryPerTick * multiplier * fairBonus,
+      money:
+          game.money +
+          job.salaryPerTick * multiplier * diplomaBonus * fairBonus,
       jobExperience: newExp,
     );
   }

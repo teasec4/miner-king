@@ -29,7 +29,7 @@ void main() {
       expect(game.electricityRate, 0.12);
       expect(game.farm.gpuList.length, 1);
       expect(game.farm.gpuList.first.condition, 0.5);
-      expect(game.activeJobId, 'fast_food');
+      expect(game.activeJobId, 'food_l1');
       expect(game.farm.totalSlots, 1);
     });
   });

@@ -223,7 +223,49 @@ class GameViewModel {
     if (job == null) return 0;
     final exp = _game.jobExperience[id] ?? 0;
     final level = (exp ~/ job.expPerLevel).clamp(0, job.maxLevel);
-    return job.salaryPerTick * 60 * (1.0 + level * 0.1);
+    double base = job.salaryPerTick * 60 * (1.0 + level * 0.1);
+    // Diploma bonus (matching JobSystem logic)
+    for (final entry in JobCatalog.paths.entries) {
+      final name = entry.key;
+      final path = entry.value;
+      if (path.any((j) => j.id == id)) {
+        var bonus = 1.0;
+        switch (name) {
+          case 'Tech & IT':
+            if (_game.completedCourses.contains('basic_it')) {
+              bonus += 0.20;
+            }
+            if (_game.completedCourses.contains('data_analytics')) {
+              bonus += 0.20;
+            }
+            if (_game.completedCourses.contains('programming')) {
+              bonus += 0.20;
+            }
+          case 'Business & Finance':
+            if (_game.completedCourses.contains('management')) {
+              bonus += 0.20;
+            }
+            if (_game.completedCourses.contains('data_analytics')) {
+              bonus += 0.20;
+            }
+            if (_game.completedCourses.contains('marketing')) {
+              bonus += 0.20;
+            }
+          case 'Creative & Media':
+            if (_game.completedCourses.contains('marketing')) {
+              bonus += 0.20;
+            }
+          case 'Engineering':
+            if (_game.completedCourses.contains('programming')) {
+              bonus += 0.20;
+            }
+          default:
+        }
+        if (_game.completedCourses.contains('business')) bonus += 0.25;
+        return base * bonus;
+      }
+    }
+    return base;
   }
 
   // ── Education ──

@@ -30,21 +30,21 @@ class CourseCatalog {
     name: 'Basic IT',
     price: 500,
     durationTicks: 180,
-    unlocks: 'Unlocks Tech Support, Call Center',
+    unlocks: '+20% salary in Tech & IT path',
   );
   static const management = Course(
     id: 'management',
     name: 'Management 101',
     price: 800,
     durationTicks: 240,
-    unlocks: 'Unlocks Retail, Office Clerk',
+    unlocks: '+20% salary in Business path',
   );
   static const dataAnalytics = Course(
     id: 'data_analytics',
     name: 'Data Analytics',
     price: 1000,
     durationTicks: 300,
-    unlocks: 'Unlocks Data Entry, Soft. Architect',
+    unlocks: '+20% salary in Business & Tech',
     requiresCourse: ['basic_it'],
   );
   static const marketingCourse = Course(
@@ -52,7 +52,7 @@ class CourseCatalog {
     name: 'Marketing',
     price: 1200,
     durationTicks: 300,
-    unlocks: 'Unlocks Insurance, Marketing Dir.',
+    unlocks: '+20% salary in Creative & Business',
     requiresCourse: ['management'],
   );
   static const programming = Course(
@@ -60,7 +60,7 @@ class CourseCatalog {
     name: 'Programming',
     price: 1500,
     durationTicks: 420,
-    unlocks: 'Unlocks Freelance Dev, IT Admin',
+    unlocks: '+20% salary in Engineering & Tech',
     requiresCourse: ['basic_it'],
   );
   static const business = Course(
@@ -68,7 +68,7 @@ class CourseCatalog {
     name: 'Business Admin',
     price: 2000,
     durationTicks: 480,
-    unlocks: 'Unlocks Office Manager, Accountant',
+    unlocks: '+25% salary in all paths',
     requiresCourse: ['management'],
   );
 

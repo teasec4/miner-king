@@ -7,74 +7,52 @@ import 'package:provider/provider.dart';
 class JobPage extends StatelessWidget {
   const JobPage({super.key});
 
-  double _jobIncome(Job job, GameViewModel vm) {
-    final exp = vm.jobExp(job.id);
-    final level = (exp ~/ job.expPerLevel).clamp(0, job.maxLevel);
-    return job.salaryPerTick * 60 * (1.0 + level * 0.1);
-  }
-
-  int _jobLevel(Job job, GameViewModel vm) {
-    return (vm.jobExp(job.id) ~/ job.expPerLevel).clamp(0, job.maxLevel);
-  }
-
-  int _jobExpForLevel(Job job, GameViewModel vm) {
-    return vm.jobExp(job.id) % job.expPerLevel;
-  }
-
-  String? _jobRequirement(Job job, GameViewModel vm) {
-    final hasBasicIt = vm.completedCourses.contains('basic_it');
-    final hasMgmt = vm.completedCourses.contains('management');
-    final hasProg = vm.completedCourses.contains('programming');
-    final hasBiz = vm.completedCourses.contains('business');
-    final hasData = vm.completedCourses.contains('data_analytics');
-    final hasMarketing = vm.completedCourses.contains('marketing');
-
-    if (JobCatalog.tier1.any((j) => j.id == job.id)) return null;
-
-    if (JobCatalog.tier2.any((j) => j.id == job.id)) {
-      final hasExp = JobCatalog.tier1.any((t) => _jobLevel(t, vm) >= 5);
-      if (hasExp) return null;
-      if (job.id == 'tech_support' ||
-          job.id == 'call_center' ||
-          job.id == 'data_entry') {
-        if (!hasBasicIt && !hasData) {
-          return 'Need Basic IT/Data Analytics or Tier1 Lv5';
-        }
-        return null;
-      }
-      if (job.id == 'retail' ||
-          job.id == 'office_clerk' ||
-          job.id == 'insurance') {
-        if (!hasMgmt && !hasMarketing) {
-          return 'Need Management/Marketing or Tier1 Lv5';
-        }
-        return null;
-      }
+  int _levelForPath(List<Job> path, GameViewModel vm) {
+    int totalExp = 0;
+    for (final j in path) {
+      totalExp += vm.jobExp(j.id);
     }
-
-    if (JobCatalog.tier3.any((j) => j.id == job.id)) {
-      final hasExp = JobCatalog.tier2.any((t) => _jobLevel(t, vm) >= 8);
-      if (hasExp) return null;
-      if (job.id == 'freelance' ||
-          job.id == 'it_admin' ||
-          job.id == 'architect') {
-        if (!hasProg && !hasData) {
-          return 'Need Programming/Data Analytics or Tier2 Lv8';
-        }
-        return null;
-      }
-      if (job.id == 'office' ||
-          job.id == 'accountant' ||
-          job.id == 'marketing') {
-        if (!hasBiz && !hasMarketing) {
-          return 'Need Business/Marketing or Tier2 Lv8';
-        }
-        return null;
-      }
-    }
-
-    return null;
+    return (totalExp ~/ 100).clamp(0, path.length - 1);
   }
+
+  int _expForLevel(List<Job> path, GameViewModel vm) {
+    int totalExp = 0;
+    for (final j in path) {
+      totalExp += vm.jobExp(j.id);
+    }
+    return totalExp % 100;
+  }
+
+  double _salaryBonus(GameViewModel vm, String pathName) {
+    double bonus = 1.0;
+    final courses = vm.completedCourses;
+    switch (pathName) {
+      case 'Tech & IT':
+        if (courses.contains('basic_it')) bonus += 0.20;
+        if (courses.contains('data_analytics')) bonus += 0.20;
+        if (courses.contains('programming')) bonus += 0.20;
+      case 'Business & Finance':
+        if (courses.contains('management')) bonus += 0.20;
+        if (courses.contains('data_analytics')) bonus += 0.20;
+        if (courses.contains('marketing')) bonus += 0.20;
+      case 'Creative & Media':
+        if (courses.contains('marketing')) bonus += 0.20;
+      case 'Engineering':
+        if (courses.contains('programming')) bonus += 0.20;
+      default:
+    }
+    if (courses.contains('business')) bonus += 0.25;
+    return bonus;
+  }
+
+  IconData _iconForPath(String name) => switch (name) {
+    'Food & Service' => Icons.restaurant,
+    'Tech & IT' => Icons.computer,
+    'Business & Finance' => Icons.account_balance,
+    'Creative & Media' => Icons.palette,
+    'Engineering' => Icons.code,
+    _ => Icons.work,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +61,7 @@ class JobPage extends StatelessWidget {
     final activeJob = activeId != null ? JobCatalog.byId(activeId) : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Jobs'), centerTitle: true),
+      appBar: AppBar(title: const Text('Career'), centerTitle: true),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -100,51 +78,83 @@ class JobPage extends StatelessWidget {
                           const Icon(Icons.work, color: Colors.amber, size: 28),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  activeJob.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                Text(
-                                  'Earning: \$${_jobIncome(activeJob, vm).toStringAsFixed(2)}/min',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.green.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            'Lv ${_jobLevel(activeJob, vm)}/${activeJob.maxLevel}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
+                            child: Builder(
+                              builder: (_) {
+                                for (final entry in JobCatalog.paths.entries) {
+                                  if (entry.value.any(
+                                    (j) => j.id == activeJob.id,
+                                  )) {
+                                    final lv = _levelForPath(entry.value, vm);
+                                    final bonus = _salaryBonus(vm, entry.key);
+                                    final income =
+                                        activeJob.salaryPerTick * 60 * bonus;
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          activeJob.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Text(
+                                          '\$${income.toStringAsFixed(2)}/min  •  Lv${lv + 1}/${entry.value.length}',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.green.shade700,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                }
+                                return const SizedBox.shrink();
+                              },
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _expBar(
-                            _jobExpForLevel(activeJob, vm),
-                            activeJob.expPerLevel,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'EXP',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
+                      Builder(
+                        builder: (_) {
+                          for (final entry in JobCatalog.paths.entries) {
+                            if (entry.value.any((j) => j.id == activeJob.id)) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(3),
+                                        child: LinearProgressIndicator(
+                                          value:
+                                              _expForLevel(entry.value, vm) /
+                                              100,
+                                          minHeight: 6,
+                                          backgroundColor: Colors.grey.shade200,
+                                          valueColor:
+                                              const AlwaysStoppedAnimation(
+                                                Colors.blue,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'EXP',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          }
+                          return const SizedBox.shrink();
+                        },
                       ),
                       const SizedBox(height: 10),
                       SizedBox(
@@ -155,7 +165,7 @@ class JobPage extends StatelessWidget {
                           ),
                           onPressed: () => vm.quitJob(),
                           child: const Text(
-                            'Quit Job',
+                            'Quit',
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -166,145 +176,86 @@ class JobPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
             ],
-            _tierSection(
-              'Entry Level',
-              Icons.restaurant,
-              Colors.grey,
-              JobCatalog.tier1,
-              vm,
-              activeJob,
-            ),
-            _tierSection(
-              'Office & Service',
-              Icons.business_center,
-              Colors.blue,
-              JobCatalog.tier2,
-              vm,
-              activeJob,
-            ),
-            _tierSection(
-              'Professional',
-              Icons.star,
-              Colors.amber,
-              JobCatalog.tier3,
-              vm,
-              activeJob,
-            ),
+            ...JobCatalog.paths.entries.map((entry) {
+              final name = entry.key;
+              final path = entry.value;
+              final level = _levelForPath(path, vm);
+              final title = JobCatalog.titleForPath(path, level)!;
+              final bonus = _salaryBonus(vm, name);
+              final income = title.salaryPerTick * 60 * bonus;
+              final isWorking = path.any((j) => j.id == activeJob?.id);
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _iconForPath(name),
+                            size: 24,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                Text(
+                                  '\$${income.toStringAsFixed(2)}/min  •  ${title.name}  •  Lv${level + 1}/${path.length}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isWorking
+                                  ? Colors.grey
+                                  : Colors.blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                            ),
+                            onPressed: isWorking
+                                ? null
+                                : () => vm.startJob(title.id),
+                            child: Text(isWorking ? 'Active' : 'Work'),
+                          ),
+                        ],
+                      ),
+                      if (level < path.length - 1)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 34),
+                          child: Text(
+                            'Next: ${path[level + 1].name}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade400,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ],
         ),
       ),
     );
   }
-
-  Widget _tierSection(
-    String title,
-    IconData icon,
-    Color color,
-    List<Job> jobs,
-    GameViewModel vm,
-    Job? activeJob,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 4),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
-        ...jobs.map((j) {
-          final income = _jobIncome(j, vm);
-          final req = _jobRequirement(j, vm);
-          final locked = req != null;
-          final level = _jobLevel(j, vm);
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 2),
-            color: locked ? Colors.grey.shade100 : null,
-            child: ListTile(
-              title: Row(
-                children: [
-                  Text(
-                    j.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: locked ? Colors.grey.shade500 : null,
-                    ),
-                  ),
-                  if (level > 0) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      'Lv$level',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.blue.shade400,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              subtitle: locked
-                  ? Text(
-                      req,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.red.shade400,
-                      ),
-                    )
-                  : Text(
-                      '\$${income.toStringAsFixed(2)}/min  •  ${j.description}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-              trailing: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: locked ? Colors.grey : Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  textStyle: const TextStyle(fontSize: 11),
-                ),
-                onPressed: locked || activeJob?.id == j.id
-                    ? null
-                    : () => vm.startJob(j.id),
-                child: Text(
-                  activeJob?.id == j.id
-                      ? 'Working'
-                      : locked
-                      ? 'Locked'
-                      : 'Start',
-                ),
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _expBar(int exp, int maxExp) => Expanded(
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(3),
-      child: LinearProgressIndicator(
-        value: exp / maxExp,
-        minHeight: 6,
-        backgroundColor: Colors.grey.shade200,
-        valueColor: const AlwaysStoppedAnimation(Colors.blue),
-      ),
-    ),
-  );
 }
