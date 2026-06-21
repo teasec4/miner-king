@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
@@ -382,6 +383,20 @@ class GameState extends ChangeNotifier {
     if (result == null) return;
     _game = result;
     notifyListeners();
+  }
+
+  bool rerollSiliconLottery(String instanceId) {
+    final lvl = Random().nextInt(11);
+    final result = GpuCommands.rerollSiliconLottery(
+      _game,
+      instanceId,
+      GameConfig.siliconLotteryRerollCost,
+      lvl,
+    );
+    if (result == null) return false;
+    _game = result;
+    notifyListeners();
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════════

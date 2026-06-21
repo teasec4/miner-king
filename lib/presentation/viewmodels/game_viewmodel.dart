@@ -157,6 +157,7 @@ class GameViewModel {
   int get psuUpgradeCost => rig.psuUpgradeCost;
   String? get nextPsuName => rig.nextPsuName;
   void setMiningCoin(String g, String c) => rig.setMiningCoin(g, c);
+  bool rerollSiliconLottery(String g) => rig.rerollSiliconLottery(g);
   void togglePower(String g) => rig.togglePower(g);
   void startJob(String id) => city.startJob(id);
   void quitJob() => city.quitJob();

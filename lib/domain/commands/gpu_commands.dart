@@ -170,4 +170,26 @@ class GpuCommands {
     newList[index] = newList[index].copyWith(miningCoinId: coinId);
     return game.copyWith(farm: game.farm.copyWith(gpuList: newList));
   }
+
+  // ── Silicon Lottery Reroll ──
+
+  /// Reroll silicon lottery level (0-10%). Costs a flat fee.
+  static Game? rerollSiliconLottery(
+    Game game,
+    String instanceId,
+    int cost,
+    int newLevel,
+  ) {
+    final index = game.farm.gpuList.indexWhere((g) => g.id == instanceId);
+    if (index == -1) return null;
+    if (game.money < cost) return null;
+    final gpu = game.farm.gpuList[index];
+    if (gpu.condition <= 0) return null;
+    final newList = [...game.farm.gpuList];
+    newList[index] = gpu.copyWith(siliconLotteryLevel: newLevel);
+    return game.copyWith(
+      money: game.money - cost,
+      farm: game.farm.copyWith(gpuList: newList),
+    );
+  }
 }

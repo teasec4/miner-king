@@ -6,6 +6,7 @@ import 'package:crypto_king/presentation/pages/institute/institute_page.dart';
 import 'package:crypto_king/presentation/pages/business_center/business_center_page.dart';
 import 'package:crypto_king/presentation/pages/job/job_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
+import 'package:crypto_king/presentation/pages/tech_lab/tech_lab_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -50,7 +51,7 @@ class _CityPageState extends State<CityPage> {
                   const SizedBox(height: 20),
                   Expanded(
                     child: GridView.count(
-                      crossAxisCount: 2,
+                      crossAxisCount: 3,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
                       childAspectRatio: 1.1,
@@ -109,6 +110,14 @@ class _CityPageState extends State<CityPage> {
                           badge: vm.activeCourseId != null
                               ? _activeBadge()
                               : null,
+                        ),
+                        _building(
+                          context,
+                          Icons.build,
+                          'Tech Lab',
+                          'Fix debuffs\nReroll silicon lottery',
+                          Colors.amber.shade700,
+                          '/techlab',
                         ),
                       ],
                     ),
@@ -274,6 +283,7 @@ class _CityPageState extends State<CityPage> {
     if (route == '/blackmarket') return const BlackMarketPage();
     if (route == '/institute') return const InstitutePage();
     if (route == '/business') return const BusinessCenterPage();
+    if (route == '/techlab') return const TechLabPage();
     return const SizedBox.shrink();
   }
 

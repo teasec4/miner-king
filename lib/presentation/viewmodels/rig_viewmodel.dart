@@ -150,6 +150,7 @@ class RigViewModel {
   int get psuUpgradeCost => state.psuUpgradeCost();
   String? get nextPsuName => state.nextPsuName();
   void setMiningCoin(String g, String c) => state.setMiningCoin(g, c);
+  bool rerollSiliconLottery(String g) => state.rerollSiliconLottery(g);
   void togglePower(String g) => state.togglePower(g);
 }
 

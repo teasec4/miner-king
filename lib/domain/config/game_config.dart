@@ -227,6 +227,9 @@ class GameConfig {
   /// Engineer character: repair cost discount.
   static const double engineerRepairDiscount = 0.70;
 
+  /// Tech Lab: cost to reroll silicon lottery on a GPU.
+  static const int siliconLotteryRerollCost = 500;
+
   // ──────────────────────────── Perks ─────────────────────────────
 
   /// Perk: Silicon Lottery hashrate bonus.
