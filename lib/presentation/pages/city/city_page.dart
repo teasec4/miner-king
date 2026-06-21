@@ -51,7 +51,7 @@ class _CityPageState extends State<CityPage> {
                   const SizedBox(height: 20),
                   Expanded(
                     child: GridView.count(
-                      crossAxisCount: 3,
+                      crossAxisCount: 2,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
                       childAspectRatio: 1.1,
