@@ -2,7 +2,6 @@ import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/game.dart';
@@ -23,7 +22,6 @@ class RigViewModel {
 
   double get totalHashrate => MiningSystem.totalHashrate(game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(game);
-  double get solarPower => ElectricitySystem.solarPower(game);
   String get coolingSystem => game.farm.coolingSystem;
   String get coolingLabel => switch (game.farm.coolingSystem) {
     'fans' => 'Fan Cooling',
@@ -43,10 +41,10 @@ class RigViewModel {
   int get totalSlots => game.farm.totalSlots;
   int get usedSlots => game.farm.usedSlots;
   bool get farmHasFreeSlots => game.farm.hasFreeSlots;
-  int? get nextSlotTier => SlotCatalog.nextTier(game.farm.totalSlots)?.slots;
-  int get nextSlotCost =>
-      SlotCatalog.nextTier(game.farm.totalSlots)?.price ?? 0;
-  bool get canBuySlot => nextSlotTier != null && game.money >= nextSlotCost;
+  bool get canBuySlot =>
+      SlotCatalog.canBuyMore(game.farm.totalSlots) &&
+      game.money >= SlotCatalog.nextSlotCost(game.farm.totalSlots);
+  int get nextSlotCost => SlotCatalog.nextSlotCost(game.farm.totalSlots);
 
   List<GpuDisplayInfo> get gpus {
     return game.farm.gpuList.map((gpu) {
@@ -141,9 +139,8 @@ class RigViewModel {
   void toggleOverclock(String id) => state.toggleOverclock(id);
   bool repairGpu(String id) => state.repairGpu(id);
   bool repairDebuff(String g, String d) => state.repairDebuff(g, d);
-  bool buySlotTier(SlotTier t) => state.buySlotTier(t);
+  bool buySlot() => state.buySlot();
   bool buyCooling(CoolingUpgrade u) => state.buyCooling(u);
-  bool buySolar(SolarUpgrade u) => state.buySolar(u);
   bool buyPsu(PsuUpgrade u) => state.buyPsu(u);
   int get coolingUpgradeCost => state.coolingUpgradeCost();
   String? get nextCoolingName => state.nextCoolingName();

@@ -1,22 +1,25 @@
 import '../catalogs/cooling_catalog.dart';
 import '../catalogs/psu_catalog.dart';
 import '../catalogs/slot_catalog.dart';
-import '../catalogs/solar_catalog.dart';
 import '../config/game_config.dart';
 import '../models/game.dart';
 
-/// Pure functions for farm operations: slots, cooling, solar, PSU.
+/// Pure functions for farm operations: slots, cooling, PSU.
 class FarmCommands {
   FarmCommands._();
 
-  // ── Motherboard (slots) ──
+  // ── Motherboard (+1 slot) ──
 
-  static Game? buySlotTier(Game game, SlotTier tier) {
-    final price = GameConfig.applyShopDiscount(tier.price, game.shopMultiplier);
+  static Game? buySlot(Game game) {
+    if (!SlotCatalog.canBuyMore(game.farm.totalSlots)) return null;
+    final price = GameConfig.applyShopDiscount(
+      SlotCatalog.nextSlotCost(game.farm.totalSlots),
+      game.shopMultiplier,
+    );
     if (game.money < price) return null;
     return game.copyWith(
       money: game.money - price,
-      farm: game.farm.copyWith(totalSlots: game.farm.totalSlots + tier.slots),
+      farm: game.farm.copyWith(totalSlots: game.farm.totalSlots + 1),
     );
   }
 
@@ -31,22 +34,6 @@ class FarmCommands {
     return game.copyWith(
       money: game.money - price,
       farm: game.farm.copyWith(coolingSystem: upgrade.id),
-    );
-  }
-
-  // ── Solar Panels ──
-
-  static Game? buySolar(Game game, SolarUpgrade upgrade) {
-    final price = GameConfig.applyShopDiscount(
-      upgrade.price,
-      game.shopMultiplier,
-    );
-    if (game.money < price) return null;
-    return game.copyWith(
-      money: game.money - price,
-      farm: game.farm.copyWith(
-        solarPower: game.farm.solarPower + upgrade.powerGen,
-      ),
     );
   }
 

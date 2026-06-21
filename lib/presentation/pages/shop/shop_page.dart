@@ -1,8 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
-import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -21,7 +19,6 @@ class ShopPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Balance header
             Row(
               children: [
                 const Icon(Icons.attach_money, color: Colors.green, size: 20),
@@ -42,23 +39,47 @@ class ShopPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Motherboard
-            _section('Motherboard'),
+            // GPUs
+            _section('GPUs'),
             Text(
-              'Adds GPU slots to your farm',
+              'Installed directly to first free slot',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            ...SlotCatalog.tiers.map(
-              (t) => _upgradeCard(
-                icon: Icons.dashboard,
-                color: Colors.green,
-                title: 'Motherboard ${t.slots} slots',
-                subtitle: '${t.slots} slots — adds to total',
-                price: t.price,
-                canBuy: vm.money >= t.price,
-                onBuy: () => vm.buySlotTier(t),
-              ),
+            ...vm.shopGpus.map((e) {
+              final m = e.model;
+              final noSlots = !vm.farmHasFreeSlots;
+              return _upgradeCard(
+                icon: Icons.memory,
+                color: Colors.deepPurple,
+                title: m.name,
+                subtitle: noSlots
+                    ? 'No free slots! Buy +1 slot below'
+                    : '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
+                price: e.effectivePrice,
+                canBuy: e.canBuy && !noSlots,
+                onBuy: () => vm.buyGpu(m),
+                salePercent: vm.hasGpuSale ? 30 : null,
+              );
+            }),
+
+            // Motherboard (+1 slot)
+            _section('Motherboard'),
+            Text(
+              'Current: ${vm.totalSlots} slots (max 6)',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            _upgradeCard(
+              icon: Icons.dashboard,
+              color: Colors.green,
+              title: '+1 Slot',
+              subtitle: vm.canBuySlot
+                  ? '${vm.totalSlots} → ${vm.totalSlots + 1} slots'
+                  : 'Max slots reached',
+              price: vm.nextSlotCost,
+              canBuy: vm.canBuySlot,
+              onBuy: () => vm.buySlot(),
             ),
 
             // PSU
@@ -98,50 +119,6 @@ class ShopPage extends StatelessWidget {
                 onBuy: () => vm.buyCooling(c),
               ),
             ),
-
-            // Solar
-            _section('Solar Panels'),
-            Text(
-              'Generates free power, reduces electricity bill',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 4),
-            ...SolarCatalog.all.map(
-              (s) => _upgradeCard(
-                icon: Icons.solar_power,
-                color: Colors.yellow.shade700,
-                title: s.name,
-                subtitle: '+${s.powerGen.toStringAsFixed(0)}W generated',
-                price: s.price,
-                canBuy: vm.money >= s.price,
-                onBuy: () => vm.buySolar(s),
-              ),
-            ),
-
-            // GPUs
-            _section('GPUs'),
-            Text(
-              'Buy GPU → goes to inventory → install to slot',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 4),
-            ...vm.shopGpus.map((e) {
-              final m = e.model;
-              final hasSale = vm.hasGpuSale;
-              final noSlots = !vm.farmHasFreeSlots;
-              return _upgradeCard(
-                icon: Icons.memory,
-                color: Colors.deepPurple,
-                title: m.name,
-                subtitle: noSlots
-                    ? 'No free slots! Buy motherboard'
-                    : '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
-                price: e.effectivePrice,
-                canBuy: e.canBuy && !noSlots,
-                onBuy: () => vm.buyGpu(m),
-                salePercent: hasSale ? 30 : null,
-              );
-            }),
           ],
         ),
       ),

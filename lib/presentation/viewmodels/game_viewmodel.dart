@@ -2,7 +2,6 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
@@ -60,7 +59,6 @@ class GameViewModel {
 
   double get totalHashrate => rig.totalHashrate;
   double get totalPowerDraw => rig.totalPowerDraw;
-  double get solarPower => rig.solarPower;
   String get coolingSystem => rig.coolingSystem;
   String get coolingLabel => rig.coolingLabel;
   String get psuTier => rig.psuTier;
@@ -70,7 +68,6 @@ class GameViewModel {
   int get totalSlots => rig.totalSlots;
   int get usedSlots => rig.usedSlots;
   bool get farmHasFreeSlots => rig.farmHasFreeSlots;
-  int? get nextSlotTier => rig.nextSlotTier;
   int get nextSlotCost => rig.nextSlotCost;
   bool get canBuySlot => rig.canBuySlot;
   List<GpuDisplayInfo> get gpus => rig.gpus;
@@ -148,9 +145,8 @@ class GameViewModel {
   void toggleOverclock(String id) => rig.toggleOverclock(id);
   bool repairGpu(String id) => rig.repairGpu(id);
   bool repairDebuff(String g, String d) => rig.repairDebuff(g, d);
-  bool buySlotTier(SlotTier t) => rig.buySlotTier(t);
+  bool buySlot() => rig.buySlot();
   bool buyCooling(CoolingUpgrade u) => rig.buyCooling(u);
-  bool buySolar(SolarUpgrade u) => rig.buySolar(u);
   bool buyPsu(PsuUpgrade u) => rig.buyPsu(u);
   int get coolingUpgradeCost => rig.coolingUpgradeCost;
   String? get nextCoolingName => rig.nextCoolingName;

@@ -8,7 +8,6 @@ import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/commands/economy_commands.dart';
 import 'package:crypto_king/domain/commands/farm_commands.dart';
 import 'package:crypto_king/domain/commands/gpu_commands.dart';
@@ -403,8 +402,8 @@ class GameState extends ChangeNotifier {
   // Farm actions (delegated to FarmCommands)
   // ═══════════════════════════════════════════════════════════════
 
-  bool buySlotTier(SlotTier tier) {
-    final result = FarmCommands.buySlotTier(_game, tier);
+  bool buySlot() {
+    final result = FarmCommands.buySlot(_game);
     if (result == null) return false;
     _game = result;
     notifyListeners();
@@ -413,14 +412,6 @@ class GameState extends ChangeNotifier {
 
   bool buyCooling(CoolingUpgrade upgrade) {
     final result = FarmCommands.buyCooling(_game, upgrade);
-    if (result == null) return false;
-    _game = result;
-    notifyListeners();
-    return true;
-  }
-
-  bool buySolar(SolarUpgrade upgrade) {
-    final result = FarmCommands.buySolar(_game, upgrade);
     if (result == null) return false;
     _game = result;
     notifyListeners();

@@ -2,7 +2,6 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -21,15 +20,10 @@ class FarmDetailPage extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Stats bar
               _statsRow(vm),
               const SizedBox(height: 20),
-
-              // Equipment grid: 2x2 around motherboard
               _equipmentGrid(vm),
               const SizedBox(height: 20),
-
-              // GPU slots section
               _section('GPU Slots (${vm.usedSlots}/${vm.totalSlots})'),
               const SizedBox(height: 8),
               _gpuSlotList(vm),
@@ -44,7 +38,6 @@ class FarmDetailPage extends StatelessWidget {
     final totalWatt = vm.totalPowerDraw;
     final capacity = vm.psuCapacity;
     final overloaded = totalWatt > capacity;
-    final solarGen = vm.solarPower;
 
     return Card(
       color: overloaded ? Colors.red.shade50 : Colors.green.shade50,
@@ -61,18 +54,13 @@ class FarmDetailPage extends StatelessWidget {
                   Icons.speed,
                 ),
                 _stat('Power', '${totalWatt.toStringAsFixed(0)}W', Icons.bolt),
-                _stat(
-                  'Solar',
-                  '${solarGen.toStringAsFixed(0)}W',
-                  Icons.solar_power,
-                ),
                 _stat('Cooling', vm.coolingLabel, Icons.ac_unit),
               ],
             ),
             if (overloaded) ...[
               const SizedBox(height: 8),
               Text(
-                '⚠ PSU overloaded! ${totalWatt.toStringAsFixed(0)}W / ${capacity}W — hashrate reduced',
+                'PSU overloaded! ${totalWatt.toStringAsFixed(0)}W / ${capacity}W',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.red.shade700,
@@ -101,7 +89,6 @@ class FarmDetailPage extends StatelessWidget {
   Widget _equipmentGrid(GameViewModel vm) {
     return Column(
       children: [
-        // Top: Cooling
         _gearSlot(
           icon: Icons.ac_unit,
           color: Colors.blue,
@@ -118,7 +105,6 @@ class FarmDetailPage extends StatelessWidget {
           },
         ),
         const SizedBox(height: 6),
-        // Middle row: PSU + Motherboard + Solar
         Row(
           children: [
             Expanded(
@@ -141,25 +127,6 @@ class FarmDetailPage extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Expanded(flex: 2, child: _motherboardCenter(vm)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _gearSlot(
-                icon: Icons.solar_power,
-                color: Colors.yellow.shade700,
-                label: 'Solar',
-                current: '${vm.solarPower.toStringAsFixed(0)}W',
-                detail: 'Free power',
-                upgradeName: _nextSolarName(vm),
-                upgradeCost: _nextSolarCost(vm),
-                canUpgrade:
-                    _nextSolarCost(vm) > 0 && vm.money >= _nextSolarCost(vm),
-                onUpgrade: () {
-                  final s = _nextSolar(vm);
-                  if (s != null) vm.buySolar(s);
-                },
-                compact: true,
-              ),
-            ),
           ],
         ),
       ],
@@ -167,10 +134,9 @@ class FarmDetailPage extends StatelessWidget {
   }
 
   Widget _motherboardCenter(GameViewModel vm) {
-    final next = SlotCatalog.nextTier(vm.totalSlots);
-    final canUpgrade = next != null && vm.money >= next.price;
+    final canUpgrade = vm.canBuySlot;
     return GestureDetector(
-      onTap: canUpgrade ? () => vm.buySlotTier(next) : null,
+      onTap: canUpgrade ? () => vm.buySlot() : null,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -207,7 +173,7 @@ class FarmDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  'Upgrade → ${next!.slots} slots  \$${next.price}',
+                  '+1 slot  \$${vm.nextSlotCost}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -285,7 +251,7 @@ class FarmDetailPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '→ $upgradeName  \$$upgradeCost',
+                  '-> $upgradeName  \$$upgradeCost',
                   style: TextStyle(
                     fontSize: 9,
                     color: color,
@@ -332,7 +298,7 @@ class FarmDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      gpu?.modelName ?? 'Slot ${i + 1} — Empty',
+                      gpu?.modelName ?? 'Slot ${i + 1} - Empty',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
@@ -343,7 +309,7 @@ class FarmDetailPage extends StatelessWidget {
                     ),
                     if (gpu != null)
                       Text(
-                        '${gpu.revenuePerMin.toStringAsFixed(2)} \$/min  •  ${(gpu.condition * 100).toInt()}% cond  •  ${gpu.temperature.toStringAsFixed(0)}°C',
+                        '${gpu.revenuePerMin.toStringAsFixed(2)} \$/min  -  ${(gpu.condition * 100).toInt()}% cond  -  ${gpu.temperature.toStringAsFixed(0)}C',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade600,
@@ -351,7 +317,7 @@ class FarmDetailPage extends StatelessWidget {
                       )
                     else
                       Text(
-                        'Install GPU from inventory',
+                        'Buy GPU in Shop',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade400,
@@ -386,8 +352,6 @@ class FarmDetailPage extends StatelessWidget {
     ),
   );
 
-  // ── Upgrade helpers ──
-
   CoolingUpgrade? _nextCooling(GameViewModel vm) {
     final idx = CoolingCatalog.indexOf(vm.game.farm.coolingSystem);
     return idx + 1 < CoolingCatalog.all.length
@@ -399,15 +363,4 @@ class FarmDetailPage extends StatelessWidget {
     final idx = PsuCatalog.indexOf(vm.game.farm.psuTier);
     return idx + 1 < PsuCatalog.all.length ? PsuCatalog.all[idx + 1] : null;
   }
-
-  SolarUpgrade? _nextSolar(GameViewModel vm) {
-    // Solar stacks, always offer basic if none, else next in list
-    if (vm.solarPower <= 0) return SolarCatalog.basic;
-    if (vm.solarPower < 400) return SolarCatalog.advanced;
-    if (vm.solarPower < 1400) return SolarCatalog.farm;
-    return null;
-  }
-
-  String? _nextSolarName(GameViewModel vm) => _nextSolar(vm)?.name;
-  int _nextSolarCost(GameViewModel vm) => _nextSolar(vm)?.price ?? 0;
 }
