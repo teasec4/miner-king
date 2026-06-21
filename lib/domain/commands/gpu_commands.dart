@@ -18,9 +18,10 @@ class GpuCommands {
 
   static (Game, InventoryItem) buyGpu(Game game, GpuModel model) {
     final hasSale = game.activeEvents.any((e) => e.id == 'gpu_sale');
-    final price = hasSale
+    var price = hasSale
         ? (model.price * GameConfig.gpuSaleDiscount).ceil()
         : model.price;
+    price = GameConfig.applyShopDiscount(price, game.shopMultiplier);
     if (game.money < price)
       return (
         game,
@@ -41,6 +42,7 @@ class GpuCommands {
     int price,
     List<String> debuffs,
   ) {
+    price = GameConfig.applyShopDiscount(price, game.shopMultiplier);
     if (game.money < price)
       return (
         game,
@@ -102,7 +104,10 @@ class GpuCommands {
     if (currentIdx >= GpuCatalog.all.length - 1) return null;
 
     final nextModel = GpuCatalog.all[currentIdx + 1];
-    final cost = nextModel.price - currentModel.price;
+    final cost = GameConfig.applyShopDiscount(
+      nextModel.price - currentModel.price,
+      game.shopMultiplier,
+    );
     if (game.money < cost) return null;
 
     final upgradedGpu = gpu.copyWith(modelId: nextModel.id);
@@ -126,6 +131,7 @@ class GpuCommands {
     if (model == null) return null;
     final damage = 1.0 - gpu.condition;
     var cost = (model.price * GameConfig.repairCostFraction * damage).ceil();
+    cost = GameConfig.applyShopDiscount(cost, game.shopMultiplier);
     if (game.character == CharacterType.engineer) {
       cost = (cost * GameConfig.engineerRepairDiscount).ceil();
     }
@@ -147,6 +153,7 @@ class GpuCommands {
     final debuff = DebuffCatalog.byId(debuffId);
     if (debuff == null) return null;
     var cost = debuff.repairCost;
+    cost = GameConfig.applyShopDiscount(cost, game.shopMultiplier);
     if (game.character == CharacterType.engineer) {
       cost = (cost * GameConfig.engineerRepairDiscount).ceil();
     }
@@ -169,7 +176,10 @@ class GpuCommands {
     if (index == -1) return null;
     final gpu = game.farm.gpuList[index];
     if (gpu.condition <= 0) return null;
-    final newLevel = gpu.overclockLevel > 0 ? 0 : 1;
+    // Cycle: 0 → 1 → 2 → 0
+    final newLevel = gpu.overclockLevel >= GameConfig.maxOverclockLevel
+        ? 0
+        : gpu.overclockLevel + 1;
     final newList = [...game.farm.gpuList];
     newList[index] = gpu.copyWith(overclockLevel: newLevel);
     return game.copyWith(farm: game.farm.copyWith(gpuList: newList));

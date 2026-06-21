@@ -25,7 +25,7 @@ class OfficeCatalog {
   static const small = Office(
     id: 'office_small',
     name: 'Small Office',
-    price: 5000,
+    price: 1500,
     rentPerTick: 0.02,
     slots: 1,
     nextId: 'office_medium',
@@ -33,7 +33,7 @@ class OfficeCatalog {
   static const medium = Office(
     id: 'office_medium',
     name: 'Medium Office',
-    price: 20000,
+    price: 8000,
     rentPerTick: 0.04,
     slots: 2,
     nextId: 'office_large',
@@ -41,7 +41,7 @@ class OfficeCatalog {
   static const large = Office(
     id: 'office_large',
     name: 'Large Office',
-    price: 100000,
+    price: 40000,
     rentPerTick: 0.10,
     slots: 4,
   );
@@ -150,7 +150,7 @@ class EmployeeCatalog {
     salaryPerTick: 0.015, // $0.90/min
     description: 'Trades on market mood. Profit in greed, loss in fear.',
     effect: EmployeeEffect.trader,
-    effectValue: 0.04, // base income ± mood multiplier
+    effectValue: 0.08, // base income ± mood multiplier
   );
   static const sales = Employee(
     id: 'sales_manager',

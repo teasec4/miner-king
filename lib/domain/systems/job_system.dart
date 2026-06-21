@@ -2,6 +2,7 @@ import '../catalogs/job_catalog.dart';
 import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
+import '../models/specialization.dart';
 
 class JobSystem {
   JobSystem._();
@@ -77,12 +78,52 @@ class JobSystem {
         ? GameConfig.jobFairMultiplier
         : 1.0;
 
+    var finalSalary =
+        title.salaryPerTick * multiplier * diplomaBonus * fairBonus;
+
+    // Specialization effects
+    switch (game.specialization) {
+      case Specialization.miningTycoon:
+        finalSalary *= GameConfig.tycoonJobPenalty;
+      case Specialization.careerClimber:
+        finalSalary *= GameConfig.climberJobMultiplier;
+      default:
+    }
+
     return game.copyWith(
-      money:
-          game.money +
-          title.salaryPerTick * multiplier * diplomaBonus * fairBonus,
+      money: game.money + finalSalary,
       jobExperience: newExp,
       activeJobId: newJobId,
     );
+  }
+
+  /// Check if player has reached level 3 in a given job path.
+  static bool _hasPathLevel(Game game, List<Job> path, int minLevel) {
+    var totalExp = 0;
+    for (final job in path) {
+      totalExp += game.jobExperience[job.id] ?? 0;
+    }
+    return totalExp >= path.first.expPerLevel * minLevel;
+  }
+
+  /// Tech & IT Lv3: -10% electricity.
+  static double electricityDiscount(Game game) {
+    return _hasPathLevel(game, JobCatalog.paths['Tech & IT']!, 3)
+        ? GameConfig.techPerkElectricityDiscount
+        : 0;
+  }
+
+  /// Business & Finance Lv3: +10% sell price.
+  static double sellPriceBonus(Game game) {
+    return _hasPathLevel(game, JobCatalog.paths['Business & Finance']!, 3)
+        ? GameConfig.bizPerkSellBonus
+        : 0;
+  }
+
+  /// Engineering Lv3: +5% hashrate.
+  static double hashrateBonus(Game game) {
+    return _hasPathLevel(game, JobCatalog.paths['Engineering']!, 3)
+        ? GameConfig.engPerkHashrateBonus
+        : 0;
   }
 }

@@ -1,28 +1,21 @@
 import '../catalogs/debuff_catalog.dart';
 import '../catalogs/gpu_catalog.dart';
-import '../catalogs/paste_catalog.dart';
-import '../catalogs/psu_catalog.dart';
 import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
 
-/// Calculates GPU temperatures based on model, overclock, cooling, wear, and external factors.
+/// Calculates GPU temperatures based on model, overclock, farm cooling, wear, and external factors.
 class ThermalSystem {
   ThermalSystem._();
 
   /// Calculate temperatures for all GPUs and return updated Game.
   static Game update(Game game) {
-    final updatedGpus = game.farm.gpuList.map((gpu) {
-      if (gpu.condition <= 0) {
-        return gpu.copyWith(temperature: GameConfig.ambientTemperature);
-      }
-      if (!gpu.isPowered) {
-        return gpu.copyWith(temperature: GameConfig.ambientTemperature);
-      }
+    final cooling = GameConfig.coolingPower[game.farm.coolingSystem] ?? 0.0;
 
-      // Cooling: per-GPU equipped cooling overrides farm default
-      final gpuCooling = gpu.equippedCooling ?? game.farm.coolingSystem;
-      final cooling = GameConfig.coolingPower[gpuCooling] ?? 0.0;
+    final updatedGpus = game.farm.gpuList.map((gpu) {
+      if (gpu.condition <= 0 || !gpu.isPowered) {
+        return gpu.copyWith(temperature: GameConfig.ambientTemperature);
+      }
 
       // Base temp from the GPU model's spec
       final model = GpuCatalog.byId(gpu.modelId);
@@ -47,13 +40,8 @@ class ThermalSystem {
         temp -= GameConfig.efficientFansTempReduction;
       }
 
-      // Overclock adds heat — PSU quality reduces OC heat
-      final psuIdx = PsuCatalog.indexOf(gpu.equippedPsu ?? 'psu_stock');
-      temp +=
-          gpu.effectiveOverclock *
-          (GameConfig.overclockBaseHeat -
-                  psuIdx * GameConfig.psuHeatReductionPerTier)
-              .clamp(GameConfig.overclockMinHeat, GameConfig.overclockBaseHeat);
+      // Overclock adds heat
+      temp += gpu.effectiveOverclock * GameConfig.overclockBaseHeat;
 
       // Worn cards run hotter
       temp += (1 - gpu.condition) * GameConfig.wearHeatFactor;
@@ -64,14 +52,8 @@ class ThermalSystem {
         if (debuff != null) temp += debuff.tempAdd;
       }
 
-      // Cooling reduces heat
+      // Farm cooling reduces heat
       temp += cooling;
-
-      // Thermal paste
-      if (gpu.equippedPaste != null) {
-        final paste = PasteCatalog.byId(gpu.equippedPaste!);
-        if (paste != null) temp += paste.tempReduction;
-      }
 
       temp = temp.clamp(GameConfig.minTemperature, GameConfig.maxTemperature);
 

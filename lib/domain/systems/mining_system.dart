@@ -6,7 +6,10 @@ import '../models/game.dart';
 import '../models/gpu_instance.dart';
 import '../models/gpu_model.dart';
 import '../models/player_profile.dart';
+import '../models/specialization.dart';
 import 'employee_system.dart';
+import 'electricity_system.dart';
+import 'job_system.dart';
 
 /// Cycle-based mining: each GPU fills a progress bar, reward on completion.
 class MiningSystem {
@@ -21,7 +24,14 @@ class MiningSystem {
   static double effectiveHashrate(GpuInstance gpu, Game game) {
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    var base = _computeHashrate(gpu, model, game.perks, game.character);
+    var base = _computeHashrate(
+      gpu,
+      model,
+      game.perks,
+      game.character,
+      game.specialization,
+      game,
+    );
     if (base <= 0) return 0;
     base *= (1 + EmployeeSystem.hashrateBonus(game));
     return base;
@@ -74,7 +84,14 @@ class MiningSystem {
       }
 
       // Base hashrate (without employee bonus — that applies to progress)
-      var hashrate = _computeHashrate(gpu, model, game.perks, game.character);
+      var hashrate = _computeHashrate(
+        gpu,
+        model,
+        game.perks,
+        game.character,
+        game.specialization,
+        game,
+      );
       if (hashrate <= 0) {
         updatedGpus.add(gpu.copyWith(cycleProgress: gpu.cycleProgress));
         continue;
@@ -106,6 +123,8 @@ class MiningSystem {
     GpuModel model,
     List<Perk> perks,
     CharacterType? character,
+    Specialization? specialization,
+    Game game,
   ) {
     if (gpu.condition <= 0) return 0;
     if (!gpu.isPowered) return 0;
@@ -131,6 +150,18 @@ class MiningSystem {
     if (character == CharacterType.miner) {
       base *= 1 + GameConfig.minerHashrateBonus;
     }
+    // Specialization bonuses/penalties
+    switch (specialization) {
+      case Specialization.miningTycoon:
+        base *= 1 + GameConfig.tycoonHashrateBonus;
+      case Specialization.marketSpeculator:
+        base *= 1 - GameConfig.speculatorHashratePenalty;
+      default:
+    }
+    // Engineering Lv3 job perk
+    base *= 1 + JobSystem.hashrateBonus(game);
+    // PSU overload penalty
+    base *= ElectricitySystem.psuEfficiency(game);
     return base;
   }
 }

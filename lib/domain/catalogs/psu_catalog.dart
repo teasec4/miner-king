@@ -2,13 +2,13 @@ class PsuUpgrade {
   final String id;
   final String name;
   final int price;
-  final int maxWattPerGpu;
+  final int maxTotalWatt; // total farm wattage capacity
 
   const PsuUpgrade({
     required this.id,
     required this.name,
     required this.price,
-    required this.maxWattPerGpu,
+    required this.maxTotalWatt,
   });
 }
 
@@ -19,25 +19,25 @@ class PsuCatalog {
     id: 'psu_stock',
     name: 'Stock PSU',
     price: 200,
-    maxWattPerGpu: 150,
+    maxTotalWatt: 150,
   );
   static const bronze = PsuUpgrade(
     id: 'psu_bronze',
     name: 'Bronze PSU',
     price: 800,
-    maxWattPerGpu: 300,
+    maxTotalWatt: 300,
   );
   static const gold = PsuUpgrade(
     id: 'psu_gold',
     name: 'Gold PSU',
-    price: 5000,
-    maxWattPerGpu: 500,
+    price: 3000,
+    maxTotalWatt: 600,
   );
   static const platinum = PsuUpgrade(
     id: 'psu_platinum',
     name: 'Platinum PSU',
-    price: 20000,
-    maxWattPerGpu: 800,
+    price: 10000,
+    maxTotalWatt: 1200,
   );
 
   static final all = [stock, bronze, gold, platinum];
@@ -64,9 +64,9 @@ class PsuCatalog {
     return cost;
   }
 
-  static bool supports(String psuId, double gpuWatts) {
-    final psu = byId(psuId);
-    if (psu == null) return gpuWatts <= stock.maxWattPerGpu;
-    return gpuWatts <= psu.maxWattPerGpu;
+  /// Total PSU capacity for the farm.
+  static int capacity(String? psuId) {
+    final psu = byId(psuId ?? 'psu_stock');
+    return psu?.maxTotalWatt ?? stock.maxTotalWatt;
   }
 }

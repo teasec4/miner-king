@@ -6,6 +6,13 @@ class Course {
   final String unlocks;
   final List<String> requiresCourse;
 
+  /// Milestone thresholds as fractions of total duration (e.g. [0.33, 0.66, 1.0]).
+  /// Each milestone awards a cash bonus.
+  final List<double> milestones;
+
+  /// Cash bonus for reaching each milestone (index-matched with milestones).
+  final List<int> milestoneBonuses;
+
   const Course({
     required this.id,
     required this.name,
@@ -13,6 +20,8 @@ class Course {
     required this.durationTicks,
     required this.unlocks,
     this.requiresCourse = const [],
+    this.milestones = const [0.33, 0.66, 1.0],
+    this.milestoneBonuses = const [50, 100, 0],
   });
 
   String get durationLabel {

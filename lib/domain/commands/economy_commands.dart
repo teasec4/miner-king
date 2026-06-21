@@ -1,12 +1,9 @@
 import '../config/game_config.dart';
-import '../catalogs/investment_catalog.dart';
 import '../catalogs/loan_catalog.dart';
-import '../catalogs/property_catalog.dart';
 import '../models/game.dart';
-import '../models/investment.dart';
 import '../models/loan.dart';
 
-/// Pure functions for economy operations: coins, loans, investments, property.
+/// Pure functions for economy operations: coins, loans.
 class EconomyCommands {
   EconomyCommands._();
 
@@ -127,43 +124,6 @@ class EconomyCommands {
     newLoans[index] = loan.copyWith(remaining: newRemaining);
     return (
       game.copyWith(money: game.money - toPay, activeLoans: newLoans),
-      true,
-    );
-  }
-
-  // ── Investments ──
-
-  static (Game, bool) invest(Game game, String investId, double amount) {
-    final template = InvestmentCatalog.byId(investId);
-    if (template == null) return (game, false);
-    if (amount < template.minAmount) return (game, false);
-    if (game.money < amount) return (game, false);
-    final inv = ActiveInvestment(
-      investId: investId,
-      amount: amount,
-      ticksLeft: template.durationTicks,
-    );
-    return (
-      game.copyWith(
-        money: game.money - amount,
-        activeInvestments: [...game.activeInvestments, inv],
-      ),
-      true,
-    );
-  }
-
-  // ── Property ──
-
-  static (Game, bool) buyProperty(Game game, String propertyId) {
-    final p = PropertyCatalog.byId(propertyId);
-    if (p == null) return (game, false);
-    if (game.money < p.price) return (game, false);
-    if (game.properties.contains(propertyId)) return (game, false);
-    return (
-      game.copyWith(
-        money: game.money - p.price,
-        properties: [...game.properties, propertyId],
-      ),
       true,
     );
   }

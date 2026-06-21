@@ -1,8 +1,10 @@
 import '../config/game_config.dart';
 import '../catalogs/course_catalog.dart';
+import '../catalogs/job_catalog.dart';
 import '../catalogs/office_catalog.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
+import '../models/specialization.dart';
 
 /// Pure functions for life operations: jobs, courses, office, employees, perks.
 class LifeCommands {
@@ -23,9 +25,10 @@ class LifeCommands {
   static Game? enrollCourse(Game game, String courseId) {
     final course = CourseCatalog.byId(courseId);
     if (course == null) return null;
-    final price = game.character == CharacterType.student
+    var price = game.character == CharacterType.student
         ? (course.price * GameConfig.studentCourseDiscount).ceil()
         : course.price;
+    price = GameConfig.applyShopDiscount(price, game.shopMultiplier);
     if (game.money < price) return null;
     if (game.activeCourseId != null) return null;
     if (game.completedCourses.contains(courseId)) return null;
@@ -36,6 +39,7 @@ class LifeCommands {
       money: game.money - price,
       activeCourseId: courseId,
       courseTicksLeft: course.durationTicks,
+      courseMilestone: 0,
     );
   }
 
@@ -44,8 +48,9 @@ class LifeCommands {
   static Game? buyOffice(Game game, String officeId) {
     final next = OfficeCatalog.nextTier(game.officeId);
     if (next == null || next.id != officeId) return null;
-    if (game.money < next.price) return null;
-    return game.copyWith(money: game.money - next.price, officeId: officeId);
+    final price = GameConfig.applyShopDiscount(next.price, game.shopMultiplier);
+    if (game.money < price) return null;
+    return game.copyWith(money: game.money - price, officeId: officeId);
   }
 
   static Game hireEmployee(Game game, String empId) {
@@ -71,6 +76,39 @@ class LifeCommands {
       employeePool: all.take(all.length > 4 ? 4 : all.length).toList(),
       nextPoolRefresh: game.tick + GameConfig.employeePoolRefreshTicks,
     );
+  }
+
+  // ── Specialization ──
+
+  /// Returns true if the player can pick a specialization right now.
+  /// Requires: no specialization yet AND any job at level 3+.
+  static bool canPickSpecialization(Game game) {
+    if (game.specialization != null) return false;
+    for (final entry in JobCatalog.paths.entries) {
+      var totalExp = 0;
+      for (final job in entry.value) {
+        totalExp += game.jobExperience[job.id] ?? 0;
+      }
+      if (totalExp >= entry.value.first.expPerLevel * 3) return true;
+    }
+    return false;
+  }
+
+  static Game pickSpecialization(Game game, Specialization spec) {
+    return game.copyWith(specialization: spec);
+  }
+
+  // ── Cram Study ──
+
+  /// Activate cram study mode (+50% cost, ×2 speed, risk of burnout).
+  static Game? activateCramStudy(Game game) {
+    if (game.activeCourseId == null) return null;
+    if (game.isCramStudy) return null;
+    final course = CourseCatalog.byId(game.activeCourseId!);
+    if (course == null) return null;
+    final cost = (course.price * GameConfig.cramStudyCostMultiplier).ceil();
+    if (game.money < cost) return null;
+    return game.copyWith(money: game.money - cost, isCramStudy: true);
   }
 
   // ── Perks ──

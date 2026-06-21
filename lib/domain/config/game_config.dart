@@ -11,10 +11,10 @@ class GameConfig {
   // ──────────────────────────── Mining ────────────────────────────
 
   /// Progress each tick = hashrate × this (before employee bonus).
-  static const double cycleProgressPerHashrate = 0.015;
+  static const double cycleProgressPerHashrate = 0.025;
 
   /// Coins awarded per completed cycle = rewardPerCycle × coin.baseReward.
-  static const double rewardPerCycle = 0.008;
+  static const double rewardPerCycle = 0.020;
 
   // ──────────────────────────── Market ────────────────────────────
 
@@ -67,12 +67,6 @@ class GameConfig {
   /// Base heat added per overclock level.
   static const double overclockBaseHeat = 25.0;
 
-  /// Heat reduction per PSU tier for overclock penalty.
-  static const double psuHeatReductionPerTier = 5.0;
-
-  /// Minimum overclock heat regardless of PSU quality.
-  static const double overclockMinHeat = 5.0;
-
   /// Worn cards add up to this many °C (× (1 - condition)).
   static const double wearHeatFactor = 20.0;
 
@@ -121,7 +115,7 @@ class GameConfig {
   // ──────────────────────────── Electricity ───────────────────────
 
   /// Default electricity rate ($ per watt-hour, game coefficient).
-  static const double defaultElectricityRate = 0.25;
+  static const double defaultElectricityRate = 0.08;
 
   /// Ticks per in-game hour (used to convert hourly costs).
   static const int ticksPerHour = 3600;
@@ -134,6 +128,9 @@ class GameConfig {
 
   /// Maximum simultaneous active events.
   static const int maxActiveEvents = 3;
+
+  /// Warning period before an event fires (ticks).
+  static const int eventWarningTicks = 12;
 
   /// Initial delay before the first event is possible.
   static const int initialEventDelay = 180;
@@ -203,6 +200,9 @@ class GameConfig {
   /// Overclock: +10 % power consumption per level.
   static const double overclockPowerPerLevel = 0.10;
 
+  /// Max overclock level.
+  static const int maxOverclockLevel = 2;
+
   /// PSU efficiency: power reduction per tier (5 %).
   static const double psuEfficiencyPerTier = 0.05;
 
@@ -255,11 +255,56 @@ class GameConfig {
   /// Businessman character: shop discount.
   static const double businessmanShopDiscount = 0.85;
 
+  /// Apply character shop discount to a base price.
+  static int applyShopDiscount(int basePrice, double shopMultiplier) {
+    return (basePrice * shopMultiplier).ceil();
+  }
+
   /// Student character: course time speedup (1.25 = 25 % faster).
   static const double studentCourseSpeedup = 1.25;
 
   /// Student character: course cost discount.
   static const double studentCourseDiscount = 0.70;
+
+  /// Cram Study: speed multiplier when studying intensively.
+  static const double cramStudySpeedMultiplier = 2.0;
+
+  /// Cram Study: per-tick chance of burnout (progress reset to previous milestone).
+  static const double cramStudyBurnoutChance = 0.008;
+
+  /// Cram Study: extra cost multiplier on course price.
+  static const double cramStudyCostMultiplier = 0.50;
+
+  // ──────────────────────── Specializations ───────────────────────
+
+  /// Mining Tycoon: hashrate bonus.
+  static const double tycoonHashrateBonus = 0.30;
+
+  /// Mining Tycoon: job income penalty.
+  static const double tycoonJobPenalty = 0.50;
+
+  /// Career Climber: job salary multiplier.
+  static const double climberJobMultiplier = 2.0;
+
+  /// Career Climber: electricity discount.
+  static const double climberElectricityDiscount = 0.30;
+
+  /// Market Speculator: sell/swap profit bonus.
+  static const double speculatorProfitBonus = 0.50;
+
+  /// Market Speculator: hashrate penalty.
+  static const double speculatorHashratePenalty = 0.20;
+
+  // ──────────────────────────── Job Perks ─────────────────────────
+
+  /// Tech & IT Lv3: electricity discount.
+  static const double techPerkElectricityDiscount = 0.10;
+
+  /// Business & Finance Lv3: sell price bonus.
+  static const double bizPerkSellBonus = 0.10;
+
+  /// Engineering Lv3: hashrate bonus.
+  static const double engPerkHashrateBonus = 0.05;
 
   // ──────────────────────────── Misc ──────────────────────────────
 

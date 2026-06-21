@@ -46,25 +46,51 @@ class DefaultEventSystem implements EventSystem {
     }
     g = g.copyWith(activeEvents: updatedEvents);
 
-    // ── Trigger new event? ──
-    _nextEventIn--;
-    if (_nextEventIn <= 0) {
-      _nextEventIn =
-          GameConfig.minEventInterval +
-          _random.nextInt(
-            GameConfig.maxEventInterval - GameConfig.minEventInterval,
-          );
-      if (g.activeEvents.length < GameConfig.maxActiveEvents) {
-        final event = _pickRandomEvent(g);
-        if (event != null) {
-          g = event.onApply(g);
-          final unseen = Map<String, int>.from(g.unseenEvents);
-          unseen[event.category] = (unseen[event.category] ?? 0) + 1;
-          g = g.copyWith(
-            activeEvents: [...g.activeEvents, event],
-            unseenEvents: unseen,
-          );
-          triggered = event;
+    // ── Pending event warning countdown ──
+    if (g.pendingEvent != null) {
+      final left = g.pendingEventTicksLeft - 1;
+      if (left <= 0) {
+        // Fire the pending event
+        final evt = g.pendingEvent!;
+        g = evt.onApply(g);
+
+        // Check combos: new event vs each already-active event
+        for (final active in g.activeEvents) {
+          g = evt.onCombo(g, active);
+          g = active.onCombo(g, evt);
+        }
+
+        final unseen = Map<String, int>.from(g.unseenEvents);
+        unseen[evt.category] = (unseen[evt.category] ?? 0) + 1;
+        g = g.copyWith(
+          activeEvents: [...g.activeEvents, evt],
+          unseenEvents: unseen,
+          pendingEvent: null,
+          pendingEventTicksLeft: 0,
+        );
+        triggered = evt;
+      } else {
+        g = g.copyWith(pendingEventTicksLeft: left);
+      }
+    }
+
+    // ── Trigger new pending event? ──
+    if (g.pendingEvent == null) {
+      _nextEventIn--;
+      if (_nextEventIn <= 0) {
+        _nextEventIn =
+            GameConfig.minEventInterval +
+            _random.nextInt(
+              GameConfig.maxEventInterval - GameConfig.minEventInterval,
+            );
+        if (g.activeEvents.length < GameConfig.maxActiveEvents) {
+          final event = _pickRandomEvent(g);
+          if (event != null) {
+            g = g.copyWith(
+              pendingEvent: event,
+              pendingEventTicksLeft: GameConfig.eventWarningTicks,
+            );
+          }
         }
       }
     }

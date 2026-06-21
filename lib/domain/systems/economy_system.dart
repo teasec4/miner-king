@@ -1,5 +1,7 @@
 import '../config/game_config.dart';
 import '../models/game.dart';
+import '../models/specialization.dart';
+import '../systems/job_system.dart';
 
 /// Handles economic operations: buying, selling, swapping.
 class EconomySystem {
@@ -20,10 +22,24 @@ class EconomySystem {
     final coin = game.coin(coinId);
     final balance = game.holdings[coinId] ?? 0;
     if (coin == null || coinAmount <= 0 || balance < coinAmount) return null;
-    final cash = coinAmount * coin.price * (1 - GameConfig.cashExchangeFee);
+    var cash = coinAmount * coin.price * (1 - GameConfig.cashExchangeFee);
+
+    // Business & Finance Lv3 job perk
+    cash *= 1 + JobSystem.sellPriceBonus(game);
+
     final newHoldings = Map<String, double>.from(game.holdings);
     newHoldings[coinId] = balance - coinAmount;
-    return game.copyWith(money: game.money + cash, holdings: newHoldings);
+
+    // Market Speculator: +50% profit
+    final profit = cash;
+    final bonus = game.specialization == Specialization.marketSpeculator
+        ? profit * GameConfig.speculatorProfitBonus
+        : 0.0;
+
+    return game.copyWith(
+      money: game.money + cash + bonus,
+      holdings: newHoldings,
+    );
   }
 
   /// Sell all of a specific coin for money at current price.
@@ -64,10 +80,20 @@ class EconomySystem {
     final usdValue = amount * fromCoin.price * (1 - GameConfig.swapFee);
     final toAmount = usdValue / toCoin.price;
 
+    // Market Speculator: +50% profit on swap
+    var bonus = 0.0;
+    if (game.specialization == Specialization.marketSpeculator) {
+      bonus =
+          amount *
+          fromCoin.price *
+          GameConfig.swapFee *
+          GameConfig.speculatorProfitBonus;
+    }
+
     final newHoldings = Map<String, double>.from(game.holdings);
     newHoldings[fromId] = (newHoldings[fromId] ?? 0) - amount;
     newHoldings[toId] = (newHoldings[toId] ?? 0) + toAmount;
 
-    return game.copyWith(holdings: newHoldings);
+    return game.copyWith(money: game.money + bonus, holdings: newHoldings);
   }
 }

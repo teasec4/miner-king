@@ -5,7 +5,6 @@ import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
-import 'package:crypto_king/domain/catalogs/paste_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
@@ -21,6 +20,7 @@ import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
+import 'package:crypto_king/domain/models/specialization.dart';
 import 'package:crypto_king/domain/systems/systems.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
 import 'package:crypto_king/presentation/notifiers/notifiers.dart';
@@ -158,9 +158,7 @@ class GameState extends ChangeNotifier {
       case CharacterType.businessman:
         _game = _game.copyWith(
           money: 1000,
-          electricityRate:
-              GameConfig.defaultElectricityRate *
-              GameConfig.businessmanShopDiscount,
+          shopMultiplier: GameConfig.businessmanShopDiscount,
           character: c,
         );
         break;
@@ -250,6 +248,9 @@ class GameState extends ChangeNotifier {
       }
       final (newGame, event) = _tickSystem.tick(_game);
       _game = newGame;
+      if (_game.gameOver) {
+        _tickTimer?.cancel();
+      }
       if (event != null) {
         lastEvent = event;
         onEvent?.call(event);
@@ -312,22 +313,6 @@ class GameState extends ChangeNotifier {
 
   bool repayLoan(String loanId, double amount) {
     final (newGame, ok) = EconomyCommands.repayLoan(_game, loanId, amount);
-    if (!ok) return false;
-    _game = newGame;
-    notifyListeners();
-    return true;
-  }
-
-  bool invest(String investId, double amount) {
-    final (newGame, ok) = EconomyCommands.invest(_game, investId, amount);
-    if (!ok) return false;
-    _game = newGame;
-    notifyListeners();
-    return true;
-  }
-
-  bool buyProperty(String propertyId) {
-    final (newGame, ok) = EconomyCommands.buyProperty(_game, propertyId);
     if (!ok) return false;
     _game = newGame;
     notifyListeners();
@@ -448,53 +433,10 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  bool buyPaste(PasteUpgrade upgrade) {
-    final result = FarmCommands.buyPaste(_game, upgrade);
-    if (result == null) return false;
-    _game = result;
-    notifyListeners();
-    return true;
-  }
-
-  bool equipToGpu(String inventoryItemId, String gpuId) {
-    final result = FarmCommands.equipToGpu(_game, inventoryItemId, gpuId);
-    if (result == null) return false;
-    _game = result;
-    notifyListeners();
-    return true;
-  }
-
-  bool unequipFromGpu(String gpuId, String type) {
-    final result = FarmCommands.unequipFromGpu(_game, gpuId, type);
-    if (result == null) return false;
-    _game = result;
-    notifyListeners();
-    return true;
-  }
-
-  bool useMotherboard(String inventoryItemId) {
-    final result = FarmCommands.useMotherboard(_game, inventoryItemId);
-    if (result == null) return false;
-    _game = result;
-    notifyListeners();
-    return true;
-  }
-
-  int equippedUpgradeCost(String gpuId, String type) {
-    return FarmCommands.upgradeCost(_game, gpuId, type);
-  }
-
-  String? equippedNextTier(String gpuId, String type) {
-    return FarmCommands.nextTierName(_game, gpuId, type);
-  }
-
-  bool upgradeEquipped(String gpuId, String type) {
-    final result = FarmCommands.upgradeEquipped(_game, gpuId, type);
-    if (result == null) return false;
-    _game = result;
-    notifyListeners();
-    return true;
-  }
+  int coolingUpgradeCost() => FarmCommands.coolingUpgradeCost(_game);
+  String? nextCoolingName() => FarmCommands.nextCoolingName(_game);
+  int psuUpgradeCost() => FarmCommands.psuUpgradeCost(_game);
+  String? nextPsuName() => FarmCommands.nextPsuName(_game);
 
   // ═══════════════════════════════════════════════════════════════
   // Life actions (delegated to LifeCommands)
@@ -560,6 +502,21 @@ class GameState extends ChangeNotifier {
     if (result == null) return;
     _game = result;
     notifyListeners();
+  }
+
+  bool get canPickSpecialization => LifeCommands.canPickSpecialization(_game);
+
+  void pickSpecialization(Specialization spec) {
+    _game = LifeCommands.pickSpecialization(_game, spec);
+    notifyListeners();
+  }
+
+  bool activateCramStudy() {
+    final result = LifeCommands.activateCramStudy(_game);
+    if (result == null) return false;
+    _game = result;
+    notifyListeners();
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════════

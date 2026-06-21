@@ -22,33 +22,6 @@ class JobCatalog {
   // Career path titles (ascending levels within each path)
   // Each level = new title, higher salary
 
-  static final foodTitles = [
-    Job(
-      id: 'food_l1',
-      name: 'Waiter',
-      description: 'Take orders. Carry plates.',
-      salaryPerTick: 0.008,
-    ),
-    Job(
-      id: 'food_l2',
-      name: 'Cook',
-      description: 'Work the kitchen line.',
-      salaryPerTick: 0.012,
-    ),
-    Job(
-      id: 'food_l3',
-      name: 'Sous Chef',
-      description: 'Run the kitchen team.',
-      salaryPerTick: 0.018,
-    ),
-    Job(
-      id: 'food_l4',
-      name: 'Restaurant Manager',
-      description: 'Manage the whole place.',
-      salaryPerTick: 0.025,
-    ),
-  ];
-
   static final techTitles = [
     Job(
       id: 'tech_l1',
@@ -109,33 +82,6 @@ class JobCatalog {
     ),
   ];
 
-  static final creativeTitles = [
-    Job(
-      id: 'cr_l1',
-      name: 'Copywriter',
-      description: 'Write ads and posts.',
-      salaryPerTick: 0.009,
-    ),
-    Job(
-      id: 'cr_l2',
-      name: 'Designer',
-      description: 'Create visuals.',
-      salaryPerTick: 0.013,
-    ),
-    Job(
-      id: 'cr_l3',
-      name: 'Art Director',
-      description: 'Lead creative projects.',
-      salaryPerTick: 0.020,
-    ),
-    Job(
-      id: 'cr_l4',
-      name: 'Creative Director',
-      description: 'Run the agency.',
-      salaryPerTick: 0.028,
-    ),
-  ];
-
   static final engineeringTitles = [
     Job(
       id: 'eng_l1',
@@ -170,20 +116,12 @@ class JobCatalog {
   ];
 
   static final Map<String, List<Job>> paths = {
-    'Food & Service': foodTitles,
     'Tech & IT': techTitles,
     'Business & Finance': businessTitles,
-    'Creative & Media': creativeTitles,
     'Engineering': engineeringTitles,
   };
 
-  static final all = [
-    ...foodTitles,
-    ...techTitles,
-    ...businessTitles,
-    ...creativeTitles,
-    ...engineeringTitles,
-  ];
+  static final all = [...techTitles, ...businessTitles, ...engineeringTitles];
 
   static Job? byId(String id) {
     try {

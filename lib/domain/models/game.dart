@@ -3,9 +3,9 @@ import '../config/game_config.dart';
 import 'farm.dart';
 import '../events/game_events.dart';
 import 'inventory_item.dart';
-import 'investment.dart';
 import 'loan.dart';
 import 'player_profile.dart';
+import 'specialization.dart';
 
 /// Sentinel used in [Game.copyWith] to distinguish "not provided" from "null".
 /// Without this, `copyWith(activeJobId: null)` is silently ignored by `??`.
@@ -23,8 +23,6 @@ class Game {
   final Farm farm;
   final List<GameEvent> activeEvents;
   final List<Loan> activeLoans;
-  final List<ActiveInvestment> activeInvestments;
-  final List<String> properties;
   final double marketMood;
   final Map<String, int> loanRepayments;
   final String? activeJobId;
@@ -32,6 +30,13 @@ class Game {
   final List<String> completedCourses;
   final String? activeCourseId;
   final int courseTicksLeft;
+
+  /// Which milestone (0-3) the active course is currently at.
+  final int courseMilestone;
+
+  /// Whether the player is cram-studying (×2 speed, risk of burnout).
+  final bool isCramStudy;
+
   final List<String> employees;
   final String? officeId;
   final Map<String, int> unseenEvents;
@@ -42,6 +47,28 @@ class Game {
   final List<Perk> perks;
   final int tick;
 
+  /// Chosen specialization (locked after pick).
+  final Specialization? specialization;
+
+  /// GPU model name that was destroyed this tick (for UI notification).
+  final String? destroyedGpu;
+
+  /// Multiplier applied to all shop prices (default 1.0).
+  /// Businessman character has 0.85 (15% discount).
+  final double shopMultiplier;
+
+  /// Whether the run has ended (bankruptcy, all GPUs dead, debt spiral).
+  final bool gameOver;
+
+  /// Human-readable reason for game over.
+  final String? gameOverReason;
+
+  /// Event that will trigger soon (warning period).
+  final GameEvent? pendingEvent;
+
+  /// Ticks remaining until the pending event fires.
+  final int pendingEventTicksLeft;
+
   const Game({
     required this.money,
     required this.holdings,
@@ -50,8 +77,6 @@ class Game {
     this.electricityRate = GameConfig.defaultElectricityRate,
     this.activeEvents = const [],
     this.activeLoans = const [],
-    this.activeInvestments = const [],
-    this.properties = const [],
     this.marketMood = 0,
     this.loanRepayments = const {},
     this.activeJobId,
@@ -59,6 +84,8 @@ class Game {
     this.completedCourses = const [],
     this.activeCourseId,
     this.courseTicksLeft = 0,
+    this.courseMilestone = 0,
+    this.isCramStudy = false,
     this.employees = const [],
     this.officeId,
     this.unseenEvents = const {},
@@ -68,6 +95,13 @@ class Game {
     this.character,
     this.perks = const [],
     this.tick = 0,
+    this.specialization,
+    this.destroyedGpu,
+    this.shopMultiplier = 1.0,
+    this.gameOver = false,
+    this.gameOverReason,
+    this.pendingEvent,
+    this.pendingEventTicksLeft = 0,
   });
 
   CoinState? coin(String id) {
@@ -88,8 +122,6 @@ class Game {
     Farm? farm,
     List<GameEvent>? activeEvents,
     List<Loan>? activeLoans,
-    List<ActiveInvestment>? activeInvestments,
-    List<String>? properties,
     double? marketMood,
     Map<String, int>? loanRepayments,
     // Nullable fields use Object? so we can tell "not provided" from "null":
@@ -98,6 +130,8 @@ class Game {
     List<String>? completedCourses,
     Object? activeCourseId = _unset,
     int? courseTicksLeft,
+    int? courseMilestone,
+    bool? isCramStudy,
     List<String>? employees,
     Object? officeId = _unset,
     Map<String, int>? unseenEvents,
@@ -107,6 +141,13 @@ class Game {
     Object? character = _unset,
     List<Perk>? perks,
     int? tick,
+    Object? specialization = _unset,
+    String? destroyedGpu,
+    double? shopMultiplier,
+    bool? gameOver,
+    String? gameOverReason,
+    Object? pendingEvent = _unset,
+    int? pendingEventTicksLeft,
   }) {
     return Game(
       money: money ?? this.money,
@@ -116,8 +157,6 @@ class Game {
       farm: farm ?? this.farm,
       activeEvents: activeEvents ?? this.activeEvents,
       activeLoans: activeLoans ?? this.activeLoans,
-      activeInvestments: activeInvestments ?? this.activeInvestments,
-      properties: properties ?? this.properties,
       marketMood: marketMood ?? this.marketMood,
       loanRepayments: loanRepayments ?? this.loanRepayments,
       activeJobId: _unwrapOr<String?>(activeJobId, this.activeJobId),
@@ -125,6 +164,8 @@ class Game {
       completedCourses: completedCourses ?? this.completedCourses,
       activeCourseId: _unwrapOr<String?>(activeCourseId, this.activeCourseId),
       courseTicksLeft: courseTicksLeft ?? this.courseTicksLeft,
+      courseMilestone: courseMilestone ?? this.courseMilestone,
+      isCramStudy: isCramStudy ?? this.isCramStudy,
       employees: employees ?? this.employees,
       officeId: _unwrapOr<String?>(officeId, this.officeId),
       unseenEvents: unseenEvents ?? this.unseenEvents,
@@ -134,6 +175,17 @@ class Game {
       character: _unwrapOr<CharacterType?>(character, this.character),
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,
+      specialization: _unwrapOr<Specialization?>(
+        specialization,
+        this.specialization,
+      ),
+      destroyedGpu: destroyedGpu,
+      shopMultiplier: shopMultiplier ?? this.shopMultiplier,
+      gameOver: gameOver ?? this.gameOver,
+      gameOverReason: gameOverReason,
+      pendingEvent: _unwrapOr<GameEvent?>(pendingEvent, this.pendingEvent),
+      pendingEventTicksLeft:
+          pendingEventTicksLeft ?? this.pendingEventTicksLeft,
     );
   }
 

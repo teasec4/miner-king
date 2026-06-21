@@ -33,6 +33,10 @@ abstract class GameEvent {
   /// Called when the event expires.
   Game onRemove(Game game) => game;
 
+  /// Called when two events are active simultaneously (combo effect).
+  /// [other] is another active event. Default: no combo.
+  Game onCombo(Game game, GameEvent other) => game;
+
   /// Returns a copy with updated remaining ticks.
   GameEvent withRemaining(int ticks);
 
@@ -54,6 +58,19 @@ class DustStormEvent extends GameEvent {
       );
   @override
   Game onApply(Game g) => g;
+
+  @override
+  Game onCombo(Game game, GameEvent other) {
+    // Dust Storm + Fan Failure = Dust Ignition: -2% condition/tick
+    if (other.id == 'fan_fail') {
+      final list = game.farm.gpuList
+          .map((g) => g.copyWith(condition: (g.condition - 0.02).clamp(0, 1)))
+          .toList();
+      return game.copyWith(farm: game.farm.copyWith(gpuList: list));
+    }
+    return game;
+  }
+
   @override
   GameEvent withRemaining(int t) => DustStormEvent(remainingTicks: t);
 }
@@ -110,6 +127,27 @@ class PowerSurgeEvent extends GameEvent {
   Game onApply(Game g) => g.copyWith(electricityRate: g.electricityRate * 2);
   @override
   Game onRemove(Game g) => g.copyWith(electricityRate: g.electricityRate / 2);
+
+  @override
+  Game onCombo(Game game, GameEvent other) {
+    // Power Surge + any overclocked GPU = Capacitor Blowout: -15% condition
+    if (other.id == 'fan_fail' ||
+        other.id == 'dust' ||
+        other.id == 'overheat') {
+      final hasOverclocked = game.farm.gpuList.any((g) => g.overclockLevel > 0);
+      if (hasOverclocked) {
+        final list = game.farm.gpuList.map((g) {
+          if (g.overclockLevel > 0 && g.condition > 0) {
+            return g.copyWith(condition: (g.condition - 0.15).clamp(0, 1));
+          }
+          return g;
+        }).toList();
+        return game.copyWith(farm: game.farm.copyWith(gpuList: list));
+      }
+    }
+    return game;
+  }
+
   @override
   GameEvent withRemaining(int t) => PowerSurgeEvent(remainingTicks: t);
 }
@@ -211,6 +249,22 @@ class MiningBoomEvent extends _CoinPriceEvent {
        );
   @override
   double priceMultiplier() => 1.3;
+
+  @override
+  Game onCombo(Game game, GameEvent other) {
+    // Mining Boom + FOMO Rally = Mania: +15% extra on coin price
+    if (other.id == 'fomo_rally') {
+      if (coinIdx < game.coins.length) {
+        final newCoins = [...game.coins];
+        newCoins[coinIdx] = game.coins[coinIdx].copyWith(
+          price: game.coins[coinIdx].price * 1.15,
+        );
+        return game.copyWith(coins: newCoins);
+      }
+    }
+    return game;
+  }
+
   @override
   GameEvent withRemaining(int t) =>
       MiningBoomEvent(remainingTicks: t, coinIdx: coinIdx, oldPrice: oldPrice);

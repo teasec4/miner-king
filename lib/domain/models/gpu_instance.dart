@@ -9,10 +9,6 @@ class GpuInstance {
   final int siliconLotteryLevel;
   final double cycleProgress; // 0.0 → 1.0, reward at 1.0
   final List<String> debuffs;
-  final String? equippedCooling; // itemId or null (stock)
-  final String? equippedPsu; // itemId or null (stock)
-  final String? equippedPaste; // itemId or null
-  final String? equippedBios; // itemId or null
 
   GpuInstance({
     required this.id,
@@ -25,10 +21,6 @@ class GpuInstance {
     this.siliconLotteryLevel = 0,
     this.cycleProgress = 0,
     this.debuffs = const [],
-    this.equippedCooling,
-    this.equippedPsu,
-    this.equippedPaste,
-    this.equippedBios,
   });
 
   int get effectiveOverclock => overclockLevel + siliconLotteryLevel;
@@ -44,10 +36,6 @@ class GpuInstance {
     int? siliconLotteryLevel,
     double? cycleProgress,
     List<String>? debuffs,
-    String? equippedCooling,
-    String? equippedPsu,
-    String? equippedPaste,
-    String? equippedBios,
   }) {
     return GpuInstance(
       id: id ?? this.id,
@@ -60,10 +48,6 @@ class GpuInstance {
       siliconLotteryLevel: siliconLotteryLevel ?? this.siliconLotteryLevel,
       cycleProgress: cycleProgress ?? this.cycleProgress,
       debuffs: debuffs ?? this.debuffs,
-      equippedCooling: equippedCooling ?? this.equippedCooling,
-      equippedPsu: equippedPsu ?? this.equippedPsu,
-      equippedPaste: equippedPaste ?? this.equippedPaste,
-      equippedBios: equippedBios ?? this.equippedBios,
     );
   }
 }
