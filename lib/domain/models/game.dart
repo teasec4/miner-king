@@ -1,10 +1,10 @@
 import 'coin_state.dart';
+import '../config/game_config.dart';
 import 'farm.dart';
 import 'game_event.dart';
 import 'inventory_item.dart';
 import 'investment.dart';
 import 'loan.dart';
-import 'modifier.dart';
 import 'player_profile.dart';
 
 /// Sentinel used in [Game.copyWith] to distinguish "not provided" from "null".
@@ -21,7 +21,6 @@ class Game {
   final List<CoinState> coins;
   final double electricityRate;
   final Farm farm;
-  final List<Modifier> activeModifiers;
   final List<GameEvent> activeEvents;
   final List<Loan> activeLoans;
   final List<ActiveInvestment> activeInvestments;
@@ -48,8 +47,7 @@ class Game {
     required this.holdings,
     required this.coins,
     required this.farm,
-    this.electricityRate = 0.25,
-    this.activeModifiers = const [],
+    this.electricityRate = GameConfig.defaultElectricityRate,
     this.activeEvents = const [],
     this.activeLoans = const [],
     this.activeInvestments = const [],
@@ -88,7 +86,6 @@ class Game {
     List<CoinState>? coins,
     double? electricityRate,
     Farm? farm,
-    List<Modifier>? activeModifiers,
     List<GameEvent>? activeEvents,
     List<Loan>? activeLoans,
     List<ActiveInvestment>? activeInvestments,
@@ -117,7 +114,6 @@ class Game {
       coins: coins ?? this.coins,
       electricityRate: electricityRate ?? this.electricityRate,
       farm: farm ?? this.farm,
-      activeModifiers: activeModifiers ?? this.activeModifiers,
       activeEvents: activeEvents ?? this.activeEvents,
       activeLoans: activeLoans ?? this.activeLoans,
       activeInvestments: activeInvestments ?? this.activeInvestments,

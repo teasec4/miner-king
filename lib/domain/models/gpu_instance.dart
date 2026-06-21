@@ -3,16 +3,16 @@ class GpuInstance {
   final String modelId;
   final String miningCoinId;
   final bool isPowered;
-  double condition;
-  double temperature;
-  int overclockLevel;
-  int siliconLotteryLevel;
-  double cycleProgress; // 0.0 → 1.0, reward at 1.0
-  List<String> debuffs;
-  String? equippedCooling; // itemId or null (stock)
-  String? equippedPsu; // itemId or null (stock)
-  String? equippedPaste; // itemId or null
-  String? equippedBios; // itemId or null
+  final double condition;
+  final double temperature;
+  final int overclockLevel;
+  final int siliconLotteryLevel;
+  final double cycleProgress; // 0.0 → 1.0, reward at 1.0
+  final List<String> debuffs;
+  final String? equippedCooling; // itemId or null (stock)
+  final String? equippedPsu; // itemId or null (stock)
+  final String? equippedPaste; // itemId or null
+  final String? equippedBios; // itemId or null
 
   GpuInstance({
     required this.id,

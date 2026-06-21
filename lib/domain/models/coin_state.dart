@@ -10,9 +10,9 @@ class CoinState {
   final double crashChance; // weight for crash events (0-10)
   final double boomChance; // weight for boom events (0-10)
   final double microEventRate; // per-tick chance of micro price event
-  double price;
-  MarketPhase phase;
-  int phaseTicksLeft;
+  final double price;
+  final MarketPhase phase;
+  final int phaseTicksLeft;
 
   CoinState({
     required this.id,

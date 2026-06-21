@@ -5,14 +5,12 @@ import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/gpu_instance.dart';
 import '../models/gpu_model.dart';
-import '../models/modifier.dart';
 import '../models/player_profile.dart';
 import 'employee_system.dart';
 
 double _effectiveHashrate(
   GpuInstance gpu,
   GpuModel model,
-  List<Modifier> modifiers,
   List<Perk> perks,
   CharacterType? character,
 ) {
@@ -30,10 +28,6 @@ double _effectiveHashrate(
   }
   if (perks.any((p) => p.effect == PerkEffect.riskLover)) {
     base *= 1 + GameConfig.riskLoverHashrateBonus;
-  }
-
-  for (final m in modifiers.where((m) => m.stat == AffectedStat.hashrate)) {
-    base *= 1 + m.value;
   }
 
   base *= gpu.condition;
@@ -65,7 +59,6 @@ class MiningSystem {
       final hashrate = _effectiveHashrate(
         gpu,
         model,
-        game.activeModifiers,
         game.perks,
         game.character,
       );
@@ -99,13 +92,7 @@ class MiningSystem {
     for (final gpu in game.farm.gpuList) {
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
-      total += _effectiveHashrate(
-        gpu,
-        model,
-        game.activeModifiers,
-        game.perks,
-        game.character,
-      );
+      total += _effectiveHashrate(gpu, model, game.perks, game.character);
     }
     return total;
   }

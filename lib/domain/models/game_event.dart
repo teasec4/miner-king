@@ -5,8 +5,8 @@ class GameEvent {
   final String description;
   final String category; // 'rig', 'market', 'city'
   final int durationTicks; // 0 = instant
-  int remainingTicks;
-  Map<String, dynamic>? data;
+  final int remainingTicks;
+  final Map<String, dynamic>? data;
 
   GameEvent({
     required this.id,
@@ -14,21 +14,23 @@ class GameEvent {
     required this.description,
     required this.category,
     required this.durationTicks,
-  }) : remainingTicks = durationTicks;
+    int? remainingTicks,
+    this.data,
+  }) : remainingTicks = remainingTicks ?? durationTicks,
+       assert(durationTicks >= 0, 'durationTicks must be >= 0');
 
   bool get isExpired => durationTicks > 0 && remainingTicks <= 0;
   bool get isInstant => durationTicks == 0;
 
   GameEvent copyWith({int? remainingTicks, Map<String, dynamic>? data}) {
-    final e = GameEvent(
+    return GameEvent(
       id: id,
       name: name,
       description: description,
       category: category,
       durationTicks: durationTicks,
+      remainingTicks: remainingTicks ?? this.remainingTicks,
+      data: data ?? this.data,
     );
-    e.remainingTicks = remainingTicks ?? this.remainingTicks;
-    e.data = data ?? this.data;
-    return e;
   }
 }

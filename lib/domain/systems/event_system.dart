@@ -121,45 +121,54 @@ class EventSystem {
           if (eligible.isNotEmpty) {
             final coin = _weightedPick(eligible, (c) => c.crashChance);
             final idx = g.coins.indexOf(coin);
-            event.data = {'coinIdx': idx, 'oldPrice': coin.price};
             final newCoins = [...g.coins];
             newCoins[idx] = coin.copyWith(
               price: (coin.price * 0.6).clamp(0.01, 999999),
             );
             g = g.copyWith(coins: newCoins);
+            event = event.copyWith(
+              data: {'coinIdx': idx, 'oldPrice': coin.price},
+            );
           }
         }
         break;
+
       case 'mining_boom':
         {
           final eligible = g.coins.where((c) => !c.eventImmune).toList();
           if (eligible.isNotEmpty) {
             final coin = _weightedPick(eligible, (c) => c.boomChance);
             final idx = g.coins.indexOf(coin);
-            event.data = {'coinIdx': idx, 'oldPrice': coin.price};
             final newCoins = [...g.coins];
             newCoins[idx] = coin.copyWith(
               price: (coin.price * 1.3).clamp(0.01, 999999),
             );
             g = g.copyWith(coins: newCoins);
+            event = event.copyWith(
+              data: {'coinIdx': idx, 'oldPrice': coin.price},
+            );
           }
         }
         break;
+
       case 'fomo_rally':
         {
           final eligible = g.coins.where((c) => !c.eventImmune).toList();
           if (eligible.isNotEmpty) {
             final coin = _weightedPick(eligible, (c) => c.boomChance);
             final idx = g.coins.indexOf(coin);
-            event.data = {'coinIdx': idx, 'oldPrice': coin.price};
             final newCoins = [...g.coins];
             newCoins[idx] = coin.copyWith(
               price: (coin.price * 1.5).clamp(0.01, 999999),
             );
             g = g.copyWith(coins: newCoins);
+            event = event.copyWith(
+              data: {'coinIdx': idx, 'oldPrice': coin.price},
+            );
           }
         }
         break;
+
       case 'power_surge':
         g = g.copyWith(electricityRate: g.electricityRate * 2);
         break;
@@ -172,9 +181,8 @@ class EventSystem {
       case 'job_fair':
         break;
       case 'free_power':
-        // Electricity -> 0. Store old rate to restore
-        event.data = {'oldRate': g.electricityRate};
         g = g.copyWith(electricityRate: 0);
+        event = event.copyWith(data: {'oldRate': g.electricityRate});
         break;
     }
     return g.copyWith(activeEvents: [...g.activeEvents, event]);
