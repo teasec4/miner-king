@@ -128,14 +128,16 @@ class ShopPage extends StatelessWidget {
             ...vm.shopGpus.map((e) {
               final m = e.model;
               final hasSale = vm.hasGpuSale;
+              final noSlots = !vm.farmHasFreeSlots;
               return _upgradeCard(
                 icon: Icons.memory,
                 color: Colors.deepPurple,
                 title: m.name,
-                subtitle:
-                    '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
+                subtitle: noSlots
+                    ? 'No free slots! Buy motherboard'
+                    : '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
                 price: e.effectivePrice,
-                canBuy: e.canBuy,
+                canBuy: e.canBuy && !noSlots,
                 onBuy: () => vm.buyGpu(m),
                 salePercent: hasSale ? 30 : null,
               );

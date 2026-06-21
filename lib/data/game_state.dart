@@ -324,28 +324,15 @@ class GameState extends ChangeNotifier {
   // ═══════════════════════════════════════════════════════════════
 
   bool buyGpu(GpuModel model) {
-    final (newGame, item) = GpuCommands.buyGpu(_game, model);
-    if (item.id.isEmpty) return false;
-    _game = newGame.copyWith(inventory: [...newGame.inventory, item]);
+    final result = GpuCommands.buyGpu(_game, model);
+    if (result == null) return false;
+    _game = result;
     notifyListeners();
     return true;
   }
 
   bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) {
-    final (newGame, item) = GpuCommands.buyBlackMarketGpu(
-      _game,
-      model,
-      price,
-      debuffs,
-    );
-    if (item.id.isEmpty) return false;
-    _game = newGame.copyWith(inventory: [...newGame.inventory, item]);
-    notifyListeners();
-    return true;
-  }
-
-  bool installGpu(String inventoryItemId) {
-    final result = GpuCommands.installGpu(_game, inventoryItemId);
+    final result = GpuCommands.buyBlackMarketGpu(_game, model, price, debuffs);
     if (result == null) return false;
     _game = result;
     notifyListeners();

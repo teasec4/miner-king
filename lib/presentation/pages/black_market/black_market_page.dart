@@ -119,7 +119,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
 
   Widget _offerCard(_BlackOffer offer, GameViewModel vm) {
     final m = offer.model;
-    final canBuy = vm.money >= offer.price;
+    final canBuy = vm.money >= offer.price && vm.farmHasFreeSlots;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),

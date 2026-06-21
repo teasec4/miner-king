@@ -7,7 +7,6 @@ import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
-import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/presentation/notifiers/notifiers.dart';
@@ -82,9 +81,6 @@ class GameViewModel {
   int debuffRepairCost(String id) => rig.debuffRepairCost(id);
   bool get hasGpuSale => rig.hasGpuSale;
   List<ShopGpuEntry> get shopGpus => rig.shopGpus;
-  List<InventoryItem> get inventory => rig.inventory;
-  List<InventoryItem> get unequippedInventory => rig.unequippedInventory;
-  int get gpuInventoryCount => rig.gpuInventoryCount;
 
   // ── Economy ──
 
@@ -148,7 +144,6 @@ class GameViewModel {
   bool buyGpu(GpuModel m) => rig.buyGpu(m);
   bool buyBlackMarketGpu(GpuModel m, int p, List<String> d) =>
       rig.buyBlackMarketGpu(m, p, d);
-  bool installGpu(String id) => rig.installGpu(id);
   bool upgradeGpu(String id) => rig.upgradeGpu(id);
   void toggleOverclock(String id) => rig.toggleOverclock(id);
   bool repairGpu(String id) => rig.repairGpu(id);

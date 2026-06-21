@@ -5,73 +5,47 @@ import '../catalogs/gpu_catalog.dart';
 import '../models/game.dart';
 import '../models/gpu_instance.dart';
 import '../models/gpu_model.dart';
-import '../models/inventory_item.dart';
 import '../models/player_profile.dart';
 
 final _gpuUuid = const Uuid();
 
-/// Pure functions for GPU operations: buy, install, upgrade, repair, toggle.
+/// Pure functions for GPU operations: buy, upgrade, repair, toggle.
+/// GPUs are installed directly to the first free slot — no inventory.
 class GpuCommands {
   GpuCommands._();
 
-  // ── Buy ──
+  // ── Buy (installs directly to slot) ──
 
-  static (Game, InventoryItem) buyGpu(Game game, GpuModel model) {
+  static Game? buyGpu(Game game, GpuModel model) {
     final hasSale = game.activeEvents.any((e) => e.id == 'gpu_sale');
     var price = hasSale
         ? (model.price * GameConfig.gpuSaleDiscount).ceil()
         : model.price;
     price = GameConfig.applyShopDiscount(price, game.shopMultiplier);
-    if (game.money < price)
-      return (
-        game,
-        InventoryItem(id: '', itemId: '', type: '', name: '', detail: ''),
-      );
-    final item = _makeInventoryItem(
-      'gpu',
-      model.id,
-      model.name,
-      '${model.baseHashrate.toStringAsFixed(0)} MH/s, ${model.basePowerConsumption.toStringAsFixed(0)}W',
+    if (game.money < price) return null;
+    if (!game.farm.hasFreeSlots) return null;
+
+    final instance = GpuInstance(
+      id: _gpuUuid.v4(),
+      modelId: model.id,
+      miningCoinId: 'btc',
+      temperature: model.baseTemperature,
     );
-    return (game.copyWith(money: game.money - price), item);
+    return game.copyWith(
+      money: game.money - price,
+      farm: game.farm.copyWith(gpuList: [...game.farm.gpuList, instance]),
+    );
   }
 
-  static (Game, InventoryItem) buyBlackMarketGpu(
+  static Game? buyBlackMarketGpu(
     Game game,
     GpuModel model,
     int price,
     List<String> debuffs,
   ) {
     price = GameConfig.applyShopDiscount(price, game.shopMultiplier);
-    if (game.money < price)
-      return (
-        game,
-        InventoryItem(id: '', itemId: '', type: '', name: '', detail: ''),
-      );
-    final item = _makeInventoryItem(
-      'gpu',
-      model.id,
-      model.name,
-      '${model.baseHashrate.toStringAsFixed(0)} MH/s, ${model.basePowerConsumption.toStringAsFixed(0)}W',
-      data: {'debuffs': debuffs},
-    );
-    return (game.copyWith(money: game.money - price), item);
-  }
-
-  // ── Install ──
-
-  static Game? installGpu(Game game, String inventoryItemId) {
-    final invIdx = game.inventory.indexWhere((i) => i.id == inventoryItemId);
-    if (invIdx == -1) return null;
-    final item = game.inventory[invIdx];
-    if (item.type != 'gpu') return null;
-
-    final model = GpuCatalog.byId(item.itemId);
-    if (model == null) return null;
+    if (game.money < price) return null;
     if (!game.farm.hasFreeSlots) return null;
-
-    final debuffs =
-        (item.data?['debuffs'] as List?)?.cast<String>() ?? <String>[];
 
     final instance = GpuInstance(
       id: _gpuUuid.v4(),
@@ -80,12 +54,8 @@ class GpuCommands {
       temperature: model.baseTemperature,
       debuffs: debuffs,
     );
-
-    final newInventory = [...game.inventory];
-    newInventory.removeAt(invIdx);
-
     return game.copyWith(
-      inventory: newInventory,
+      money: game.money - price,
       farm: game.farm.copyWith(gpuList: [...game.farm.gpuList, instance]),
     );
   }
@@ -110,9 +80,8 @@ class GpuCommands {
     );
     if (game.money < cost) return null;
 
-    final upgradedGpu = gpu.copyWith(modelId: nextModel.id);
     final newList = [...game.farm.gpuList];
-    newList[index] = upgradedGpu;
+    newList[index] = gpu.copyWith(modelId: nextModel.id);
 
     return game.copyWith(
       money: game.money - cost,
@@ -176,7 +145,6 @@ class GpuCommands {
     if (index == -1) return null;
     final gpu = game.farm.gpuList[index];
     if (gpu.condition <= 0) return null;
-    // Cycle: 0 → 1 → 2 → 0
     final newLevel = gpu.overclockLevel >= GameConfig.maxOverclockLevel
         ? 0
         : gpu.overclockLevel + 1;
@@ -201,24 +169,5 @@ class GpuCommands {
     final newList = [...game.farm.gpuList];
     newList[index] = newList[index].copyWith(miningCoinId: coinId);
     return game.copyWith(farm: game.farm.copyWith(gpuList: newList));
-  }
-
-  // ── Helpers ──
-
-  static InventoryItem _makeInventoryItem(
-    String type,
-    String itemId,
-    String name,
-    String detail, {
-    Map<String, dynamic>? data,
-  }) {
-    return InventoryItem(
-      id: _gpuUuid.v4(),
-      itemId: itemId,
-      type: type,
-      name: name,
-      detail: detail,
-      data: data,
-    );
   }
 }

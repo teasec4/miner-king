@@ -7,7 +7,6 @@ import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
-import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
@@ -127,20 +126,17 @@ class RigViewModel {
     final sale = hasGpuSale;
     return GpuCatalog.all.map((m) {
       final p = sale ? (m.price * GameConfig.gpuSaleDiscount).ceil() : m.price;
-      return ShopGpuEntry(model: m, effectivePrice: p, canBuy: game.money >= p);
+      return ShopGpuEntry(
+        model: m,
+        effectivePrice: p,
+        canBuy: game.money >= p && game.farm.hasFreeSlots,
+      );
     }).toList();
   }
-
-  List<InventoryItem> get inventory => game.inventory;
-  List<InventoryItem> get unequippedInventory =>
-      game.inventory.where((i) => !i.isEquipped).toList();
-  int get gpuInventoryCount =>
-      game.inventory.where((i) => i.type == 'gpu' && !i.isEquipped).length;
 
   bool buyGpu(GpuModel m) => state.buyGpu(m);
   bool buyBlackMarketGpu(GpuModel m, int p, List<String> d) =>
       state.buyBlackMarketGpu(m, p, d);
-  bool installGpu(String id) => state.installGpu(id);
   bool upgradeGpu(String id) => state.upgradeGpu(id);
   void toggleOverclock(String id) => state.toggleOverclock(id);
   bool repairGpu(String id) => state.repairGpu(id);

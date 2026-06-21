@@ -2,7 +2,6 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/events/game_events.dart';
-import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/pages/home/farm_detail_page.dart';
 import 'package:crypto_king/presentation/pages/home/gpu_detail_page.dart';
@@ -320,112 +319,36 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _emptySlotCard(GameViewModel vm, int slotNum) {
-    final gpuItems = vm.unequippedInventory
-        .where((i) => i.type == 'gpu')
-        .toList();
-    return GestureDetector(
-      onTap: gpuItems.isNotEmpty
-          ? () => _showInstallDialog(context, vm, gpuItems)
-          : null,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.grey.shade300,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.memory, size: 32, color: Colors.grey.shade400),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Slot $slotNum — Empty',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-                Text(
-                  gpuItems.isEmpty
-                      ? 'Buy GPU in Shop'
-                      : 'Tap to install (${gpuItems.length} available)',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
       ),
-    );
-  }
-
-  void _showInstallDialog(
-    BuildContext context,
-    GameViewModel vm,
-    List<InventoryItem> gpuItems,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      child: Row(
+        children: [
+          Icon(Icons.memory, size: 32, color: Colors.grey.shade400),
+          const SizedBox(width: 12),
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Install GPU to Slot',
+                'Slot $slotNum — Empty',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  color: Colors.grey.shade500,
                 ),
               ),
-              const SizedBox(height: 12),
-              ...gpuItems.map((item) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: const Icon(Icons.memory, color: Colors.deepPurple),
-                    title: Text(
-                      item.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      item.detail,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        vm.installGpu(item.id);
-                        Navigator.pop(context);
-                      },
-                      child: const Text('INSTALL'),
-                    ),
-                  ),
-                );
-              }),
+              Text(
+                'Buy GPU in Shop',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
