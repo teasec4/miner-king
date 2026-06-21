@@ -49,12 +49,12 @@ class ShopPage extends StatelessWidget {
             ...vm.shopGpus.map((e) {
               final m = e.model;
               final noSlots = !vm.farmHasFreeSlots;
-              return _upgradeCard(
+              return _card(
                 icon: Icons.memory,
                 color: Colors.deepPurple,
                 title: m.name,
                 subtitle: noSlots
-                    ? 'No free slots! Buy +1 slot below'
+                    ? 'No free slots — buy +1 slot below'
                     : '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
                 price: e.effectivePrice,
                 canBuy: e.canBuy && !noSlots,
@@ -63,20 +63,18 @@ class ShopPage extends StatelessWidget {
               );
             }),
 
-            // Motherboard (+1 slot)
+            // Motherboard
             _section('Motherboard'),
             Text(
               'Current: ${vm.totalSlots} slots (max 6)',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            _upgradeCard(
+            _card(
               icon: Icons.dashboard,
               color: Colors.green,
-              title: '+1 Slot',
-              subtitle: vm.canBuySlot
-                  ? '${vm.totalSlots} → ${vm.totalSlots + 1} slots'
-                  : 'Max slots reached',
+              title: '+1 Slot (→ ${vm.totalSlots + 1} total)',
+              subtitle: vm.canBuySlot ? null : 'Max slots reached',
               price: vm.nextSlotCost,
               canBuy: vm.canBuySlot,
               onBuy: () => vm.buySlot(),
@@ -85,40 +83,45 @@ class ShopPage extends StatelessWidget {
             // PSU
             _section('Power Supply'),
             Text(
-              'Increases total wattage capacity',
+              'Current: ${vm.psuLabel} — ${vm.psuCapacity}W',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            ...PsuCatalog.all.map(
-              (p) => _upgradeCard(
+            if (vm.nextPsuName != null)
+              _card(
                 icon: Icons.power,
                 color: Colors.orange,
-                title: p.name,
-                subtitle: 'Up to ${p.maxTotalWatt}W total',
-                price: p.price,
-                canBuy: vm.money >= p.price,
-                onBuy: () => vm.buyPsu(p),
-              ),
-            ),
+                title: 'Upgrade to ${vm.nextPsuName}',
+                subtitle: '${vm.psuMaxWatt}W → ${_nextPsuWatt(vm)}W capacity',
+                price: vm.psuUpgradeCost,
+                canBuy: vm.psuUpgradeCost > 0 && vm.money >= vm.psuUpgradeCost,
+                onBuy: () => vm.buyPsu(_nextPsu(vm)!),
+              )
+            else
+              _infoCard(Icons.check_circle, Colors.green, 'PSU maxed out'),
 
             // Cooling
             _section('Cooling'),
             Text(
-              'Reduces temperature of all GPUs',
+              'Current: ${vm.coolingLabel.isEmpty ? 'Stock Fan' : vm.coolingLabel}',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            ...CoolingCatalog.all.map(
-              (c) => _upgradeCard(
+            if (vm.nextCoolingName != null)
+              _card(
                 icon: Icons.ac_unit,
                 color: Colors.blue,
-                title: c.name,
-                subtitle: '${c.tempReduction}°C',
-                price: c.price,
-                canBuy: vm.money >= c.price,
-                onBuy: () => vm.buyCooling(c),
-              ),
-            ),
+                title: 'Upgrade to ${vm.nextCoolingName}',
+                subtitle:
+                    '${_currentCoolingTemp(vm)}°C → ${_nextCoolingTemp(vm)}°C',
+                price: vm.coolingUpgradeCost,
+                canBuy:
+                    vm.coolingUpgradeCost > 0 &&
+                    vm.money >= vm.coolingUpgradeCost,
+                onBuy: () => vm.buyCooling(_nextCooling(vm)!),
+              )
+            else
+              _infoCard(Icons.check_circle, Colors.blue, 'Cooling maxed out'),
           ],
         ),
       ),
@@ -138,11 +141,11 @@ class ShopPage extends StatelessWidget {
     ),
   );
 
-  Widget _upgradeCard({
+  Widget _card({
     required IconData icon,
     required Color color,
     required String title,
-    required String subtitle,
+    String? subtitle,
     required int price,
     required bool canBuy,
     required VoidCallback onBuy,
@@ -166,10 +169,11 @@ class ShopPage extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
               ],
             ),
           ),
@@ -214,4 +218,50 @@ class ShopPage extends StatelessWidget {
       ),
     ),
   );
+
+  Widget _infoCard(IconData icon, Color color, String text) => Card(
+    margin: const EdgeInsets.symmetric(vertical: 4),
+    color: color.withAlpha(20),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  PsuUpgrade? _nextPsu(GameViewModel vm) {
+    final idx = PsuCatalog.indexOf(vm.game.farm.psuTier);
+    return idx + 1 < PsuCatalog.all.length ? PsuCatalog.all[idx + 1] : null;
+  }
+
+  int _nextPsuWatt(GameViewModel vm) => _nextPsu(vm)?.maxTotalWatt ?? 0;
+
+  CoolingUpgrade? _nextCooling(GameViewModel vm) {
+    final idx = CoolingCatalog.indexOf(vm.game.farm.coolingSystem);
+    return idx + 1 < CoolingCatalog.all.length
+        ? CoolingCatalog.all[idx + 1]
+        : null;
+  }
+
+  String _currentCoolingTemp(GameViewModel vm) {
+    final idx = CoolingCatalog.indexOf(vm.game.farm.coolingSystem);
+    return CoolingCatalog.all[idx].tempReduction.toStringAsFixed(0);
+  }
+
+  String _nextCoolingTemp(GameViewModel vm) {
+    final next = _nextCooling(vm);
+    return next?.tempReduction.toStringAsFixed(0) ?? '-';
+  }
 }
