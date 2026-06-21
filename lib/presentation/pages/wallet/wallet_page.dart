@@ -109,7 +109,7 @@ class WalletPage extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${MarketSystem.phaseIcon(coin.phase)}\$${coin.price.toStringAsFixed(2)}',
+                                  '${MarketSystem.icon(coin.phase)}\$${coin.price.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: phaseColor,

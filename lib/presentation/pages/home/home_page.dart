@@ -213,7 +213,7 @@ class _HomePageState extends State<HomePage> {
               ),
               if (btc != null)
                 Text(
-                  '${MarketSystem.phaseIcon(btc.phase)} BTC \$${btc.price.toStringAsFixed(2)}',
+                  '${MarketSystem.icon(btc.phase)} BTC \$${btc.price.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 10, color: Colors.white54),
                 ),
               if (jobIncome > 0) ...[

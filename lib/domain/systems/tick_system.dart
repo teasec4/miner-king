@@ -4,28 +4,31 @@ import 'course_system.dart';
 import 'credit_system.dart';
 import 'electricity_system.dart';
 import 'employee_system.dart';
-import 'event_system.dart';
 import 'investment_system.dart';
 import 'job_system.dart';
-import 'market_system.dart';
 import 'mining_system.dart';
 import 'property_system.dart';
+import 'systems.dart';
 import 'thermal_system.dart';
-import 'wear_system.dart';
 
-/// Main game loop – advances the simulation by one tick.
+/// Main game loop — advances the simulation by one tick.
+///
+/// Receives [Systems] via DI so stateful systems (Market, Event, Wear)
+/// can be mocked in tests.
 class TickSystem {
-  TickSystem._();
+  final Systems _sys;
 
-  static (Game, GameEvent?) tick(Game game) {
+  TickSystem(this._sys);
+
+  (Game, GameEvent?) tick(Game game) {
     var g = game;
     GameEvent? newEvent;
 
     // 1. Update market (all coins)
-    g = MarketSystem.update(g);
+    g = _sys.market.update(g);
 
     // 2. Process events (tick active, maybe trigger new)
-    (g, newEvent) = EventSystem.update(g);
+    (g, newEvent) = _sys.event.update(g);
 
     // 3. Mine coins (cycle-based)
     final (updatedGpus, mined) = MiningSystem.mine(g);
@@ -42,7 +45,7 @@ class TickSystem {
     g = ThermalSystem.update(g);
 
     // 5. Apply wear from heat
-    g = WearSystem.update(g);
+    g = _sys.wear.update(g);
 
     // 6. Deduct electricity cost
     g = ElectricitySystem.update(g);

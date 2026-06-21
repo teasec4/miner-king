@@ -1,5 +1,4 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/catalogs/coin_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
@@ -7,6 +6,7 @@ import 'package:crypto_king/domain/systems/economy_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
+import 'package:crypto_king/domain/systems/systems.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
 import 'package:crypto_king/domain/systems/wear_system.dart';
@@ -38,18 +38,10 @@ void main() {
     test('tick increases holdings and tick counter after cycles', () {
       final state = GameState();
       var game = state.game;
-      // Quit job properly (copyWith can't null-ify)
-      game = Game(
-        money: game.money,
-        holdings: game.holdings,
-        coins: game.coins,
-        electricityRate: game.electricityRate,
-        farm: game.farm,
-        activeJobId: null,
-      );
-      // GTX 1060 at 50% condition needs more ticks with new rates
+      game = game.copyWith(activeJobId: null);
+      final ticker = TickSystem(Systems());
       for (int i = 0; i < 20; i++) {
-        (game, _) = TickSystem.tick(game);
+        (game, _) = ticker.tick(game);
       }
       expect(game.holdings['btc']!, greaterThan(0));
       expect(game.tick, 20);
@@ -60,7 +52,6 @@ void main() {
     test('temperatures use model base temp + worn bonus', () {
       final state = GameState();
       final game = ThermalSystem.update(state.game);
-      // GTX 1060 base 45°C + worn (0.5) bonus 10°C = 55°C
       expect(game.farm.gpuList.first.temperature, 55.0);
     });
     test('worn card runs hotter', () {
@@ -87,7 +78,8 @@ void main() {
         condition: 1.0,
       );
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
-      game = WearSystem.update(game);
+      final wear = DefaultWearSystem();
+      game = wear.update(game);
       expect(game.farm.gpuList.first.condition, 1.0);
     });
     test('wear at 70°C', () {
@@ -98,10 +90,9 @@ void main() {
         temperature: 70,
       );
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
-      // 70°C: rate = (70-50)/40 * 0.001 = 0.0005/tick
-      // 100 ticks = 0.05 wear → condition ≈ 0.95
+      final wear = DefaultWearSystem();
       for (var i = 0; i < 100; i++) {
-        game = WearSystem.update(game);
+        game = wear.update(game);
       }
       expect(game.farm.gpuList.first.condition, closeTo(0.95, 0.005));
     });
@@ -122,8 +113,10 @@ void main() {
     test('sellCoin converts coins to money', () {
       final state = GameState();
       var game = state.game;
+      game = game.copyWith(activeJobId: null);
+      final ticker = TickSystem(Systems());
       for (var i = 0; i < 50; i++) {
-        (game, _) = TickSystem.tick(game);
+        (game, _) = ticker.tick(game);
       }
       final btcBefore = game.holdings['btc']!;
       expect(btcBefore, greaterThan(0));
@@ -138,11 +131,9 @@ void main() {
     test('totalHashrate scales with condition', () {
       final state = GameState();
       var game = state.game;
-      // Fix GPU to 100% first
       var gpu = game.farm.gpuList.first.copyWith(condition: 1.0);
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
       final full = MiningSystem.totalHashrate(game);
-      // Halve it
       gpu = gpu.copyWith(condition: 0.5);
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
       expect(MiningSystem.totalHashrate(game), closeTo(full * 0.5, 0.1));
@@ -150,7 +141,6 @@ void main() {
     test('mine returns per-coin map after enough ticks', () {
       final state = GameState();
       var game = state.game;
-      // GTX 1060 at 50% condition needs ~14 ticks for a cycle now
       for (int i = 0; i < 14; i++) {
         final (gpus, mined) = MiningSystem.mine(game);
         if (mined.isNotEmpty) {
@@ -183,8 +173,9 @@ void main() {
     test('price stays within bounds', () {
       final state = GameState();
       var game = state.game;
+      final market = DefaultMarketSystem();
       for (var i = 0; i < 1000; i++) {
-        game = MarketSystem.update(game);
+        game = market.update(game);
       }
       for (final c in game.coins) {
         expect(c.price, greaterThanOrEqualTo(0.01));
@@ -194,8 +185,10 @@ void main() {
     test('tick includes market update', () {
       final state = GameState();
       var game = state.game;
+      game = game.copyWith(activeJobId: null);
+      final ticker = TickSystem(Systems());
       for (var i = 0; i < 500; i++) {
-        (game, _) = TickSystem.tick(game);
+        (game, _) = ticker.tick(game);
       }
       expect(game.primaryCoin.price, isNot(10.0));
     });

@@ -5,13 +5,21 @@ import '../models/game.dart';
 import '../models/game_event.dart';
 import 'employee_system.dart';
 
-/// Triggers random events and manages active event durations.
-class EventSystem {
-  EventSystem._();
-  static final _random = Random();
-  static int _nextEventIn = GameConfig.initialEventDelay;
+/// Interface for random event triggering and lifecycle.
+abstract class EventSystem {
+  (Game, GameEvent?) update(Game game);
+}
 
-  static (Game, GameEvent?) update(Game game) {
+class DefaultEventSystem implements EventSystem {
+  final Random _random;
+  int _nextEventIn;
+
+  DefaultEventSystem({Random? random})
+    : _random = random ?? Random(),
+      _nextEventIn = GameConfig.initialEventDelay;
+
+  @override
+  (Game, GameEvent?) update(Game game) {
     var g = game;
     GameEvent? triggered;
 
@@ -60,16 +68,13 @@ class EventSystem {
     return (g, triggered);
   }
 
-  static GameEvent? _pickRandomEvent(Game game, double securityReduction) {
-    // Pick from a random category, weighted
-    // Security reduces chance of picking 'rig' category
+  GameEvent? _pickRandomEvent(Game game, double securityReduction) {
     final cats = ['rig', 'market', 'city'];
     var cat = cats[_random.nextInt(cats.length)];
-    // If security is active and we rolled 'rig', chance to reroll
     if (cat == 'rig' &&
         securityReduction > 0 &&
         _random.nextDouble() < securityReduction) {
-      cat = cats[_random.nextInt(cats.length)]; // reroll once
+      cat = cats[_random.nextInt(cats.length)];
     }
     var pool = switch (cat) {
       'rig' => EventCatalog.rigEvents,
@@ -96,14 +101,13 @@ class EventSystem {
     return pool[_random.nextInt(pool.length)];
   }
 
-  static Game _applyEvent(Game game, GameEvent event) {
+  Game _applyEvent(Game game, GameEvent event) {
     var g = game;
     switch (event.id) {
       case 'dust':
       case 'fan_fail':
-        break; // handled by thermal system
+        break;
       case 'overheat':
-        // -5% condition to all GPUs
         {
           final newList = g.farm.gpuList.map((gpu) {
             return gpu.copyWith(
@@ -176,7 +180,6 @@ class EventSystem {
         g = g.copyWith(electricityRate: g.electricityRate * 0.5);
         break;
       case 'rent_hike':
-        // Applied in EmployeeSystem via active event check
         break;
       case 'job_fair':
         break;
@@ -188,7 +191,7 @@ class EventSystem {
     return g.copyWith(activeEvents: [...g.activeEvents, event]);
   }
 
-  static Game _removeEvent(Game game, GameEvent event) {
+  Game _removeEvent(Game game, GameEvent event) {
     switch (event.id) {
       case 'power_surge':
         return game.copyWith(electricityRate: game.electricityRate / 2);
@@ -221,7 +224,7 @@ class EventSystem {
     }
   }
 
-  static T _weightedPick<T>(List<T> items, double Function(T) weightFn) {
+  T _weightedPick<T>(List<T> items, double Function(T) weightFn) {
     final total = items.fold(0.0, (s, i) => s + weightFn(i).abs());
     if (total <= 0) return items[_random.nextInt(items.length)];
     var r = _random.nextDouble() * total;

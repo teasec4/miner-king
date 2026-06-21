@@ -3,11 +3,43 @@ import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/market_phase.dart';
 
-class MarketSystem {
-  MarketSystem._();
-  static final _r = Random();
+/// Interface for market simulation (coin prices, mood, phases).
+abstract class MarketSystem {
+  Game update(Game game);
 
-  static Game update(Game game) {
+  String moodLabel(double mood);
+  String phaseLabel(MarketPhase phase);
+  String phaseIcon(MarketPhase phase);
+
+  /// Static convenience — pure functions, no state needed.
+  static String mood(double mood) {
+    if (mood > 0.6) return 'Extreme Greed';
+    if (mood > 0.2) return 'Greed';
+    if (mood > -0.2) return 'Neutral';
+    if (mood > -0.6) return 'Fear';
+    return 'Extreme Fear';
+  }
+
+  static String phase(MarketPhase phase) => switch (phase) {
+    MarketPhase.bull => 'Bull',
+    MarketPhase.bear => 'Bear',
+    MarketPhase.sideways => 'Sideways',
+  };
+
+  static String icon(MarketPhase phase) => switch (phase) {
+    MarketPhase.bull => '\u2191',
+    MarketPhase.bear => '\u2193',
+    MarketPhase.sideways => '\u2192',
+  };
+}
+
+class DefaultMarketSystem implements MarketSystem {
+  final Random _r;
+
+  DefaultMarketSystem({Random? random}) : _r = random ?? Random();
+
+  @override
+  Game update(Game game) {
     var mood = game.marketMood;
     mood += (_r.nextDouble() - 0.5) * GameConfig.moodRandomWalk;
     mood -= mood * GameConfig.moodMeanReversion;
@@ -29,7 +61,6 @@ class MarketSystem {
       final drift = _drift(phase, coin.volatility, mood);
       price = (price * (1 + drift)).clamp(0.01, 999999.0);
 
-      // Micro-shocks: rare, significant swings (fat tails)
       if (coin.microEventRate > 0 &&
           _r.nextDouble() <
               coin.microEventRate * GameConfig.microShockChanceMultiplier) {
@@ -41,7 +72,6 @@ class MarketSystem {
         price = (price * (1 + shock)).clamp(0.01, 999999.0);
       }
 
-      // Rare volatility explosion: big swing for volatile coins
       if (coin.volatility > 2 &&
           _r.nextDouble() < GameConfig.volatilityExplosionChance) {
         final explosion =
@@ -61,7 +91,7 @@ class MarketSystem {
     return game.copyWith(coins: updatedCoins, marketMood: mood);
   }
 
-  static MarketPhase _nextPhase(MarketPhase current, double mood) {
+  MarketPhase _nextPhase(MarketPhase current, double mood) {
     final others = MarketPhase.values.where((p) => p != current).toList();
     if (mood > GameConfig.moodBiasThreshold &&
         _r.nextDouble() < mood * GameConfig.moodBiasProbabilityScalar) {
@@ -74,7 +104,7 @@ class MarketSystem {
     return others[_r.nextInt(others.length)];
   }
 
-  static double _drift(MarketPhase phase, double vol, double mood) {
+  double _drift(MarketPhase phase, double vol, double mood) {
     final base = switch (phase) {
       MarketPhase.bull =>
         (_r.nextDouble() * GameConfig.driftBaseMagnitude +
@@ -91,22 +121,12 @@ class MarketSystem {
     return (base + noise) * vol * amp;
   }
 
-  static String moodLabel(double mood) {
-    if (mood > 0.6) return 'Extreme Greed';
-    if (mood > 0.2) return 'Greed';
-    if (mood > -0.2) return 'Neutral';
-    if (mood > -0.6) return 'Fear';
-    return 'Extreme Fear';
-  }
+  @override
+  String moodLabel(double m) => MarketSystem.mood(m);
 
-  static String phaseLabel(MarketPhase phase) => switch (phase) {
-    MarketPhase.bull => 'Bull',
-    MarketPhase.bear => 'Bear',
-    MarketPhase.sideways => 'Sideways',
-  };
-  static String phaseIcon(MarketPhase phase) => switch (phase) {
-    MarketPhase.bull => '\u2191',
-    MarketPhase.bear => '\u2193',
-    MarketPhase.sideways => '\u2192',
-  };
+  @override
+  String phaseLabel(MarketPhase p) => MarketSystem.phase(p);
+
+  @override
+  String phaseIcon(MarketPhase p) => MarketSystem.icon(p);
 }

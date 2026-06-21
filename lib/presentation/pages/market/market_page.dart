@@ -140,7 +140,7 @@ class _MarketPageState extends State<MarketPage> {
   );
 
   Widget _moodGauge(double mood) {
-    final label = MarketSystem.moodLabel(mood);
+    final label = MarketSystem.mood(mood);
     final c = mood > 0.2
         ? Colors.green
         : mood < -0.2
@@ -266,7 +266,7 @@ class _MarketPageState extends State<MarketPage> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            '${MarketSystem.phaseIcon(coin.phase)} ${MarketSystem.phaseLabel(coin.phase)}',
+                            '${MarketSystem.icon(coin.phase)} ${MarketSystem.phase(coin.phase)}',
                             style: TextStyle(fontSize: 13, color: c),
                           ),
                         ],

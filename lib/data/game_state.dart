@@ -25,12 +25,16 @@ import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/economy_system.dart';
+import 'package:crypto_king/domain/systems/systems.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 class GameState extends ChangeNotifier {
   static final _uuid = const Uuid();
+
+  final Systems _systems;
+  late final TickSystem _tickSystem;
 
   Game _game;
   Timer? _tickTimer;
@@ -43,7 +47,11 @@ class GameState extends ChangeNotifier {
   /// Callback when a new event is triggered.
   void Function(GameEvent)? onEvent;
 
-  GameState() : _game = _createInitialGame();
+  GameState({Systems? systems})
+    : _systems = systems ?? Systems(),
+      _game = _createInitialGame() {
+    _tickSystem = TickSystem(_systems);
+  }
   // Watchdog + tick timer start in setCharacter(), not here.
   // Game must not tick until the player picks a character.
 
@@ -216,7 +224,7 @@ class GameState extends ChangeNotifier {
         _bmGen++;
         _nextBmRefresh = _game.tick + GameConfig.blackMarketRefreshTicks;
       }
-      final (newGame, event) = TickSystem.tick(_game);
+      final (newGame, event) = _tickSystem.tick(_game);
       _game = newGame;
       if (event != null) {
         lastEvent = event;
