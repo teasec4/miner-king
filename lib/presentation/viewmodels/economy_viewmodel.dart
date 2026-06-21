@@ -1,14 +1,13 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
-import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/systems/credit_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 
-/// ViewModel for economy: money, holdings, electricity, loans, investments, property.
+/// ViewModel for economy: money, holdings, electricity, loans.
 class EconomyViewModel {
   final EconomyNotifier _n;
   EconomyViewModel(this._n);
@@ -59,11 +58,6 @@ class EconomyViewModel {
     return (game.loanRepayments[tiers[idx - 1]] ?? 0) >= 2;
   }
 
-  // ── Investments & Property ──
-
-  List<ActiveInvestment> get activeInvestments => game.activeInvestments;
-  List<String> get properties => game.properties;
-
   // ── Actions ──
 
   void sellCoin(String id) => state.sellCoin(id);
@@ -76,6 +70,4 @@ class EconomyViewModel {
       state.swapCoins(from, to, amount);
   bool takeLoan(String id) => state.takeLoan(id);
   bool repayLoan(String id, double amount) => state.repayLoan(id, amount);
-  bool invest(String id, double amount) => state.invest(id, amount);
-  bool buyProperty(String id) => state.buyProperty(id);
 }

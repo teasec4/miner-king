@@ -5,7 +5,6 @@ import 'package:crypto_king/presentation/pages/black_market/black_market_page.da
 import 'package:crypto_king/presentation/pages/institute/institute_page.dart';
 import 'package:crypto_king/presentation/pages/business_center/business_center_page.dart';
 import 'package:crypto_king/presentation/pages/job/job_page.dart';
-import 'package:crypto_king/presentation/pages/real_estate/real_estate_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -110,14 +109,6 @@ class _CityPageState extends State<CityPage> {
                           badge: vm.activeCourseId != null
                               ? _activeBadge()
                               : null,
-                        ),
-                        _building(
-                          context,
-                          Icons.home,
-                          'Real Estate',
-                          'Buy property\nPassive rent income',
-                          Colors.brown,
-                          '/realestate',
                         ),
                       ],
                     ),
@@ -283,7 +274,6 @@ class _CityPageState extends State<CityPage> {
     if (route == '/blackmarket') return const BlackMarketPage();
     if (route == '/institute') return const InstitutePage();
     if (route == '/business') return const BusinessCenterPage();
-    if (route == '/realestate') return const RealEstatePage();
     return const SizedBox.shrink();
   }
 

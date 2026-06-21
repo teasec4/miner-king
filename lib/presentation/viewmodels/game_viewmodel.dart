@@ -1,6 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
-import 'package:crypto_king/domain/catalogs/paste_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
@@ -9,7 +8,6 @@ import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/models/inventory_item.dart';
-import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/presentation/notifiers/notifiers.dart';
@@ -27,10 +25,6 @@ export 'package:crypto_king/presentation/viewmodels/market_viewmodel.dart';
 export 'package:crypto_king/presentation/viewmodels/city_viewmodel.dart';
 
 /// Thin aggregator over domain-specific ViewModels.
-///
-/// Each tab gets its own VM: RigViewModel, EconomyViewModel,
-/// MarketViewModel, CityViewModel.  Forwarding getters preserve
-/// backward compat while allowing `vm.rig.gpus` for new code.
 class GameViewModel {
   final RigViewModel rig;
   final EconomyViewModel economy;
@@ -47,7 +41,6 @@ class GameViewModel {
        market = MarketViewModel(market),
        city = CityViewModel(city);
 
-  /// Backward-compat: create from GameState.
   factory GameViewModel.fromState(GameState state) {
     return GameViewModel(
       rig: state.rigN,
@@ -74,7 +67,6 @@ class GameViewModel {
   String get psuTier => rig.psuTier;
   int get psuMaxWatt => rig.psuMaxWatt;
   String get psuLabel => rig.psuLabel;
-  bool psuSupports(double w) => rig.psuSupports(w);
   int get totalSlots => rig.totalSlots;
   int get usedSlots => rig.usedSlots;
   bool get farmHasFreeSlots => rig.farmHasFreeSlots;
@@ -91,8 +83,6 @@ class GameViewModel {
   List<ShopGpuEntry> get shopGpus => rig.shopGpus;
   List<InventoryItem> get inventory => rig.inventory;
   List<InventoryItem> get unequippedInventory => rig.unequippedInventory;
-  int equippedUpgradeCost(String g, String t) => rig.equippedUpgradeCost(g, t);
-  String? equippedNextTier(String g, String t) => rig.equippedNextTier(g, t);
 
   // ── Economy ──
 
@@ -111,8 +101,6 @@ class GameViewModel {
   Map<String, int> get loanRepayments => economy.loanRepayments;
   double get totalDebt => economy.totalDebt;
   bool isLoanUnlocked(String id) => economy.isLoanUnlocked(id);
-  List<ActiveInvestment> get activeInvestments => economy.activeInvestments;
-  List<String> get properties => economy.properties;
 
   // ── Market ──
 
@@ -155,8 +143,6 @@ class GameViewModel {
   bool swapCoins(String f, String t, double a) => economy.swapCoins(f, t, a);
   bool takeLoan(String id) => economy.takeLoan(id);
   bool repayLoan(String id, double a) => economy.repayLoan(id, a);
-  bool invest(String id, double a) => economy.invest(id, a);
-  bool buyProperty(String id) => economy.buyProperty(id);
   bool buyGpu(GpuModel m) => rig.buyGpu(m);
   bool buyBlackMarketGpu(GpuModel m, int p, List<String> d) =>
       rig.buyBlackMarketGpu(m, p, d);
@@ -169,11 +155,6 @@ class GameViewModel {
   bool buyCooling(CoolingUpgrade u) => rig.buyCooling(u);
   bool buySolar(SolarUpgrade u) => rig.buySolar(u);
   bool buyPsu(PsuUpgrade u) => rig.buyPsu(u);
-  bool buyPaste(PasteUpgrade u) => rig.buyPaste(u);
-  bool equipToGpu(String i, String g) => rig.equipToGpu(i, g);
-  bool unequipFromGpu(String g, String t) => rig.unequipFromGpu(g, t);
-  bool useMotherboard(String id) => rig.useMotherboard(id);
-  bool upgradeEquipped(String g, String t) => rig.upgradeEquipped(g, t);
   void setMiningCoin(String g, String c) => rig.setMiningCoin(g, c);
   void togglePower(String g) => rig.togglePower(g);
   void startJob(String id) => city.startJob(id);

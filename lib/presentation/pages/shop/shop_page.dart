@@ -1,6 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
-import 'package:crypto_king/domain/catalogs/paste_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -72,7 +71,7 @@ class ShopPage extends StatelessWidget {
                 icon: Icons.power,
                 color: Colors.orange,
                 title: p.name,
-                subtitle: 'Up to ${p.maxWattPerGpu}W per GPU',
+                subtitle: 'Up to ${p.maxTotalWatt}W total',
                 price: p.price,
                 canBuy: vm.money >= p.price,
                 onBuy: () => vm.buyPsu(p),
@@ -113,34 +112,6 @@ class ShopPage extends StatelessWidget {
                 price: c.price,
                 canBuy: vm.money >= c.price,
                 onBuy: () => vm.buyCooling(c),
-              ),
-            ),
-
-            // Thermal Paste
-            _section('Thermal Paste'),
-            Text(
-              'Buy to equip on GPU later',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 4),
-            _upgradeCard(
-              icon: Icons.water_drop,
-              color: Colors.teal,
-              title: PasteCatalog.none.name,
-              subtitle: '${PasteCatalog.none.tempReduction}°C',
-              price: PasteCatalog.none.price,
-              canBuy: vm.money >= PasteCatalog.none.price,
-              onBuy: () => vm.buyPaste(PasteCatalog.none),
-            ),
-            ...PasteCatalog.all.map(
-              (p) => _upgradeCard(
-                icon: Icons.water_drop,
-                color: Colors.teal,
-                title: p.name,
-                subtitle: '${p.tempReduction}°C',
-                price: p.price,
-                canBuy: vm.money >= p.price,
-                onBuy: () => vm.buyPaste(p),
               ),
             ),
           ],

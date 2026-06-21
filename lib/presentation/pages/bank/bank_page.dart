@@ -1,5 +1,4 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/catalogs/investment_catalog.dart';
 import 'package:crypto_king/domain/catalogs/loan_catalog.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -98,46 +97,6 @@ class BankPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ...vm.activeLoans.map((l) => _activeLoanCard(l, vm)),
-            ],
-
-            // ── Investments ──
-            const SizedBox(height: 16),
-            Text(
-              'Investments',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...InvestmentCatalog.all.map((i) => _investCard(i, vm)),
-
-            // Active investments
-            if (vm.activeInvestments.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ...vm.activeInvestments.map((inv) {
-                final template = InvestmentCatalog.byId(inv.investId);
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 2),
-                  color: Colors.green.shade50,
-                  child: ListTile(
-                    leading: const Icon(Icons.trending_up, color: Colors.green),
-                    title: Text(
-                      template?.name ?? 'Investment',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      '\$${inv.amount.toStringAsFixed(0)} → \$${(inv.amount * (1 + (template?.returnRate ?? 0))).toStringAsFixed(0)} in ${inv.ticksLeft}s',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                );
-              }),
             ],
 
             // ── Info ──
@@ -286,42 +245,6 @@ class BankPage extends StatelessWidget {
               child: Text('Pay \$${loan.remaining.toStringAsFixed(0)}'),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _investCard(Investment inv, GameViewModel vm) {
-    final canInvest = vm.money >= inv.minAmount;
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 2),
-      child: ListTile(
-        leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.trending_up, color: Colors.green, size: 20),
-        ),
-        title: Text(
-          inv.name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        subtitle: Text(
-          'Min \$${inv.minAmount} • ${inv.durationLabel} • +${inv.returnLabel}',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-        ),
-        trailing: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: canInvest ? Colors.green : Colors.grey,
-            foregroundColor: Colors.white,
-          ),
-          onPressed: canInvest
-              ? () => vm.invest(inv.id, inv.minAmount.toDouble())
-              : null,
-          child: Text('Invest \$${inv.minAmount}'),
         ),
       ),
     );

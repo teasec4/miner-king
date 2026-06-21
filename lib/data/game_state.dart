@@ -129,7 +129,7 @@ class GameState extends ChangeNotifier {
       coins: CoinCatalog.initialCoins(),
       electricityRate: GameConfig.defaultElectricityRate,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
-      activeJobId: 'food_l1',
+      activeJobId: 'tech_l1',
       activeLoans: [loan],
     );
   }

@@ -33,12 +33,6 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
     final model = GpuCatalog.byId(gpu.modelId);
     final cp = (gpu.condition * 100).toInt();
 
-    // Per-GPU equipment (from inventory items equipped to this GPU)
-    final coolingItem = _findEquipped(vm, widget.instanceId, 'cooling');
-    final psuItem = _findEquipped(vm, widget.instanceId, 'psu');
-    final pasteItem = _findEquipped(vm, widget.instanceId, 'paste');
-    final biosItem = _findEquipped(vm, widget.instanceId, 'bios');
-
     return Scaffold(
       appBar: AppBar(title: Text(gpu.modelName), centerTitle: true),
       body: SafeArea(
@@ -123,16 +117,64 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
 
                 const SizedBox(height: 20),
 
-                // Equipment (RPG-style around GPU)
-                _section('Equipment'),
-                const SizedBox(height: 12),
-                _equipmentLayout(
-                  vm,
-                  gpu,
-                  coolingItem,
-                  psuItem,
-                  pasteItem,
-                  biosItem,
+                // GPU upgrade
+                _section('GPU Upgrade'),
+                const SizedBox(height: 8),
+                Builder(
+                  builder: (_) {
+                    final upgradeCost = vm.upgradeCost(gpu.instanceId);
+                    final canUpgrade =
+                        upgradeCost > 0 && vm.money >= upgradeCost;
+                    return GestureDetector(
+                      onTap: canUpgrade
+                          ? () => vm.upgradeGpu(gpu.instanceId)
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.deepPurple.shade200,
+                            width: 2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.memory,
+                              size: 32,
+                              color: Colors.deepPurple.shade300,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'GPU',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.deepPurple.shade400,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Upgrade to next tier',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (canUpgrade) _upArrow(upgradeCost),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 12),
@@ -321,24 +363,6 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
     );
   }
 
-  InventoryItem? _findEquipped(GameViewModel vm, String gpuId, String type) {
-    return vm.inventory
-        .where((i) => i.equippedToGpu == gpuId && i.type == type)
-        .firstOrNull;
-  }
-
-  int _gpuUpgradeCost(GameViewModel vm, GpuDisplayInfo gpu) {
-    final cost = vm.equippedUpgradeCost(gpu.instanceId, 'gpu');
-    if (cost <= 0 || vm.money < cost) return 0;
-    return cost;
-  }
-
-  int _slotUpgradeCost(GameViewModel vm, String gpuId, String type) {
-    final cost = vm.equippedUpgradeCost(gpuId, type);
-    if (cost <= 0 || vm.money < cost) return 0;
-    return cost;
-  }
-
   Widget _upArrow(int cost) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
     decoration: BoxDecoration(
@@ -363,221 +387,6 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
     ),
   );
 
-  // ── Equipment layout ──
-
-  Widget _equipmentLayout(
-    GameViewModel vm,
-    GpuDisplayInfo gpu,
-    InventoryItem? cooling,
-    InventoryItem? psu,
-    InventoryItem? paste,
-    InventoryItem? bios,
-  ) => SizedBox(
-    height: 260,
-    child: Stack(
-      alignment: Alignment.center,
-      children: [
-        // Central GPU card with upgrade arrow
-        GestureDetector(
-          onTap: () {
-            final cost = vm.equippedUpgradeCost(gpu.instanceId, 'gpu');
-            if (cost > 0 && vm.money >= cost) {
-              vm.upgradeEquipped(gpu.instanceId, 'gpu');
-            }
-          },
-          child: Container(
-            width: 140,
-            height: 180,
-            decoration: BoxDecoration(
-              color: Colors.deepPurple.shade50,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.deepPurple.shade200, width: 2),
-            ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.memory,
-                        size: 48,
-                        color: Colors.deepPurple.shade300,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'GPU',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.deepPurple.shade400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_gpuUpgradeCost(vm, gpu) > 0)
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: _upArrow(_gpuUpgradeCost(vm, gpu)),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          top: 0,
-          child: _gearSlot(
-            Icons.ac_unit,
-            'Cooling',
-            cooling != null,
-            Colors.blue,
-            cooling?.detail ?? 'Stock',
-            onTap: cooling != null
-                ? () => vm.unequipFromGpu(gpu.instanceId, 'cooling')
-                : null,
-            upgradeCost: _slotUpgradeCost(vm, gpu.instanceId, 'cooling'),
-            onUpgrade: _slotUpgradeCost(vm, gpu.instanceId, 'cooling') > 0
-                ? () => vm.upgradeEquipped(gpu.instanceId, 'cooling')
-                : null,
-          ),
-        ),
-        Positioned(
-          right: 0,
-          child: _gearSlot(
-            Icons.power,
-            'PSU',
-            psu != null,
-            Colors.orange,
-            psu?.detail ?? 'Stock',
-            onTap: psu != null
-                ? () => vm.unequipFromGpu(gpu.instanceId, 'psu')
-                : null,
-            upgradeCost: _slotUpgradeCost(vm, gpu.instanceId, 'psu'),
-            onUpgrade: _slotUpgradeCost(vm, gpu.instanceId, 'psu') > 0
-                ? () => vm.upgradeEquipped(gpu.instanceId, 'psu')
-                : null,
-          ),
-        ),
-        Positioned(
-          bottom: 0,
-          child: _gearSlot(
-            Icons.water_drop,
-            'Paste',
-            paste != null,
-            Colors.teal,
-            paste?.detail ?? 'None',
-            onTap: paste != null
-                ? () => vm.unequipFromGpu(gpu.instanceId, 'paste')
-                : null,
-            upgradeCost: _slotUpgradeCost(vm, gpu.instanceId, 'paste'),
-            onUpgrade: _slotUpgradeCost(vm, gpu.instanceId, 'paste') > 0
-                ? () => vm.upgradeEquipped(gpu.instanceId, 'paste')
-                : null,
-          ),
-        ),
-        Positioned(
-          left: 0,
-          child: _gearSlot(
-            Icons.tune,
-            'BIOS',
-            bios != null,
-            Colors.purple,
-            bios?.detail ?? 'Stock',
-            onTap: bios != null
-                ? () => vm.unequipFromGpu(gpu.instanceId, 'bios')
-                : null,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _gearSlot(
-    IconData icon,
-    String label,
-    bool active,
-    Color color,
-    String detail, {
-    VoidCallback? onTap,
-    int? upgradeCost,
-    VoidCallback? onUpgrade,
-  }) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: active ? color.withAlpha(25) : Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: active ? color.withAlpha(120) : Colors.grey.shade300,
-          width: 2,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 24, color: active ? color : Colors.grey.shade400),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: active ? Colors.black87 : Colors.grey.shade500,
-            ),
-          ),
-          Text(
-            detail,
-            style: TextStyle(
-              fontSize: 8,
-              color: active ? color : Colors.grey.shade400,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (active)
-            Text(
-              'tap to remove',
-              style: TextStyle(fontSize: 7, color: Colors.grey.shade500),
-            ),
-          if (onUpgrade != null && upgradeCost != null)
-            GestureDetector(
-              onTap: onUpgrade,
-              child: Container(
-                margin: const EdgeInsets.only(top: 2),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.amber.shade300),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.arrow_upward,
-                      size: 8,
-                      color: Colors.amber.shade800,
-                    ),
-                    Text(
-                      '\$$upgradeCost',
-                      style: TextStyle(
-                        fontSize: 7,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.amber.shade800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
-
   // ── Inventory section ──
 
   Widget _inventorySection(GameViewModel vm, String gpuId) {
@@ -591,30 +400,23 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
         ),
       );
     }
+    final isGpu = (InventoryItem i) => i.type == 'gpu';
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: items.map((item) {
-        final canEquip = [
-          'cooling',
-          'psu',
-          'paste',
-          'bios',
-        ].contains(item.type);
         return GestureDetector(
-          onTap: canEquip ? () => vm.equipToGpu(item.id, gpuId) : null,
+          onTap: isGpu(item) ? () => vm.installGpu(item.id) : null,
           child: Container(
             width: 100,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: item.type == 'cooling'
-                  ? Colors.blue.withAlpha(15)
-                  : item.type == 'psu'
-                  ? Colors.orange.withAlpha(15)
-                  : Colors.grey.shade100,
+              color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: canEquip ? Colors.blue.shade200 : Colors.grey.shade300,
+                color: isGpu(item)
+                    ? Colors.blue.shade200
+                    : Colors.grey.shade300,
               ),
             ),
             child: Column(
@@ -623,7 +425,7 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
                 Icon(
                   _iconForType(item.type),
                   size: 22,
-                  color: canEquip ? Colors.blue : Colors.grey.shade400,
+                  color: isGpu(item) ? Colors.blue : Colors.grey.shade400,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -635,25 +437,11 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
                   item.detail,
                   style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
                 ),
-                if (canEquip)
+                if (isGpu(item))
                   Text(
-                    'Tap to equip',
+                    'Tap to install',
                     style: TextStyle(fontSize: 8, color: Colors.blue.shade400),
                   ),
-                if (item.type == 'motherboard') ...[
-                  const SizedBox(height: 2),
-                  GestureDetector(
-                    onTap: () => vm.useMotherboard(item.id),
-                    child: Text(
-                      'USE',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -665,9 +453,8 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
   IconData _iconForType(String type) => switch (type) {
     'cooling' => Icons.ac_unit,
     'psu' => Icons.power,
-    'paste' => Icons.water_drop,
-    'bios' => Icons.tune,
     'motherboard' => Icons.dashboard,
+    'gpu' => Icons.memory,
     _ => Icons.inventory,
   };
 
@@ -751,22 +538,6 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
                                 Colors.deepPurple,
                                 () => vm.installGpu(item.id),
                               )
-                            : item.type == 'motherboard'
-                            ? _invActionBtn(
-                                'USE',
-                                Colors.green,
-                                () => vm.useMotherboard(item.id),
-                              )
-                            : [
-                                'cooling',
-                                'psu',
-                                'paste',
-                                'bios',
-                              ].contains(item.type)
-                            ? _invActionBtn('EQUIP', Colors.blue, () {
-                                vm.equipToGpu(item.id, widget.instanceId);
-                                setState(() {});
-                              })
                             : null,
                       ),
                     );

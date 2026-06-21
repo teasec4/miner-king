@@ -1,8 +1,7 @@
+import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
-import 'package:crypto_king/domain/catalogs/paste_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
-import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
@@ -34,15 +33,14 @@ class RigViewModel {
     _ => '',
   };
   String get psuTier => game.farm.psuTier;
-  int get psuMaxWatt =>
-      PsuCatalog.byId(game.farm.psuTier)?.maxWattPerGpu ?? 150;
+  int get psuMaxWatt => PsuCatalog.byId(game.farm.psuTier)?.maxTotalWatt ?? 150;
   String get psuLabel => switch (game.farm.psuTier) {
     'psu_bronze' => 'Bronze PSU',
     'psu_gold' => 'Gold PSU',
     'psu_platinum' => 'Platinum PSU',
     _ => 'Stock PSU',
   };
-  bool psuSupports(double w) => PsuCatalog.supports(game.farm.psuTier, w);
+  int get psuCapacity => PsuCatalog.capacity(game.farm.psuTier);
   int get totalSlots => game.farm.totalSlots;
   int get usedSlots => game.farm.usedSlots;
   bool get farmHasFreeSlots => game.farm.hasFreeSlots;
@@ -137,10 +135,6 @@ class RigViewModel {
   List<InventoryItem> get unequippedInventory =>
       game.inventory.where((i) => !i.isEquipped).toList();
 
-  int equippedUpgradeCost(String g, String t) =>
-      state.equippedUpgradeCost(g, t);
-  String? equippedNextTier(String g, String t) => state.equippedNextTier(g, t);
-
   bool buyGpu(GpuModel m) => state.buyGpu(m);
   bool buyBlackMarketGpu(GpuModel m, int p, List<String> d) =>
       state.buyBlackMarketGpu(m, p, d);
@@ -153,11 +147,6 @@ class RigViewModel {
   bool buyCooling(CoolingUpgrade u) => state.buyCooling(u);
   bool buySolar(SolarUpgrade u) => state.buySolar(u);
   bool buyPsu(PsuUpgrade u) => state.buyPsu(u);
-  bool buyPaste(PasteUpgrade u) => state.buyPaste(u);
-  bool equipToGpu(String i, String g) => state.equipToGpu(i, g);
-  bool unequipFromGpu(String g, String t) => state.unequipFromGpu(g, t);
-  bool useMotherboard(String id) => state.useMotherboard(id);
-  bool upgradeEquipped(String g, String t) => state.upgradeEquipped(g, t);
   void setMiningCoin(String g, String c) => state.setMiningCoin(g, c);
   void togglePower(String g) => state.togglePower(g);
 }

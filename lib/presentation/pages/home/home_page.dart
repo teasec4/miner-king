@@ -735,11 +735,7 @@ class _HomePageState extends State<HomePage> {
     }
     final label = item.type == 'gpu' ? 'INSTALL' : 'USE';
     final color = item.type == 'gpu' ? Colors.deepPurple : Colors.green;
-    final onTap = item.type == 'gpu'
-        ? () => vm.installGpu(item.id)
-        : item.type == 'motherboard'
-        ? () => vm.useMotherboard(item.id)
-        : null;
+    final onTap = item.type == 'gpu' ? () => vm.installGpu(item.id) : null;
     if (onTap == null) return const SizedBox.shrink();
     return GestureDetector(
       onTap: onTap,
