@@ -1,5 +1,6 @@
 import 'dart:math';
 import '../catalogs/event_catalog.dart';
+import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/game_event.dart';
 import 'employee_system.dart';
@@ -8,13 +9,12 @@ import 'employee_system.dart';
 class EventSystem {
   EventSystem._();
   static final _random = Random();
-  static int _nextEventIn = 180;
+  static int _nextEventIn = GameConfig.initialEventDelay;
 
   static (Game, GameEvent?) update(Game game) {
     var g = game;
     GameEvent? triggered;
 
-    // Security guard: event duration reduction
     final durationReduction = EmployeeSystem.eventDurationReduction(g);
 
     // ── Tick active events ──
@@ -22,11 +22,10 @@ class EventSystem {
     for (final e in game.activeEvents) {
       if (e.isInstant) {
         final remaining = e.remainingTicks - 1;
-        if (remaining <= -60) continue;
+        if (remaining <= -GameConfig.instantEventCleanupDelay) continue;
         updatedEvents.add(e.copyWith(remainingTicks: remaining));
       } else {
-        // Security makes events tick down faster
-        final decay = 1.0 + durationReduction;
+        final decay = GameConfig.securityTickDecay + durationReduction;
         final remaining = (e.remainingTicks - decay).ceil();
         if (remaining <= 0) {
           g = _removeEvent(g, e);
@@ -40,14 +39,16 @@ class EventSystem {
     // ── Trigger new event? ──
     _nextEventIn--;
     if (_nextEventIn <= 0) {
-      _nextEventIn = 60 + _random.nextInt(240);
-      if (g.activeEvents.length < 3) {
-        // Security: skip rig events sometimes
+      _nextEventIn =
+          GameConfig.minEventInterval +
+          _random.nextInt(
+            GameConfig.maxEventInterval - GameConfig.minEventInterval,
+          );
+      if (g.activeEvents.length < GameConfig.maxActiveEvents) {
         final securityReduction = EmployeeSystem.eventChanceReduction(g);
         final event = _pickRandomEvent(g, securityReduction);
         if (event != null) {
           g = _applyEvent(g, event);
-          // Mark as unseen in the event's category
           final unseen = Map<String, int>.from(g.unseenEvents);
           unseen[event.category] = (unseen[event.category] ?? 0) + 1;
           g = g.copyWith(unseenEvents: unseen);

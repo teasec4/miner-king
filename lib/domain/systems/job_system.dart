@@ -1,4 +1,5 @@
 import '../catalogs/job_catalog.dart';
+import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
 
@@ -13,7 +14,6 @@ class JobSystem {
     final job = JobCatalog.byId(jobId);
     if (job == null) return game;
 
-    // Find which path this job belongs to
     String? pathName;
     List<Job>? path;
     for (final entry in JobCatalog.paths.entries) {
@@ -25,53 +25,56 @@ class JobSystem {
     }
     if (pathName == null || path == null) return game;
 
-    // Use path-level EXP (sum of all job EXPs in the path)
     int totalExp = 0;
     for (final j in path) {
       totalExp += game.jobExperience[j.id] ?? 0;
     }
-    final expGain = game.character == CharacterType.hustler ? 2 : 1;
+    final expGain = game.character == CharacterType.hustler
+        ? GameConfig.hustlerExpMultiplier.toInt()
+        : 1;
     totalExp += expGain;
 
-    // Calculate level from total EXP
     final level = (totalExp ~/ job.expPerLevel).clamp(0, path.length - 1);
     final title = path[level];
 
-    // Distribute EXP to the current title's ID (for tracking)
     final newExp = Map<String, int>.from(game.jobExperience);
     newExp[jobId] = (newExp[jobId] ?? 0) + expGain;
 
-    // Auto-promote to new title if level advanced
     var newJobId = jobId;
     if (title.id != jobId) {
       newJobId = title.id;
     }
 
-    // Income multiplier: +10% per level
-    final multiplier = 1.0 + level * 0.1;
+    final multiplier = 1.0 + level * GameConfig.levelIncomeMultiplier;
     var diplomaBonus = 1.0;
-    // Diploma bonus calculation
     switch (pathName) {
       case 'Tech & IT':
-        if (game.completedCourses.contains('basic_it')) diplomaBonus += 0.20;
+        if (game.completedCourses.contains('basic_it'))
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
         if (game.completedCourses.contains('data_analytics'))
-          diplomaBonus += 0.20;
-        if (game.completedCourses.contains('programming')) diplomaBonus += 0.20;
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
+        if (game.completedCourses.contains('programming'))
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
       case 'Business & Finance':
-        if (game.completedCourses.contains('management')) diplomaBonus += 0.20;
+        if (game.completedCourses.contains('management'))
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
         if (game.completedCourses.contains('data_analytics'))
-          diplomaBonus += 0.20;
-        if (game.completedCourses.contains('marketing')) diplomaBonus += 0.20;
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
+        if (game.completedCourses.contains('marketing'))
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
       case 'Creative & Media':
-        if (game.completedCourses.contains('marketing')) diplomaBonus += 0.20;
+        if (game.completedCourses.contains('marketing'))
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
       case 'Engineering':
-        if (game.completedCourses.contains('programming')) diplomaBonus += 0.20;
+        if (game.completedCourses.contains('programming'))
+          diplomaBonus += GameConfig.diplomaBonusPerCourse;
       default:
     }
-    if (game.completedCourses.contains('business')) diplomaBonus += 0.25;
+    if (game.completedCourses.contains('business'))
+      diplomaBonus += GameConfig.diplomaBonusGlobal;
 
     final fairBonus = game.activeEvents.any((e) => e.id == 'job_fair')
-        ? 2.0
+        ? GameConfig.jobFairMultiplier
         : 1.0;
 
     return game.copyWith(

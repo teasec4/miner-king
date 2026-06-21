@@ -1,4 +1,5 @@
 import '../catalogs/office_catalog.dart';
+import '../config/game_config.dart';
 import '../models/game.dart';
 
 class EmployeeSystem {
@@ -18,21 +19,19 @@ class EmployeeSystem {
       final emp = EmployeeCatalog.byId(empId);
       if (emp == null) continue;
 
-      // Pay salary
       money -= emp.salaryPerTick;
 
-      // Apply income-generating effects
       switch (emp.effect) {
         case EmployeeEffect.trader:
-          // Can lose money in fear, profit in greed.
-          // Range: mood=-1 → -40%, mood=+1 → +100% of base.
-          // With FinTech synergy: bonus × 1.2
-          final synergyMult = _synergyActive('fintech', hired) ? 1.20 : 1.0;
+          final synergyMult = _synergyActive('fintech', hired)
+              ? GameConfig.fintechSynergyMultiplier
+              : 1.0;
           final mood = game.marketMood;
-          // Non-linear: 0.7× mood for moderate swings, amplified at extremes
           final factor = mood > 0
-              ? mood * 0.7 + mood * mood * 0.3
-              : mood * 0.7 - mood * mood * 0.3;
+              ? mood * GameConfig.traderLinearWeight +
+                    mood * mood * GameConfig.traderQuadraticWeight
+              : mood * GameConfig.traderLinearWeight -
+                    mood * mood * GameConfig.traderQuadraticWeight;
           money += emp.effectValue * factor * synergyMult;
           break;
         case EmployeeEffect.sales:
@@ -42,14 +41,12 @@ class EmployeeSystem {
         case EmployeeEffect.repair:
         case EmployeeEffect.electrician:
         case EmployeeEffect.security:
-          // Applied in other systems (MiningSystem, WearSystem, ElectricitySystem, EventSystem)
           break;
       }
     }
 
-    // Pay office rent
     final rentMult = game.activeEvents.any((e) => e.id == 'rent_hike')
-        ? 2.0
+        ? GameConfig.rentHikeMultiplier
         : 1.0;
     money -= office.rentPerTick * rentMult;
 
@@ -58,42 +55,39 @@ class EmployeeSystem {
 
   // ── Passive effects queried by other systems ──
 
-  /// Returns hashrate bonus from supervisor (unique, 0 or 1 instance).
   static double hashrateBonus(Game game) {
     for (final empId in game.employees) {
       final emp = EmployeeCatalog.byId(empId);
       if (emp != null && emp.effect == EmployeeEffect.miner) {
         var base = emp.effectValue;
-        // Optimized Mining synergy: bonus +5% hashrate
-        if (_synergyActive('optimized', game.employees.toSet())) base += 0.05;
+        if (_synergyActive('optimized', game.employees.toSet()))
+          base += GameConfig.optimizedHashrateBonus;
         return base;
       }
     }
     return 0;
   }
 
-  /// Returns wear reduction from repair tech (unique).
   static double wearReduction(Game game) {
     for (final empId in game.employees) {
       final emp = EmployeeCatalog.byId(empId);
       if (emp != null && emp.effect == EmployeeEffect.repair) {
         var base = emp.effectValue;
-        // Optimized Mining synergy: bonus -5% wear
-        if (_synergyActive('optimized', game.employees.toSet())) base += 0.05;
+        if (_synergyActive('optimized', game.employees.toSet()))
+          base += GameConfig.optimizedWearBonus;
         return base.clamp(0.0, 0.9);
       }
     }
     return 0;
   }
 
-  /// Returns electricity cost reduction from electrician (unique).
   static double electricityReduction(Game game) {
     for (final empId in game.employees) {
       final emp = EmployeeCatalog.byId(empId);
       if (emp != null && emp.effect == EmployeeEffect.electrician) {
         var base = emp.effectValue;
-        // Efficient Farm synergy: bonus -5% electricity
-        if (_synergyActive('efficient', game.employees.toSet())) base += 0.05;
+        if (_synergyActive('efficient', game.employees.toSet()))
+          base += GameConfig.efficientFarmBonus;
         return base;
       }
     }

@@ -7,6 +7,14 @@ import 'loan.dart';
 import 'modifier.dart';
 import 'player_profile.dart';
 
+/// Sentinel used in [Game.copyWith] to distinguish "not provided" from "null".
+/// Without this, `copyWith(activeJobId: null)` is silently ignored by `??`.
+class _Unset {
+  const _Unset();
+}
+
+const _unset = _Unset();
+
 class Game {
   final double money;
   final Map<String, double> holdings;
@@ -87,18 +95,19 @@ class Game {
     List<String>? properties,
     double? marketMood,
     Map<String, int>? loanRepayments,
-    String? activeJobId,
+    // Nullable fields use Object? so we can tell "not provided" from "null":
+    Object? activeJobId = _unset,
     Map<String, int>? jobExperience,
     List<String>? completedCourses,
-    String? activeCourseId,
+    Object? activeCourseId = _unset,
     int? courseTicksLeft,
     List<String>? employees,
-    String? officeId,
+    Object? officeId = _unset,
     Map<String, int>? unseenEvents,
     List<String>? employeePool,
     int? nextPoolRefresh,
     List<InventoryItem>? inventory,
-    CharacterType? character,
+    Object? character = _unset,
     List<Perk>? perks,
     int? tick,
   }) {
@@ -115,20 +124,26 @@ class Game {
       properties: properties ?? this.properties,
       marketMood: marketMood ?? this.marketMood,
       loanRepayments: loanRepayments ?? this.loanRepayments,
-      activeJobId: activeJobId ?? this.activeJobId,
+      activeJobId: _unwrapOr<String?>(activeJobId, this.activeJobId),
       jobExperience: jobExperience ?? this.jobExperience,
       completedCourses: completedCourses ?? this.completedCourses,
-      activeCourseId: activeCourseId ?? this.activeCourseId,
+      activeCourseId: _unwrapOr<String?>(activeCourseId, this.activeCourseId),
       courseTicksLeft: courseTicksLeft ?? this.courseTicksLeft,
       employees: employees ?? this.employees,
-      officeId: officeId ?? this.officeId,
+      officeId: _unwrapOr<String?>(officeId, this.officeId),
       unseenEvents: unseenEvents ?? this.unseenEvents,
       employeePool: employeePool ?? this.employeePool,
       nextPoolRefresh: nextPoolRefresh ?? this.nextPoolRefresh,
       inventory: inventory ?? this.inventory,
-      character: character ?? this.character,
+      character: _unwrapOr<CharacterType?>(character, this.character),
       perks: perks ?? this.perks,
       tick: tick ?? this.tick,
     );
+  }
+
+  /// Returns [value] if it was explicitly provided (even if null),
+  /// otherwise returns [fallback].
+  static T _unwrapOr<T>(Object? value, T fallback) {
+    return identical(value, _unset) ? fallback : value as T;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
+import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
@@ -22,13 +23,17 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GameViewModel>().startTicks();
+      // Ticks are already running (started by setCharacter).
+      // Just wire up the event overlay callback.
       context.read<GameState>().onEvent = (e) {
         if (!mounted) return;
         setState(() => _expandedEvent = e);
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted) setState(() => _expandedEvent = null);
-        });
+        Future.delayed(
+          Duration(seconds: GameConfig.eventOverlayDismissSeconds),
+          () {
+            if (mounted) setState(() => _expandedEvent = null);
+          },
+        );
       };
     });
   }

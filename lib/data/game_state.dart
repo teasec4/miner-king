@@ -14,6 +14,7 @@ import 'package:crypto_king/domain/catalogs/property_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
+import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/farm.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
@@ -42,27 +43,30 @@ class GameState extends ChangeNotifier {
   /// Callback when a new event is triggered.
   void Function(GameEvent)? onEvent;
 
-  GameState() : _game = _createInitialGame() {
-    _startWatchdog();
-  }
+  GameState() : _game = _createInitialGame();
+  // Watchdog + tick timer start in setCharacter(), not here.
+  // Game must not tick until the player picks a character.
 
   void _startWatchdog() {
     _watchdog?.cancel();
-    _watchdog = Timer.periodic(const Duration(seconds: 3), (_) {
-      // Restart if timer died
-      if (_tickTimer == null || !_tickTimer!.isActive) {
-        startTicks();
-        return;
-      }
-      // Also check tick is actually advancing (not stuck)
-      final currentTick = _game.tick;
-      if (_lastWatchdogTick > 0 && currentTick == _lastWatchdogTick) {
-        // Ticker stalled — force restart
-        _tickTimer?.cancel();
-        startTicks();
-      }
-      _lastWatchdogTick = currentTick;
-    });
+    _watchdog = Timer.periodic(
+      Duration(seconds: GameConfig.watchdogIntervalSeconds),
+      (_) {
+        // Restart if timer died
+        if (_tickTimer == null || !_tickTimer!.isActive) {
+          startTicks();
+          return;
+        }
+        // Also check tick is actually advancing (not stuck)
+        final currentTick = _game.tick;
+        if (_lastWatchdogTick > 0 && currentTick == _lastWatchdogTick) {
+          // Ticker stalled — force restart
+          _tickTimer?.cancel();
+          startTicks();
+        }
+        _lastWatchdogTick = currentTick;
+      },
+    );
   }
 
   Game get game => _game;
@@ -75,18 +79,21 @@ class GameState extends ChangeNotifier {
       condition: 0.5, // starts half-broken
     );
 
-    final loan = Loan(
-      id: 'small',
-      name: 'Quick Loan',
-      principal: LoanCatalog.small.principal,
-      interestPerMinute: LoanCatalog.small.interestPerMinute,
-    )..remaining = LoanCatalog.small.principal * 1.1;
+    final loan =
+        Loan(
+            id: 'small',
+            name: 'Quick Loan',
+            principal: LoanCatalog.small.principal,
+            interestPerMinute: LoanCatalog.small.interestPerMinute,
+          )
+          ..remaining =
+              LoanCatalog.small.principal * (1 + GameConfig.loanOriginationFee);
 
     return Game(
       money: 500,
       holdings: {'btc': 0, 'eth': 0, 'sol': 0, 'doge': 0, 'pepe': 0, 'usdt': 0},
       coins: CoinCatalog.initialCoins(),
-      electricityRate: 0.25,
+      electricityRate: GameConfig.defaultElectricityRate,
       farm: Farm(gpuList: [gpu], totalSlots: 1, coolingSystem: 'basic'),
       activeJobId: 'food_l1',
       activeLoans: [loan],
@@ -120,19 +127,25 @@ class GameState extends ChangeNotifier {
         // +$500 cash, -15% shop, small loan
         _game = _game.copyWith(
           money: 1000,
-          electricityRate: 0.25 * 0.85,
+          electricityRate:
+              GameConfig.defaultElectricityRate *
+              GameConfig.businessmanShopDiscount,
           character: c,
         );
         break;
       case CharacterType.hustler:
         {
           // +100% job EXP, medium loan ($2200 debt)
-          final medLoan = Loan(
-            id: 'medium',
-            name: 'Business Loan',
-            principal: LoanCatalog.medium.principal,
-            interestPerMinute: LoanCatalog.medium.interestPerMinute,
-          )..remaining = LoanCatalog.medium.principal * 1.1;
+          final medLoan =
+              Loan(
+                  id: 'medium',
+                  name: 'Business Loan',
+                  principal: LoanCatalog.medium.principal,
+                  interestPerMinute: LoanCatalog.medium.interestPerMinute,
+                )
+                ..remaining =
+                    LoanCatalog.medium.principal *
+                    (1 + GameConfig.loanOriginationFee);
           _game = _game.copyWith(
             money: 600,
             activeLoans: [medLoan],
@@ -142,12 +155,16 @@ class GameState extends ChangeNotifier {
         }
       case CharacterType.student:
         {
-          final largeLoan = Loan(
-            id: 'large',
-            name: 'Expansion Loan',
-            principal: LoanCatalog.large.principal,
-            interestPerMinute: LoanCatalog.large.interestPerMinute,
-          )..remaining = LoanCatalog.large.principal * 1.1;
+          final largeLoan =
+              Loan(
+                  id: 'large',
+                  name: 'Expansion Loan',
+                  principal: LoanCatalog.large.principal,
+                  interestPerMinute: LoanCatalog.large.interestPerMinute,
+                )
+                ..remaining =
+                    LoanCatalog.large.principal *
+                    (1 + GameConfig.loanOriginationFee);
           _game = _game.copyWith(
             money: 800,
             completedCourses: ['basic_it'],
@@ -175,10 +192,13 @@ class GameState extends ChangeNotifier {
         );
         break;
     }
+    _startWatchdog(); // ← game starts ticking only after character selection
     notifyListeners();
   }
 
-  void startTicks({Duration interval = const Duration(seconds: 1)}) {
+  void startTicks({
+    Duration interval = const Duration(seconds: GameConfig.tickIntervalSeconds),
+  }) {
     if (_tickTimer?.isActive == true) return; // already running
     _tickTimer?.cancel();
     _tickTimer = Timer.periodic(interval, (_) {
@@ -190,10 +210,11 @@ class GameState extends ChangeNotifier {
     try {
       _maybeRefreshPool();
       // Black Market global timer
-      if (_nextBmRefresh == 0) _nextBmRefresh = _game.tick + 300;
+      if (_nextBmRefresh == 0)
+        _nextBmRefresh = _game.tick + GameConfig.blackMarketRefreshTicks;
       if (_game.tick >= _nextBmRefresh) {
         _bmGen++;
-        _nextBmRefresh = _game.tick + 300;
+        _nextBmRefresh = _game.tick + GameConfig.blackMarketRefreshTicks;
       }
       final (newGame, event) = TickSystem.tick(_game);
       _game = newGame;
@@ -250,7 +271,9 @@ class GameState extends ChangeNotifier {
 
   bool buyGpu(GpuModel model) {
     final hasSale = _game.activeEvents.any((e) => e.id == 'gpu_sale');
-    final price = hasSale ? (model.price * 0.7).ceil() : model.price;
+    final price = hasSale
+        ? (model.price * GameConfig.gpuSaleDiscount).ceil()
+        : model.price;
     if (_game.money < price) return false;
     // GPU goes to inventory
     _addToInventory(
@@ -702,34 +725,7 @@ class GameState extends ChangeNotifier {
   }
 
   void quitJob() {
-    // copyWith can't clear optional fields (null gets swallowed by ??)
-    _game = Game(
-      money: _game.money,
-      holdings: _game.holdings,
-      coins: _game.coins,
-      electricityRate: _game.electricityRate,
-      farm: _game.farm,
-      activeModifiers: _game.activeModifiers,
-      activeEvents: _game.activeEvents,
-      activeLoans: _game.activeLoans,
-      activeInvestments: _game.activeInvestments,
-      properties: _game.properties,
-      marketMood: _game.marketMood,
-      loanRepayments: _game.loanRepayments,
-      activeJobId: null,
-      jobExperience: _game.jobExperience,
-      completedCourses: _game.completedCourses,
-      activeCourseId: _game.activeCourseId,
-      courseTicksLeft: _game.courseTicksLeft,
-      employees: _game.employees,
-      officeId: _game.officeId,
-      unseenEvents: _game.unseenEvents,
-      employeePool: _game.employeePool,
-      nextPoolRefresh: _game.nextPoolRefresh,
-      character: _game.character,
-      perks: _game.perks,
-      tick: _game.tick,
-    );
+    _game = _game.copyWith(activeJobId: null);
     notifyListeners();
   }
 
@@ -740,7 +736,7 @@ class GameState extends ChangeNotifier {
     if (course == null) return false;
     // Student: -30% course cost
     final price = _game.character == CharacterType.student
-        ? (course.price * 0.7).ceil()
+        ? (course.price * GameConfig.studentCourseDiscount).ceil()
         : course.price;
     if (_game.money < price) return false;
     if (_game.activeCourseId != null) return false;
@@ -775,7 +771,7 @@ class GameState extends ChangeNotifier {
     all.shuffle();
     _game = _game.copyWith(
       employeePool: all.take(all.length > 4 ? 4 : all.length).toList(),
-      nextPoolRefresh: _game.tick + 300,
+      nextPoolRefresh: _game.tick + GameConfig.employeePoolRefreshTicks,
     );
     notifyListeners();
   }
@@ -828,7 +824,7 @@ class GameState extends ChangeNotifier {
       name: template.name,
       principal: template.principal,
       interestPerMinute: template.interestPerMinute,
-    )..remaining = template.principal * 1.1; // 10% fee upfront
+    )..remaining = template.principal * (1 + GameConfig.loanOriginationFee);
     _game = _game.copyWith(
       money: _game.money + loan.principal,
       activeLoans: [..._game.activeLoans, loan],
@@ -900,7 +896,8 @@ class GameState extends ChangeNotifier {
   // ── Events ──
 
   int get blackMarketRefreshIn {
-    if (_nextBmRefresh == 0) _nextBmRefresh = _game.tick + 300;
+    if (_nextBmRefresh == 0)
+      _nextBmRefresh = _game.tick + GameConfig.blackMarketRefreshTicks;
     return (_nextBmRefresh - _game.tick).clamp(0, 9999);
   }
 
@@ -932,10 +929,15 @@ class GameState extends ChangeNotifier {
     switch (perk.effect) {
       case PerkEffect.betterMobo:
         return game.copyWith(
-          farm: game.farm.copyWith(totalSlots: game.farm.totalSlots + 2),
+          farm: game.farm.copyWith(
+            totalSlots: game.farm.totalSlots + GameConfig.betterMoboSlots,
+          ),
         );
       case PerkEffect.cheapElectricity:
-        return game.copyWith(electricityRate: game.electricityRate * 0.8);
+        return game.copyWith(
+          electricityRate:
+              game.electricityRate * (1 - GameConfig.cheapElectricityDiscount),
+        );
       default:
         return game; // applied dynamically in systems
     }
@@ -990,9 +992,10 @@ class GameState extends ChangeNotifier {
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return false;
     final damage = 1.0 - gpu.condition;
-    var cost = (model.price * 0.30 * damage).ceil();
+    var cost = (model.price * GameConfig.repairCostFraction * damage).ceil();
     // Engineer: -30% repair cost
-    if (_game.character == CharacterType.engineer) cost = (cost * 0.7).ceil();
+    if (_game.character == CharacterType.engineer)
+      cost = (cost * GameConfig.engineerRepairDiscount).ceil();
     if (_game.money < cost) return false;
 
     final newList = [..._game.farm.gpuList];
@@ -1014,7 +1017,8 @@ class GameState extends ChangeNotifier {
     final debuff = DebuffCatalog.byId(debuffId);
     if (debuff == null) return false;
     var cost = debuff.repairCost;
-    if (_game.character == CharacterType.engineer) cost = (cost * 0.7).ceil();
+    if (_game.character == CharacterType.engineer)
+      cost = (cost * GameConfig.engineerRepairDiscount).ceil();
     if (_game.money < cost) return false;
 
     final newList = [..._game.farm.gpuList];

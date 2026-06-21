@@ -1,6 +1,7 @@
 import '../catalogs/coin_catalog.dart';
 import '../catalogs/debuff_catalog.dart';
 import '../catalogs/gpu_catalog.dart';
+import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/gpu_instance.dart';
 import '../models/gpu_model.dart';
@@ -21,14 +22,14 @@ double _effectiveHashrate(
   double base = model.baseHashrate;
 
   if (gpu.effectiveOverclock > 0) {
-    base *= 1 + 0.2 * gpu.effectiveOverclock;
+    base *= 1 + GameConfig.overclockHashratePerLevel * gpu.effectiveOverclock;
   }
 
   if (perks.any((p) => p.effect == PerkEffect.siliconLottery)) {
-    base *= 1.1;
+    base *= 1 + GameConfig.siliconLotteryHashrateBonus;
   }
   if (perks.any((p) => p.effect == PerkEffect.riskLover)) {
-    base *= 1.5;
+    base *= 1 + GameConfig.riskLoverHashrateBonus;
   }
 
   for (final m in modifiers.where((m) => m.stat == AffectedStat.hashrate)) {
@@ -36,13 +37,12 @@ double _effectiveHashrate(
   }
 
   base *= gpu.condition;
-  // Debuffs
   for (final d in gpu.debuffs) {
     final debuff = DebuffCatalog.byId(d);
     if (debuff != null) base *= debuff.hashrateMul;
   }
-  // Character: Miner +25% hashrate
-  if (character == CharacterType.miner) base *= 1.25;
+  if (character == CharacterType.miner)
+    base *= 1 + GameConfig.minerHashrateBonus;
   return base;
 }
 
@@ -74,16 +74,17 @@ class MiningSystem {
         continue;
       }
 
-      // Progress per tick: hashrate * 0.015 (10 MH/s → 0.15/tick → ~7s cycle)
       final empBonus = EmployeeSystem.hashrateBonus(game);
-      var progress = gpu.cycleProgress + hashrate * 0.015 * (1 + empBonus);
+      var progress =
+          gpu.cycleProgress +
+          hashrate * GameConfig.cycleProgressPerHashrate * (1 + empBonus);
       if (progress >= 1.0) {
         // Cycle complete — grant reward
         final completions = progress.floor();
         progress -= completions;
         final coin = CoinCatalog.byId(gpu.miningCoinId);
         final reward = coin?.baseReward ?? 1.0;
-        final amount = 0.008 * reward * completions;
+        final amount = GameConfig.rewardPerCycle * reward * completions;
         produced[gpu.miningCoinId] = (produced[gpu.miningCoinId] ?? 0) + amount;
       }
       updatedGpus.add(gpu.copyWith(cycleProgress: progress));
