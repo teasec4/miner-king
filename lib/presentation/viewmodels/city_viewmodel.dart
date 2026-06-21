@@ -1,3 +1,4 @@
+import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
@@ -90,7 +91,7 @@ class CityViewModel {
       .whereType<Employee>()
       .toList();
   List<EmployeeSynergy> get activeSynergies =>
-      EmployeeSystem.activeSynergies(_game);
+      EmployeeSystem.activeSynergies(game);
 
   int get officeSlots {
     final id = game.officeId;

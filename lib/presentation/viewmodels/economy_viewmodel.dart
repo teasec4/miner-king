@@ -1,3 +1,4 @@
+import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/investment.dart';
@@ -23,7 +24,7 @@ class EconomyViewModel {
   double get netProfitPerMin {
     double revenue = 0;
     for (final gpu in game.farm.gpuList) {
-      revenue += MiningSystem.revenuePerMin(gpu, _game);
+      revenue += MiningSystem.revenuePerMin(gpu, game);
     }
     return revenue - electricityCostPerMin;
   }
@@ -49,7 +50,7 @@ class EconomyViewModel {
 
   List<Loan> get activeLoans => game.activeLoans;
   Map<String, int> get loanRepayments => game.loanRepayments;
-  double get totalDebt => CreditSystem.totalDebt(_game);
+  double get totalDebt => CreditSystem.totalDebt(game);
 
   bool isLoanUnlocked(String loanId) {
     final tiers = ['small', 'medium', 'large'];

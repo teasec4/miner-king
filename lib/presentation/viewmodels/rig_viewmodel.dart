@@ -13,6 +13,7 @@ import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
+import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 
 /// ViewModel for the Rig tab: GPU list, hashrate, temps, equipment.

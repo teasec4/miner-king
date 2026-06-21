@@ -1,3 +1,4 @@
+import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';

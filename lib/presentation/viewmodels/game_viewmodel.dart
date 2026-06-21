@@ -1,4 +1,9 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
+import 'package:crypto_king/domain/catalogs/paste_catalog.dart';
+import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
+import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
@@ -8,6 +13,7 @@ import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/presentation/notifiers/notifiers.dart';
+import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/rig_viewmodel.dart';
 import 'package:crypto_king/presentation/viewmodels/economy_viewmodel.dart';
 import 'package:crypto_king/presentation/viewmodels/market_viewmodel.dart';
