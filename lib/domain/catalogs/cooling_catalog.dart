@@ -19,7 +19,7 @@ class CoolingCatalog {
     id: 'basic',
     name: 'Stock Fan',
     price: 100,
-    tempReduction: 0,
+    tempReduction: -2,
   );
   static const fans = CoolingUpgrade(
     id: 'fans',

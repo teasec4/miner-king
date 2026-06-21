@@ -1,6 +1,7 @@
 import '../catalogs/debuff_catalog.dart';
 import '../catalogs/gpu_catalog.dart';
 import '../catalogs/paste_catalog.dart';
+import '../catalogs/psu_catalog.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
 
@@ -53,8 +54,9 @@ class ThermalSystem {
         temp -= 15;
       }
 
-      // Overclock adds heat
-      temp += gpu.effectiveOverclock * 25.0;
+      // Overclock adds heat — PSU quality reduces OC heat
+      final psuIdx2 = PsuCatalog.indexOf(gpu.equippedPsu ?? 'psu_stock');
+      temp += gpu.effectiveOverclock * (25.0 - psuIdx2 * 5.0).clamp(5.0, 25.0);
 
       // Worn cards run hotter: up to +20°C when near death
       temp += (1 - gpu.condition) * 20.0;

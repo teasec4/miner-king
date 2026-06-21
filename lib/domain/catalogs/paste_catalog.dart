@@ -19,7 +19,7 @@ class PasteCatalog {
     id: 'paste_none',
     name: 'No Paste',
     price: 50,
-    tempReduction: 0,
+    tempReduction: -1,
   );
   static const basic = PasteUpgrade(
     id: 'paste_basic',
@@ -46,9 +46,11 @@ class PasteCatalog {
     tempReduction: -18,
   );
 
-  static final all = [none, basic, silver, ceramic, liquid];
+  // All buyable/upgradable tiers (excluding 'none' which is the default null state)
+  static final all = [basic, silver, ceramic, liquid];
 
   static PasteUpgrade? byId(String id) {
+    if (id == 'paste_none') return none;
     try {
       return all.firstWhere((p) => p.id == id);
     } catch (_) {
@@ -57,11 +59,13 @@ class PasteCatalog {
   }
 
   static int indexOf(String id) {
+    if (id == 'paste_none') return -1;
     final idx = all.indexWhere((p) => p.id == id);
     return idx >= 0 ? idx : 0;
   }
 
   static int upgradeCost(int fromIdx, int toIdx) {
+    if (fromIdx < 0) fromIdx = 0;
     if (toIdx <= fromIdx || toIdx >= all.length) return 0;
     int cost = 0;
     for (int i = fromIdx + 1; i <= toIdx; i++) {

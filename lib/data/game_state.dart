@@ -289,10 +289,8 @@ class GameState extends ChangeNotifier {
     final model = GpuCatalog.byId(item.itemId);
     if (model == null) return false;
 
-    // Check motherboard can handle this GPU tier
-    if (!SlotCatalog.canInstallGpu(_game.farm.totalSlots, model.id)) {
-      return false;
-    }
+    // Check free slots
+    if (!_game.farm.hasFreeSlots) return false;
 
     final debuffs =
         (item.data?['debuffs'] as List?)?.cast<String>() ?? <String>[];
@@ -437,20 +435,6 @@ class GameState extends ChangeNotifier {
     if (gpuIdx == -1) return false;
     final gpu = _game.farm.gpuList[gpuIdx];
 
-    // Motherboard tier gates equipment level
-    final moboTier = SlotCatalog.tiers.indexWhere(
-      (t) => t.slots == _game.farm.totalSlots,
-    );
-    if (moboTier >= 0) {
-      final itemTier = switch (item.type) {
-        'cooling' => CoolingCatalog.indexOf(item.itemId),
-        'psu' => PsuCatalog.indexOf(item.itemId),
-        'paste' => PasteCatalog.indexOf(item.itemId),
-        _ => 0,
-      };
-      if (itemTier > moboTier) return false;
-    }
-
     final newGpu = switch (item.type) {
       'cooling' => gpu.copyWith(equippedCooling: item.itemId),
       'psu' => gpu.copyWith(equippedPsu: item.itemId),
@@ -515,7 +499,7 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  /// Use a motherboard item from inventory (adds slots).
+  /// Use a motherboard item from inventory (adds its slots to total).
   bool useMotherboard(String inventoryItemId) {
     final invIdx = _game.inventory.indexWhere((i) => i.id == inventoryItemId);
     if (invIdx == -1) return false;
@@ -523,20 +507,20 @@ class GameState extends ChangeNotifier {
     if (item.type != 'motherboard') return false;
 
     final moboSlots = switch (item.itemId) {
+      'mobo_1' => 1,
       'mobo_2' => 2,
       'mobo_4' => 4,
       'mobo_8' => 8,
-      'mobo_12' => 12,
       _ => 0,
     };
-    if (moboSlots <= _game.farm.totalSlots) return false;
+    if (moboSlots <= 0) return false;
 
     final newInventory = [..._game.inventory];
     newInventory.removeAt(invIdx);
 
     _game = _game.copyWith(
       inventory: newInventory,
-      farm: _game.farm.copyWith(totalSlots: moboSlots),
+      farm: _game.farm.copyWith(totalSlots: _game.farm.totalSlots + moboSlots),
     );
     notifyListeners();
     return true;
@@ -547,29 +531,21 @@ class GameState extends ChangeNotifier {
   int equippedUpgradeCost(String gpuId, String type) {
     final gpu = _game.farm.gpuList.where((g) => g.id == gpuId).firstOrNull;
     if (gpu == null) return 0;
-    final moboTier = SlotCatalog.tiers.indexWhere(
-      (t) => t.slots == _game.farm.totalSlots,
-    );
-    if (moboTier < 0) return 0;
     switch (type) {
       case 'cooling':
         final currentId = gpu.equippedCooling ?? 'basic';
         final fromIdx = CoolingCatalog.indexOf(currentId);
-        if (fromIdx >= moboTier) return 0;
         return CoolingCatalog.upgradeCost(fromIdx, fromIdx + 1);
       case 'psu':
         final currentId = gpu.equippedPsu ?? 'psu_stock';
         final fromIdx = PsuCatalog.indexOf(currentId);
-        if (fromIdx >= moboTier) return 0;
         return PsuCatalog.upgradeCost(fromIdx, fromIdx + 1);
       case 'paste':
         final currentId = gpu.equippedPaste ?? 'paste_none';
         final fromIdx = PasteCatalog.indexOf(currentId);
-        if (fromIdx >= moboTier) return 0;
         return PasteCatalog.upgradeCost(fromIdx, fromIdx + 1);
       case 'gpu':
         final fromIdx = GpuCatalog.indexOf(gpu.modelId);
-        if (fromIdx >= moboTier) return 0;
         return GpuCatalog.upgradeCost(fromIdx, fromIdx + 1);
       default:
         return 0;

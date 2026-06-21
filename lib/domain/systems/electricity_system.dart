@@ -1,4 +1,5 @@
 import '../catalogs/gpu_catalog.dart';
+import '../catalogs/psu_catalog.dart';
 import '../models/game.dart';
 import 'employee_system.dart';
 
@@ -30,6 +31,7 @@ class ElectricitySystem {
   }
 
   /// Total power consumption of all GPUs (watts), including overclock penalty.
+  /// PSU efficiency: higher-tier PSU reduces power draw.
   static double _totalPowerConsumption(Game game) {
     double total = 0;
     for (final gpu in game.farm.gpuList) {
@@ -37,8 +39,12 @@ class ElectricitySystem {
       if (!gpu.isPowered) continue;
       final model = GpuCatalog.byId(gpu.modelId);
       if (model == null) continue;
-      // Overclock adds 10% power per level
-      total += model.basePowerConsumption * (1 + gpu.effectiveOverclock * 0.1);
+      var power =
+          model.basePowerConsumption * (1 + gpu.effectiveOverclock * 0.1);
+      // PSU efficiency: each tier reduces power by 5%
+      final psuIdx = PsuCatalog.indexOf(gpu.equippedPsu ?? 'psu_stock');
+      power *= (1 - psuIdx * 0.05);
+      total += power;
     }
     return total;
   }

@@ -153,148 +153,88 @@ class _HomePageState extends State<HomePage> {
       }).toList(),
     ),
   );
-
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerMin;
     final jobIncome = vm.jobIncomePerMin;
     final total = profit + jobIncome;
-    final tc = total >= 0 ? Colors.green : Colors.red;
     final btc = vm.coinState('btc');
-    return Padding(
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 6, 8, 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              _chip(
+              _hudStat(
                 Icons.attach_money,
-                '\$${vm.money.toStringAsFixed(0)}',
-                Colors.green,
+                vm.money.toStringAsFixed(0),
+                Colors.greenAccent,
               ),
-              const SizedBox(width: 8),
-              _chip(
+              const SizedBox(width: 10),
+              _hudStat(
                 Icons.account_balance_wallet,
-                '\$${vm.totalHoldingsValue.toStringAsFixed(0)}',
-                Colors.amber,
+                vm.totalHoldingsValue.toStringAsFixed(0),
+                Colors.amberAccent,
               ),
               const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${vm.totalHashrate.toStringAsFixed(1)} MH/s',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    '${profit >= 0 ? "+" : ""}${profit.toStringAsFixed(2)}\$/min mine',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: profit >= 0 ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  if (jobIncome > 0)
-                    Text(
-                      '+${jobIncome.toStringAsFixed(2)}\$/min job',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  Text(
-                    '${total >= 0 ? "+" : ""}${total.toStringAsFixed(2)}\$/min total',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: tc,
-                    ),
-                  ),
-                ],
+              _hudStat(
+                Icons.speed,
+                vm.totalHashrate.toStringAsFixed(1),
+                Colors.cyanAccent,
+              ),
+              const SizedBox(width: 8),
+              _hudStat(
+                total >= 0 ? Icons.trending_up : Icons.trending_down,
+                '${total >= 0 ? "+" : ""}${total.toStringAsFixed(2)}/min',
+                total >= 0 ? Colors.greenAccent : Colors.redAccent,
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Row(
             children: [
-              Icon(Icons.bolt, size: 14, color: Colors.orange.shade700),
+              Icon(Icons.bolt, size: 11, color: Colors.orange.shade300),
               const SizedBox(width: 2),
-              Text(
-                '${vm.totalPowerDraw.toStringAsFixed(0)}W',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-              ),
-              if (vm.solarPower > 0) ...[
-                Text(
-                  ' \u2212 ${vm.solarPower.toStringAsFixed(0)}W \u2600',
-                  style: TextStyle(fontSize: 11, color: Colors.amber.shade700),
+              Expanded(
+                child: Text(
+                  '${vm.totalPowerDraw.toStringAsFixed(0)}W  −\$${vm.electricityCostPerMin.toStringAsFixed(2)}/min',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                 ),
-              ],
-              const SizedBox(width: 8),
-              Text(
-                '\u2212${vm.electricityCostPerMin.toStringAsFixed(2)}\$/min',
-                style: TextStyle(fontSize: 11, color: Colors.red.shade400),
               ),
-              const Spacer(),
               if (btc != null)
                 Text(
                   '${MarketSystem.phaseIcon(btc.phase)} BTC \$${btc.price.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 10, color: Colors.white54),
                 ),
+              if (jobIncome > 0) ...[
+                const SizedBox(width: 8),
+                Text(
+                  '+job ${jobIncome.toStringAsFixed(2)}/min',
+                  style: TextStyle(fontSize: 10, color: Colors.orange.shade300),
+                ),
+              ],
             ],
           ),
-          if (vm.solarPower > 0 || vm.coolingSystem != 'basic')
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Row(
-                children: [
-                  if (vm.coolingSystem != 'basic') ...[
-                    Icon(Icons.ac_unit, size: 12, color: Colors.blue.shade400),
-                    const SizedBox(width: 2),
-                    Text(
-                      vm.coolingLabel,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.blue.shade400,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  if (vm.solarPower > 0) ...[
-                    Icon(
-                      Icons.solar_power,
-                      size: 12,
-                      color: Colors.amber.shade600,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${vm.solarPower.toStringAsFixed(0)}W \u2600',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.amber.shade600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _chip(IconData icon, String value, Color color) => Row(
+  Widget _hudStat(IconData icon, String value, Color color) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 18, color: color),
-      const SizedBox(width: 2),
+      Icon(icon, size: 13, color: color),
+      const SizedBox(width: 3),
       Text(
         value,
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: 14,
+          fontSize: 12,
           color: color,
         ),
       ),
@@ -782,6 +722,12 @@ class _HomePageState extends State<HomePage> {
   };
 
   Widget _invAction(InventoryItem item, GameViewModel vm) {
+    if (item.type == 'gpu' && !vm.farmHasFreeSlots) {
+      return Text(
+        'No slots',
+        style: TextStyle(fontSize: 10, color: Colors.red.shade400),
+      );
+    }
     final label = item.type == 'gpu' ? 'INSTALL' : 'USE';
     final color = item.type == 'gpu' ? Colors.deepPurple : Colors.green;
     final onTap = item.type == 'gpu'

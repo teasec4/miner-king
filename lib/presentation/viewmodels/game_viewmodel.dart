@@ -37,6 +37,7 @@ class GameViewModel {
   int get tick => _game.tick;
   int get totalSlots => _game.farm.totalSlots;
   int get usedSlots => _game.farm.usedSlots;
+  bool get farmHasFreeSlots => _game.farm.hasFreeSlots;
 
   double get totalHashrate => MiningSystem.totalHashrate(_game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(_game);
@@ -234,53 +235,44 @@ class GameViewModel {
   double get jobIncomePerMin {
     final id = _game.activeJobId;
     if (id == null) return 0;
-    final job = JobCatalog.byId(id);
-    if (job == null) return 0;
-    final exp = _game.jobExperience[id] ?? 0;
-    final level = (exp ~/ job.expPerLevel).clamp(0, job.maxLevel);
-    double base = job.salaryPerTick * 60 * (1.0 + level * 0.1);
-    // Diploma bonus (matching JobSystem logic)
+    // Find path and calculate total EXP
     for (final entry in JobCatalog.paths.entries) {
-      final name = entry.key;
       final path = entry.value;
       if (path.any((j) => j.id == id)) {
-        var bonus = 1.0;
-        switch (name) {
-          case 'Tech & IT':
-            if (_game.completedCourses.contains('basic_it')) {
-              bonus += 0.20;
-            }
-            if (_game.completedCourses.contains('data_analytics')) {
-              bonus += 0.20;
-            }
-            if (_game.completedCourses.contains('programming')) {
-              bonus += 0.20;
-            }
-          case 'Business & Finance':
-            if (_game.completedCourses.contains('management')) {
-              bonus += 0.20;
-            }
-            if (_game.completedCourses.contains('data_analytics')) {
-              bonus += 0.20;
-            }
-            if (_game.completedCourses.contains('marketing')) {
-              bonus += 0.20;
-            }
-          case 'Creative & Media':
-            if (_game.completedCourses.contains('marketing')) {
-              bonus += 0.20;
-            }
-          case 'Engineering':
-            if (_game.completedCourses.contains('programming')) {
-              bonus += 0.20;
-            }
-          default:
+        int totalExp = 0;
+        for (final j in path) {
+          totalExp += _game.jobExperience[j.id] ?? 0;
         }
-        if (_game.completedCourses.contains('business')) bonus += 0.25;
-        return base * bonus;
+        final job = JobCatalog.byId(id)!;
+        final level = (totalExp ~/ job.expPerLevel).clamp(0, path.length - 1);
+        final title = path[level];
+        var bonus = _diplomaBonus(entry.key);
+        return title.salaryPerTick * 60 * (1.0 + level * 0.1) * bonus;
       }
     }
-    return base;
+    return 0;
+  }
+
+  double _diplomaBonus(String pathName) {
+    double bonus = 1.0;
+    final courses = _game.completedCourses;
+    switch (pathName) {
+      case 'Tech & IT':
+        if (courses.contains('basic_it')) bonus += 0.20;
+        if (courses.contains('data_analytics')) bonus += 0.20;
+        if (courses.contains('programming')) bonus += 0.20;
+      case 'Business & Finance':
+        if (courses.contains('management')) bonus += 0.20;
+        if (courses.contains('data_analytics')) bonus += 0.20;
+        if (courses.contains('marketing')) bonus += 0.20;
+      case 'Creative & Media':
+        if (courses.contains('marketing')) bonus += 0.20;
+      case 'Engineering':
+        if (courses.contains('programming')) bonus += 0.20;
+      default:
+    }
+    if (courses.contains('business')) bonus += 0.25;
+    return bonus;
   }
 
   // ── Education ──
@@ -330,7 +322,6 @@ class GameViewModel {
       return ShopGpuEntry(
         model: model,
         effectivePrice: price,
-        canAfford: _game.money >= price,
         canBuy: _game.money >= price,
       );
     }).toList();
@@ -404,13 +395,11 @@ class GameViewModel {
 class ShopGpuEntry {
   final GpuModel model;
   final int effectivePrice;
-  final bool canAfford;
   final bool canBuy;
 
   const ShopGpuEntry({
     required this.model,
     required this.effectivePrice,
-    required this.canAfford,
     required this.canBuy,
   });
 }

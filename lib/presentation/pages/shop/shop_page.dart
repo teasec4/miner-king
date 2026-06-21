@@ -93,9 +93,6 @@ class ShopPage extends StatelessWidget {
                 price: e.effectivePrice,
                 canBuy: e.canBuy,
                 onBuy: () => vm.buyGpu(m),
-                hint: !e.canAfford
-                    ? 'Need \$${(e.effectivePrice - vm.money.toInt()).clamp(0, 999999)}'
-                    : null,
                 salePercent: hasSale ? 30 : null,
               );
             }),
@@ -126,6 +123,15 @@ class ShopPage extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
+            _upgradeCard(
+              icon: Icons.water_drop,
+              color: Colors.teal,
+              title: PasteCatalog.none.name,
+              subtitle: '${PasteCatalog.none.tempReduction}°C',
+              price: PasteCatalog.none.price,
+              canBuy: vm.money >= PasteCatalog.none.price,
+              onBuy: () => vm.buyPaste(PasteCatalog.none),
+            ),
             ...PasteCatalog.all.map(
               (p) => _upgradeCard(
                 icon: Icons.water_drop,
@@ -144,14 +150,7 @@ class ShopPage extends StatelessWidget {
   }
 
   String _moboGpuLimit(SlotTier t) {
-    final maxGpu = switch (t.maxGpuTier) {
-      0 => 'GTX 1060',
-      1 => 'RTX 2060',
-      2 => 'RTX 3070',
-      3 => 'RTX 5090',
-      _ => 'Any',
-    };
-    return '${t.slots} slots, max GPU: $maxGpu';
+    return '${t.slots} slots — adds to total';
   }
 
   Widget _section(String title) => Padding(
@@ -175,7 +174,6 @@ class ShopPage extends StatelessWidget {
     required int price,
     required bool canBuy,
     required VoidCallback onBuy,
-    String? hint,
     int? salePercent,
   }) => Card(
     margin: const EdgeInsets.symmetric(vertical: 4),
@@ -238,11 +236,6 @@ class ShopPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (hint != null)
-                  Text(
-                    hint,
-                    style: TextStyle(fontSize: 10, color: Colors.red.shade400),
-                  ),
               ],
             ),
         ],
