@@ -1,7 +1,7 @@
 import 'coin_state.dart';
 import '../config/game_config.dart';
 import 'farm.dart';
-import 'game_event.dart';
+import '../events/game_events.dart';
 import 'inventory_item.dart';
 import 'investment.dart';
 import 'loan.dart';

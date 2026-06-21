@@ -1,5 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/models/game_event.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/presentation/pages/bank/bank_page.dart';
 import 'package:crypto_king/presentation/pages/black_market/black_market_page.dart';
 import 'package:crypto_king/presentation/pages/institute/institute_page.dart';

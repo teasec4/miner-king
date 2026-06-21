@@ -1,8 +1,8 @@
 import 'dart:math';
 import '../catalogs/event_catalog.dart';
 import '../config/game_config.dart';
+import '../events/game_events.dart';
 import '../models/game.dart';
-import '../models/game_event.dart';
 import 'employee_system.dart';
 
 /// Interface for random event triggering and lifecycle.
@@ -28,17 +28,19 @@ class DefaultEventSystem implements EventSystem {
     // ── Tick active events ──
     final updatedEvents = <GameEvent>[];
     for (final e in game.activeEvents) {
+      g = e.onTick(g);
+
       if (e.isInstant) {
         final remaining = e.remainingTicks - 1;
         if (remaining <= -GameConfig.instantEventCleanupDelay) continue;
-        updatedEvents.add(e.copyWith(remainingTicks: remaining));
+        updatedEvents.add(e.withRemaining(remaining));
       } else {
         final decay = GameConfig.securityTickDecay + durationReduction;
         final remaining = (e.remainingTicks - decay).ceil();
         if (remaining <= 0) {
-          g = _removeEvent(g, e);
+          g = e.onRemove(g);
         } else {
-          updatedEvents.add(e.copyWith(remainingTicks: remaining));
+          updatedEvents.add(e.withRemaining(remaining));
         }
       }
     }
@@ -53,13 +55,15 @@ class DefaultEventSystem implements EventSystem {
             GameConfig.maxEventInterval - GameConfig.minEventInterval,
           );
       if (g.activeEvents.length < GameConfig.maxActiveEvents) {
-        final securityReduction = EmployeeSystem.eventChanceReduction(g);
-        final event = _pickRandomEvent(g, securityReduction);
+        final event = _pickRandomEvent(g);
         if (event != null) {
-          g = _applyEvent(g, event);
+          g = event.onApply(g);
           final unseen = Map<String, int>.from(g.unseenEvents);
           unseen[event.category] = (unseen[event.category] ?? 0) + 1;
-          g = g.copyWith(unseenEvents: unseen);
+          g = g.copyWith(
+            activeEvents: [...g.activeEvents, event],
+            unseenEvents: unseen,
+          );
           triggered = event;
         }
       }
@@ -68,7 +72,9 @@ class DefaultEventSystem implements EventSystem {
     return (g, triggered);
   }
 
-  GameEvent? _pickRandomEvent(Game game, double securityReduction) {
+  GameEvent? _pickRandomEvent(Game game) {
+    final securityReduction = EmployeeSystem.eventChanceReduction(game);
+
     final cats = ['rig', 'market', 'city'];
     var cat = cats[_random.nextInt(cats.length)];
     if (cat == 'rig' &&
@@ -76,15 +82,8 @@ class DefaultEventSystem implements EventSystem {
         _random.nextDouble() < securityReduction) {
       cat = cats[_random.nextInt(cats.length)];
     }
-    var pool = switch (cat) {
-      'rig' => EventCatalog.rigEvents,
-      'market' => EventCatalog.marketEvents,
-      _ => EventCatalog.cityEvents,
-    };
-    pool = pool
-        .where((e) => !game.activeEvents.any((a) => a.id == e.id))
-        .toList();
-    if (pool.isEmpty) return null;
+
+    var pool = _eventPool(cat, game);
 
     final mood = game.marketMood;
     final r = _random.nextDouble();
@@ -101,126 +100,73 @@ class DefaultEventSystem implements EventSystem {
     return pool[_random.nextInt(pool.length)];
   }
 
-  Game _applyEvent(Game game, GameEvent event) {
-    var g = game;
-    switch (event.id) {
-      case 'dust':
-      case 'fan_fail':
-        break;
-      case 'overheat':
-        {
-          final newList = g.farm.gpuList.map((gpu) {
-            return gpu.copyWith(
-              condition: (gpu.condition - 0.05).clamp(0.0, 1.0),
-            );
-          }).toList();
-          g = g.copyWith(farm: g.farm.copyWith(gpuList: newList));
+  /// Builds the pool of available event templates for a category.
+  /// Coin-price events and FreePower are created with actual game data.
+  List<GameEvent> _eventPool(String cat, Game game) {
+    final existingIds = game.activeEvents.map((e) => e.id).toSet();
+
+    switch (cat) {
+      case 'rig':
+        return EventCatalog.rigEvents
+            .where((e) => !existingIds.contains(e.id))
+            .toList();
+
+      case 'market':
+        final pool = <GameEvent>[];
+        if (!existingIds.contains('gpu_sale')) {
+          pool.add(const GpuSaleEvent());
         }
-        break;
-      case 'gpu_sale':
-        break;
-      case 'market_crash':
-        {
-          final eligible = g.coins.where((c) => !c.eventImmune).toList();
-          if (eligible.isNotEmpty) {
+        // Coin-price events need a random eligible coin
+        final eligible = game.coins.where((c) => !c.eventImmune).toList();
+        if (eligible.isNotEmpty) {
+          if (!existingIds.contains('market_crash')) {
             final coin = _weightedPick(eligible, (c) => c.crashChance);
-            final idx = g.coins.indexOf(coin);
-            final newCoins = [...g.coins];
-            newCoins[idx] = coin.copyWith(
-              price: (coin.price * 0.6).clamp(0.01, 999999),
-            );
-            g = g.copyWith(coins: newCoins);
-            event = event.copyWith(
-              data: {'coinIdx': idx, 'oldPrice': coin.price},
+            pool.add(
+              MarketCrashEvent(
+                coinIdx: game.coins.indexOf(coin),
+                oldPrice: coin.price,
+              ),
             );
           }
-        }
-        break;
-
-      case 'mining_boom':
-        {
-          final eligible = g.coins.where((c) => !c.eventImmune).toList();
-          if (eligible.isNotEmpty) {
+          if (!existingIds.contains('mining_boom')) {
             final coin = _weightedPick(eligible, (c) => c.boomChance);
-            final idx = g.coins.indexOf(coin);
-            final newCoins = [...g.coins];
-            newCoins[idx] = coin.copyWith(
-              price: (coin.price * 1.3).clamp(0.01, 999999),
-            );
-            g = g.copyWith(coins: newCoins);
-            event = event.copyWith(
-              data: {'coinIdx': idx, 'oldPrice': coin.price},
+            pool.add(
+              MiningBoomEvent(
+                coinIdx: game.coins.indexOf(coin),
+                oldPrice: coin.price,
+              ),
             );
           }
-        }
-        break;
-
-      case 'fomo_rally':
-        {
-          final eligible = g.coins.where((c) => !c.eventImmune).toList();
-          if (eligible.isNotEmpty) {
+          if (!existingIds.contains('fomo_rally')) {
             final coin = _weightedPick(eligible, (c) => c.boomChance);
-            final idx = g.coins.indexOf(coin);
-            final newCoins = [...g.coins];
-            newCoins[idx] = coin.copyWith(
-              price: (coin.price * 1.5).clamp(0.01, 999999),
-            );
-            g = g.copyWith(coins: newCoins);
-            event = event.copyWith(
-              data: {'coinIdx': idx, 'oldPrice': coin.price},
+            pool.add(
+              FomoRallyEvent(
+                coinIdx: game.coins.indexOf(coin),
+                oldPrice: coin.price,
+              ),
             );
           }
         }
-        break;
+        return pool;
 
-      case 'power_surge':
-        g = g.copyWith(electricityRate: g.electricityRate * 2);
-        break;
-      case 'tax_break':
-        g = g.copyWith(electricityRate: g.electricityRate * 0.5);
-        break;
-      case 'rent_hike':
-        break;
-      case 'job_fair':
-        break;
-      case 'free_power':
-        g = g.copyWith(electricityRate: 0);
-        event = event.copyWith(data: {'oldRate': g.electricityRate});
-        break;
-    }
-    return g.copyWith(activeEvents: [...g.activeEvents, event]);
-  }
+      case 'city':
+        final pool = <GameEvent>[];
+        if (!existingIds.contains('tax_break')) {
+          pool.add(const TaxBreakEvent());
+        }
+        if (!existingIds.contains('job_fair')) {
+          pool.add(const JobFairEvent());
+        }
+        if (!existingIds.contains('rent_hike')) {
+          pool.add(const RentHikeEvent());
+        }
+        if (!existingIds.contains('free_power')) {
+          pool.add(FreePowerEvent(oldRate: game.electricityRate));
+        }
+        return pool;
 
-  Game _removeEvent(Game game, GameEvent event) {
-    switch (event.id) {
-      case 'power_surge':
-        return game.copyWith(electricityRate: game.electricityRate / 2);
-      case 'tax_break':
-        return game.copyWith(electricityRate: game.electricityRate / 0.5);
-      case 'free_power':
-        final data = event.data;
-        if (data != null && data['oldRate'] != null) {
-          return game.copyWith(
-            electricityRate: (data['oldRate'] as num).toDouble(),
-          );
-        }
-        return game;
-      case 'market_crash':
-      case 'mining_boom':
-      case 'fomo_rally':
-        final data = event.data;
-        if (data != null) {
-          final idx = data['coinIdx'] as int;
-          final oldPrice = (data['oldPrice'] as num).toDouble();
-          if (idx < game.coins.length) {
-            final newCoins = [...game.coins];
-            newCoins[idx] = game.coins[idx].copyWith(price: oldPrice);
-            return game.copyWith(coins: newCoins);
-          }
-        }
-        return game;
       default:
-        return game;
+        return [];
     }
   }
 

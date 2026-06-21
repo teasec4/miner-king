@@ -11,7 +11,7 @@ import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
-import 'package:crypto_king/domain/models/game_event.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/models/investment.dart';
@@ -94,7 +94,7 @@ class GameViewModel {
   /// Active events affecting a specific coin (crash/boom).
   GameEvent? eventForCoin(int coinIdx) {
     for (final e in _game.activeEvents) {
-      if (e.data != null && e.data!['coinIdx'] == coinIdx) return e;
+      if (e.coinIdx == coinIdx) return e;
     }
     return null;
   }

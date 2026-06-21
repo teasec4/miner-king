@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
-import 'package:crypto_king/domain/models/game_event.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/market_phase.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';

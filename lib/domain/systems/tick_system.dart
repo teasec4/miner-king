@@ -1,5 +1,5 @@
 import '../models/game.dart';
-import '../models/game_event.dart';
+import '../events/game_events.dart';
 import 'course_system.dart';
 import 'credit_system.dart';
 import 'electricity_system.dart';

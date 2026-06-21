@@ -1,7 +1,7 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
-import 'package:crypto_king/domain/models/game_event.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/pages/home/gpu_detail_page.dart';

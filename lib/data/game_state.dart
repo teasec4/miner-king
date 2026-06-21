@@ -16,7 +16,7 @@ import 'package:crypto_king/domain/commands/life_commands.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/farm.dart';
 import 'package:crypto_king/domain/models/game.dart';
-import 'package:crypto_king/domain/models/game_event.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
 import 'package:crypto_king/domain/models/loan.dart';
