@@ -7,6 +7,7 @@ import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 import 'package:crypto_king/presentation/viewmodels/rig_viewmodel.dart';
 import 'package:crypto_king/presentation/viewmodels/economy_viewmodel.dart';
 import 'package:crypto_king/presentation/viewmodels/market_viewmodel.dart';
@@ -30,11 +31,25 @@ class GameViewModel {
   final MarketViewModel market;
   final CityViewModel city;
 
-  GameViewModel(GameState state)
-    : rig = RigViewModel(state),
-      economy = EconomyViewModel(state),
-      market = MarketViewModel(state),
-      city = CityViewModel(state);
+  GameViewModel({
+    required RigNotifier rig,
+    required EconomyNotifier economy,
+    required MarketNotifier market,
+    required CityNotifier city,
+  }) : rig = RigViewModel(rig),
+       economy = EconomyViewModel(economy),
+       market = MarketViewModel(market),
+       city = CityViewModel(city);
+
+  /// Backward-compat: create from GameState.
+  factory GameViewModel.fromState(GameState state) {
+    return GameViewModel(
+      rig: state.rigN,
+      economy: state.economyN,
+      market: state.marketN,
+      city: state.cityN,
+    );
+  }
 
   // ── Common ──
 

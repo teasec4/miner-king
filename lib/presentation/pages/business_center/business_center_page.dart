@@ -9,7 +9,7 @@ class BusinessCenterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
     final office = vm.officeId != null
         ? OfficeCatalog.byId(vm.officeId!)
         : null;

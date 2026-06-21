@@ -18,7 +18,7 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
     final gpu = vm.gpus
         .where((g) => g.instanceId == widget.instanceId)
         .firstOrNull;

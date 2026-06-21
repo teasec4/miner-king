@@ -1,4 +1,5 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:crypto_king/router/router.dart';
 import 'package:flutter/material.dart';
@@ -6,12 +7,21 @@ import 'package:provider/provider.dart';
 
 void main() {
   final gameState = GameState();
-  final gameViewModel = GameViewModel(gameState);
+  final gameViewModel = GameViewModel(
+    rig: gameState.rigN,
+    economy: gameState.economyN,
+    market: gameState.marketN,
+    city: gameState.cityN,
+  );
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: gameState),
+        ChangeNotifierProvider.value(value: gameState.rigN),
+        ChangeNotifierProvider.value(value: gameState.economyN),
+        ChangeNotifierProvider.value(value: gameState.marketN),
+        ChangeNotifierProvider.value(value: gameState.cityN),
         Provider.value(value: gameViewModel),
       ],
       child: const MyApp(),

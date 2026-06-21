@@ -1,15 +1,16 @@
-import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/job_catalog.dart';
 import 'package:crypto_king/domain/catalogs/office_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/systems/employee_system.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 
 /// ViewModel for the City tab: jobs, courses, office, employees.
 class CityViewModel {
-  final GameState state;
-  CityViewModel(this.state);
-  Game get game => state.game;
+  final CityNotifier _n;
+  CityViewModel(this._n);
+  Game get game => _n.game;
+  GameState get state => _n.state;
 
   // ── Jobs ──
 

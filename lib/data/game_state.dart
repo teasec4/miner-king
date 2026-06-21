@@ -23,6 +23,7 @@ import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/systems.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -31,6 +32,13 @@ class GameState extends ChangeNotifier {
 
   final Systems _systems;
   late final TickSystem _tickSystem;
+
+  // Domain-specific notifiers — pages subscribe to these individually
+  // to avoid rebuilds from unrelated data changes.
+  late final RigNotifier rigN;
+  late final EconomyNotifier economyN;
+  late final MarketNotifier marketN;
+  late final CityNotifier cityN;
 
   Game _game;
   Timer? _tickTimer;
@@ -47,9 +55,21 @@ class GameState extends ChangeNotifier {
     : _systems = systems ?? Systems(),
       _game = _createInitialGame() {
     _tickSystem = TickSystem(_systems);
+    rigN = RigNotifier(this);
+    economyN = EconomyNotifier(this);
+    marketN = MarketNotifier(this);
+    cityN = CityNotifier(this);
   }
   // Watchdog + tick timer start in setCharacter(), not here.
   // Game must not tick until the player picks a character.
+
+  void _notifyAll() {
+    notifyListeners();
+    rigN.notifyListeners();
+    economyN.notifyListeners();
+    marketN.notifyListeners();
+    cityN.notifyListeners();
+  }
 
   void _startWatchdog() {
     _watchdog?.cancel();
@@ -234,7 +254,7 @@ class GameState extends ChangeNotifier {
         lastEvent = event;
         onEvent?.call(event);
       }
-      notifyListeners();
+      _notifyAll();
     } catch (_) {
       _tickTimer?.cancel();
       _tickTimer = Timer.periodic(

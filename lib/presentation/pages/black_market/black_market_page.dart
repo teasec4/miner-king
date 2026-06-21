@@ -53,7 +53,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
     final gen = vm.blackMarketGen;
     final refreshIn = vm.blackMarketRefreshIn;
 

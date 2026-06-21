@@ -1,14 +1,15 @@
-import 'package:crypto_king/data/gamestate.dart';
 import 'package:crypto_king/domain/events/game_events.dart';
-import 'package:crypto_king/domain/models/coinstate.dart';
+import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 
 /// ViewModel for the Market tab: coins, prices, mood, events.
 class MarketViewModel {
-  final GameState state;
-  MarketViewModel(this.state);
-  Game get game => state.game;
+  final MarketNotifier _n;
+  MarketViewModel(this._n);
+  Game get game => _n.game;
+  GameState get state => _n.state;
 
   List<CoinState> get coins => game.coins;
   CoinState? coinState(String id) => game.coin(id);

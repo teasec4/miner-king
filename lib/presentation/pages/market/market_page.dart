@@ -20,7 +20,7 @@ class _MarketPageState extends State<MarketPage> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
     final marketEvents = vm.activeEvents
         .where((e) => e.category == 'market')
         .toList();

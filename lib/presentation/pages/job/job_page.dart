@@ -56,7 +56,7 @@ class JobPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
     final activeId = vm.activeJobId;
     final activeJob = activeId != null ? JobCatalog.byId(activeId) : null;
 

@@ -1,4 +1,3 @@
-import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/config/game_config.dart';
@@ -9,12 +8,14 @@ import 'package:crypto_king/domain/models/player_profile.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 
 /// ViewModel for the Rig tab: GPU list, hashrate, temps, equipment.
 class RigViewModel {
-  final GameState state;
-  RigViewModel(this.state);
-  Game get game => state.game;
+  final RigNotifier _n;
+  RigViewModel(this._n);
+  Game get game => _n.game;
+  GameState get state => _n.state;
 
   double get totalHashrate => MiningSystem.totalHashrate(game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(game);

@@ -40,7 +40,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
     return Scaffold(
       appBar: AppBar(title: const Text('Mining Rig'), centerTitle: true),
       body: SafeArea(

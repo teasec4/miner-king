@@ -1,17 +1,18 @@
-import 'package:crypto_king/data/gamestate.dart';
-import 'package:crypto_king/domain/models/coinstate.dart';
+import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/systems/credit_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
 
 /// ViewModel for economy: money, holdings, electricity, loans, investments, property.
 class EconomyViewModel {
-  final GameState state;
-  EconomyViewModel(this.state);
-  Game get game => state.game;
+  final EconomyNotifier _n;
+  EconomyViewModel(this._n);
+  Game get game => _n.game;
+  GameState get state => _n.state;
 
   double get money => game.money;
   double get electricityRate => game.electricityRate;
