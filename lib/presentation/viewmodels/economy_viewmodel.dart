@@ -1,0 +1,79 @@
+import 'package:crypto_king/data/gamestate.dart';
+import 'package:crypto_king/domain/models/coinstate.dart';
+import 'package:crypto_king/domain/models/game.dart';
+import 'package:crypto_king/domain/models/investment.dart';
+import 'package:crypto_king/domain/models/loan.dart';
+import 'package:crypto_king/domain/systems/credit_system.dart';
+import 'package:crypto_king/domain/systems/electricity_system.dart';
+import 'package:crypto_king/domain/systems/mining_system.dart';
+
+/// ViewModel for economy: money, holdings, electricity, loans, investments, property.
+class EconomyViewModel {
+  final GameState state;
+  EconomyViewModel(this.state);
+  Game get game => state.game;
+
+  double get money => game.money;
+  double get electricityRate => game.electricityRate;
+
+  double get electricityCostPerHour => ElectricitySystem.costPerHour(game);
+  double get electricityCostPerMin => electricityCostPerHour / 60;
+
+  double get netProfitPerMin {
+    double revenue = 0;
+    for (final gpu in game.farm.gpuList) {
+      revenue += MiningSystem.revenuePerMin(gpu, _game);
+    }
+    return revenue - electricityCostPerMin;
+  }
+
+  // ── Holdings ──
+
+  double holding(String coinId) => game.holdings[coinId] ?? 0;
+  List<CoinState> get coins => game.coins;
+  CoinState? coinState(String id) => game.coin(id);
+
+  double holdingValue(String coinId) {
+    final c = game.coin(coinId);
+    return (c?.price ?? 0) * holding(coinId);
+  }
+
+  double get totalHoldingsValue {
+    return game.coins.fold(0, (sum, c) => sum + holdingValue(c.id));
+  }
+
+  bool canSellCoin(String coinId) => holding(coinId) > 0;
+
+  // ── Loans ──
+
+  List<Loan> get activeLoans => game.activeLoans;
+  Map<String, int> get loanRepayments => game.loanRepayments;
+  double get totalDebt => CreditSystem.totalDebt(_game);
+
+  bool isLoanUnlocked(String loanId) {
+    final tiers = ['small', 'medium', 'large'];
+    final idx = tiers.indexOf(loanId);
+    if (idx <= 0) return true;
+    return (game.loanRepayments[tiers[idx - 1]] ?? 0) >= 2;
+  }
+
+  // ── Investments & Property ──
+
+  List<ActiveInvestment> get activeInvestments => game.activeInvestments;
+  List<String> get properties => game.properties;
+
+  // ── Actions ──
+
+  void sellCoin(String id) => state.sellCoin(id);
+  void sellAllCoins() => state.sellAllCoins();
+  bool buyCoinWithCash(String id, double cash) =>
+      state.buyCoinWithCash(id, cash);
+  bool sellCoinForCash(String id, double amount) =>
+      state.sellCoinForCash(id, amount);
+  bool swapCoins(String from, String to, double amount) =>
+      state.swapCoins(from, to, amount);
+  bool takeLoan(String id) => state.takeLoan(id);
+  bool repayLoan(String id, double amount) => state.repayLoan(id, amount);
+  bool invest(String id, double amount) => state.invest(id, amount);
+  bool buyProperty(String id) => state.buyProperty(id);
+}
