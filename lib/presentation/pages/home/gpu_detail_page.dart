@@ -353,8 +353,8 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
         ),
       ),
       floatingActionButton: Badge(
-        label: Text('${vm.unequippedInventory.length}'),
-        isLabelVisible: vm.unequippedInventory.isNotEmpty,
+        label: Text('${vm.gpuInventoryCount}'),
+        isLabelVisible: vm.gpuInventoryCount > 0,
         child: FloatingActionButton.small(
           onPressed: () => setState(() => _showInventory = !_showInventory),
           child: const Icon(Icons.inventory),
@@ -390,7 +390,7 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
   // ── Inventory section ──
 
   Widget _inventorySection(GameViewModel vm, String gpuId) {
-    final items = vm.unequippedInventory;
+    final items = vm.unequippedInventory.where((i) => i.type == 'gpu').toList();
     if (items.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(8),
@@ -451,9 +451,6 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
   }
 
   IconData _iconForType(String type) => switch (type) {
-    'cooling' => Icons.ac_unit,
-    'psu' => Icons.power,
-    'motherboard' => Icons.dashboard,
     'gpu' => Icons.memory,
     _ => Icons.inventory,
   };
@@ -507,41 +504,44 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(8),
-                  children: vm.unequippedInventory.map((item) {
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      color: Colors.grey.shade50,
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(
-                          _iconForType(item.type),
-                          size: 20,
-                          color: Colors.grey.shade600,
-                        ),
-                        title: Text(
-                          item.name,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                  children: vm.unequippedInventory
+                      .where((item) => item.type == 'gpu')
+                      .map((item) {
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          color: Colors.grey.shade50,
+                          child: ListTile(
+                            dense: true,
+                            leading: Icon(
+                              _iconForType(item.type),
+                              size: 20,
+                              color: Colors.grey.shade600,
+                            ),
+                            title: Text(
+                              item.name,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              item.detail,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                            trailing: item.type == 'gpu'
+                                ? _invActionBtn(
+                                    'INSTALL',
+                                    Colors.deepPurple,
+                                    () => vm.installGpu(item.id),
+                                  )
+                                : null,
                           ),
-                        ),
-                        subtitle: Text(
-                          item.detail,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        trailing: item.type == 'gpu'
-                            ? _invActionBtn(
-                                'INSTALL',
-                                Colors.deepPurple,
-                                () => vm.installGpu(item.id),
-                              )
-                            : null,
-                      ),
-                    );
-                  }).toList(),
+                        );
+                      })
+                      .toList(),
                 ),
               ),
           ],

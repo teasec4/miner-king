@@ -134,6 +134,8 @@ class RigViewModel {
   List<InventoryItem> get inventory => game.inventory;
   List<InventoryItem> get unequippedInventory =>
       game.inventory.where((i) => !i.isEquipped).toList();
+  int get gpuInventoryCount =>
+      game.inventory.where((i) => i.type == 'gpu' && !i.isEquipped).length;
 
   bool buyGpu(GpuModel m) => state.buyGpu(m);
   bool buyBlackMarketGpu(GpuModel m, int p, List<String> d) =>
@@ -147,6 +149,10 @@ class RigViewModel {
   bool buyCooling(CoolingUpgrade u) => state.buyCooling(u);
   bool buySolar(SolarUpgrade u) => state.buySolar(u);
   bool buyPsu(PsuUpgrade u) => state.buyPsu(u);
+  int get coolingUpgradeCost => state.coolingUpgradeCost();
+  String? get nextCoolingName => state.nextCoolingName();
+  int get psuUpgradeCost => state.psuUpgradeCost();
+  String? get nextPsuName => state.nextPsuName();
   void setMiningCoin(String g, String c) => state.setMiningCoin(g, c);
   void togglePower(String g) => state.togglePower(g);
 }

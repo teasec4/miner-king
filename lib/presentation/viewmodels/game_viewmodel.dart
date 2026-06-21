@@ -67,6 +67,7 @@ class GameViewModel {
   String get psuTier => rig.psuTier;
   int get psuMaxWatt => rig.psuMaxWatt;
   String get psuLabel => rig.psuLabel;
+  int get psuCapacity => rig.psuCapacity;
   int get totalSlots => rig.totalSlots;
   int get usedSlots => rig.usedSlots;
   bool get farmHasFreeSlots => rig.farmHasFreeSlots;
@@ -83,6 +84,7 @@ class GameViewModel {
   List<ShopGpuEntry> get shopGpus => rig.shopGpus;
   List<InventoryItem> get inventory => rig.inventory;
   List<InventoryItem> get unequippedInventory => rig.unequippedInventory;
+  int get gpuInventoryCount => rig.gpuInventoryCount;
 
   // ── Economy ──
 
@@ -155,6 +157,10 @@ class GameViewModel {
   bool buyCooling(CoolingUpgrade u) => rig.buyCooling(u);
   bool buySolar(SolarUpgrade u) => rig.buySolar(u);
   bool buyPsu(PsuUpgrade u) => rig.buyPsu(u);
+  int get coolingUpgradeCost => rig.coolingUpgradeCost;
+  String? get nextCoolingName => rig.nextCoolingName;
+  int get psuUpgradeCost => rig.psuUpgradeCost;
+  String? get nextPsuName => rig.nextPsuName;
   void setMiningCoin(String g, String c) => rig.setMiningCoin(g, c);
   void togglePower(String g) => rig.togglePower(g);
   void startJob(String id) => city.startJob(id);

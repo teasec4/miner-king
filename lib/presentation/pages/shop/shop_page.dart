@@ -2,6 +2,7 @@ import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
+import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,7 @@ class ShopPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Balance header
             Row(
               children: [
                 const Icon(Icons.attach_money, color: Colors.green, size: 20),
@@ -43,7 +45,7 @@ class ShopPage extends StatelessWidget {
             // Motherboard
             _section('Motherboard'),
             Text(
-              'Buy to install from inventory',
+              'Adds GPU slots to your farm',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
@@ -52,7 +54,7 @@ class ShopPage extends StatelessWidget {
                 icon: Icons.dashboard,
                 color: Colors.green,
                 title: 'Motherboard ${t.slots} slots',
-                subtitle: _moboGpuLimit(t),
+                subtitle: '${t.slots} slots — adds to total',
                 price: t.price,
                 canBuy: vm.money >= t.price,
                 onBuy: () => vm.buySlotTier(t),
@@ -62,7 +64,7 @@ class ShopPage extends StatelessWidget {
             // PSU
             _section('Power Supply'),
             Text(
-              'Buy to equip on GPU later',
+              'Increases total wattage capacity',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
@@ -78,8 +80,51 @@ class ShopPage extends StatelessWidget {
               ),
             ),
 
+            // Cooling
+            _section('Cooling'),
+            Text(
+              'Reduces temperature of all GPUs',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            ...CoolingCatalog.all.map(
+              (c) => _upgradeCard(
+                icon: Icons.ac_unit,
+                color: Colors.blue,
+                title: c.name,
+                subtitle: '${c.tempReduction}°C',
+                price: c.price,
+                canBuy: vm.money >= c.price,
+                onBuy: () => vm.buyCooling(c),
+              ),
+            ),
+
+            // Solar
+            _section('Solar Panels'),
+            Text(
+              'Generates free power, reduces electricity bill',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            ...SolarCatalog.all.map(
+              (s) => _upgradeCard(
+                icon: Icons.solar_power,
+                color: Colors.yellow.shade700,
+                title: s.name,
+                subtitle: '+${s.powerGen.toStringAsFixed(0)}W generated',
+                price: s.price,
+                canBuy: vm.money >= s.price,
+                onBuy: () => vm.buySolar(s),
+              ),
+            ),
+
             // GPUs
             _section('GPUs'),
+            Text(
+              'Buy GPU → goes to inventory → install to slot',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
             ...vm.shopGpus.map((e) {
               final m = e.model;
               final hasSale = vm.hasGpuSale;
@@ -95,33 +140,10 @@ class ShopPage extends StatelessWidget {
                 salePercent: hasSale ? 30 : null,
               );
             }),
-
-            // Cooling
-            _section('Cooling'),
-            Text(
-              'Buy to equip on GPU later',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 4),
-            ...CoolingCatalog.all.map(
-              (c) => _upgradeCard(
-                icon: Icons.ac_unit,
-                color: Colors.blue,
-                title: c.name,
-                subtitle: '${c.tempReduction}°C',
-                price: c.price,
-                canBuy: vm.money >= c.price,
-                onBuy: () => vm.buyCooling(c),
-              ),
-            ),
           ],
         ),
       ),
     );
-  }
-
-  String _moboGpuLimit(SlotTier t) {
-    return '${t.slots} slots — adds to total';
   }
 
   Widget _section(String title) => Padding(

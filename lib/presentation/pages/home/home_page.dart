@@ -4,6 +4,7 @@ import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
+import 'package:crypto_king/presentation/pages/home/farm_detail_page.dart';
 import 'package:crypto_king/presentation/pages/home/gpu_detail_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
@@ -60,8 +61,8 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       floatingActionButton: Badge(
-        label: Text('${vm.unequippedInventory.length}'),
-        isLabelVisible: vm.unequippedInventory.isNotEmpty,
+        label: Text('${vm.gpuInventoryCount}'),
+        isLabelVisible: vm.gpuInventoryCount > 0,
         child: FloatingActionButton.small(
           onPressed: () => setState(() => _showInventory = !_showInventory),
           child: const Icon(Icons.inventory),
@@ -261,43 +262,53 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+              // Header (tap for farm detail)
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FarmDetailPage()),
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade700,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(14),
-                    topRight: Radius.circular(14),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade700,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(14),
+                      topRight: Radius.circular(14),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.dashboard,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Motherboard — $totalSlots slots',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${gpus.length}/$totalSlots',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.dashboard, color: Colors.white, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Motherboard — $totalSlots slots',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${gpus.length}/$totalSlots',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ), // GestureDetector
               // Slots
               Padding(
                 padding: const EdgeInsets.all(10),
