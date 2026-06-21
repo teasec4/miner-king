@@ -8,11 +8,11 @@ import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
+import 'package:crypto_king/domain/config/game_config.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
 import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
-import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/domain/models/investment.dart';
 import 'package:crypto_king/domain/models/loan.dart';
@@ -66,15 +66,7 @@ class GameViewModel {
   double get netProfitPerMin {
     double revenue = 0;
     for (final gpu in _game.farm.gpuList) {
-      final model = GpuCatalog.byId(gpu.modelId);
-      if (model == null) continue;
-      final hashrate = _gpuHashrate(gpu, model);
-      if (hashrate <= 0) continue;
-      final coin = _game.coin(gpu.miningCoinId);
-      if (coin != null) {
-        revenue +=
-            hashrate * 0.015 * 60 * 0.008 * (coin.baseReward) * coin.price;
-      }
+      revenue += MiningSystem.revenuePerMin(gpu, _game);
     }
     return revenue - electricityCostPerMin;
   }
@@ -131,11 +123,8 @@ class GameViewModel {
     return _game.farm.gpuList.map((gpu) {
       final model = GpuCatalog.byId(gpu.modelId);
       final coin = _game.coin(gpu.miningCoinId);
-      final hashrate = _gpuHashrate(gpu, model);
-      // Cycle progress: visible fill on GPU card
       final cycleProgress = gpu.cycleProgress;
-      // Revenue per cycle completion
-      final cycleReward = 0.008 * (coin?.baseReward ?? 1);
+      final cycleReward = GameConfig.rewardPerCycle * (coin?.baseReward ?? 1);
       final revenuePerCycle = cycleReward * (coin?.price ?? 0);
       return GpuDisplayInfo(
         instanceId: gpu.id,
@@ -144,9 +133,8 @@ class GameViewModel {
         miningCoinId: gpu.miningCoinId,
         miningCoinName: coin?.name ?? 'BTC',
         isPowered: gpu.isPowered,
-        revenuePerHour:
-            hashrate * 0.015 * cycleReward * 3600 * (coin?.price ?? 0),
-        revenuePerMin: hashrate * 0.015 * cycleReward * 60 * (coin?.price ?? 0),
+        revenuePerHour: MiningSystem.revenuePerHour(gpu, _game),
+        revenuePerMin: MiningSystem.revenuePerMin(gpu, _game),
         temperature: gpu.temperature,
         condition: gpu.condition,
         overclockLevel: gpu.overclockLevel,
@@ -159,27 +147,6 @@ class GameViewModel {
         debuffs: gpu.debuffs,
       );
     }).toList();
-  }
-
-  double _gpuHashrate(GpuInstance gpu, GpuModel? model) {
-    if (gpu.condition <= 0 || !gpu.isPowered || model == null) return 0;
-    double base = model.baseHashrate;
-    if (gpu.effectiveOverclock > 0) base *= 1 + 0.2 * gpu.effectiveOverclock;
-    if (_game.perks.any((p) => p.effect == PerkEffect.siliconLottery)) {
-      base *= 1.1;
-    }
-    if (_game.perks.any((p) => p.effect == PerkEffect.riskLover)) {
-      base *= 1.5;
-    }
-    base *= gpu.condition;
-    for (final d in gpu.debuffs) {
-      final debuff = DebuffCatalog.byId(d);
-      if (debuff != null) base *= debuff.hashrateMul;
-    }
-    final empBonus = EmployeeSystem.hashrateBonus(_game);
-    base *= (1 + empBonus);
-    if (_game.character == CharacterType.miner) base *= 1.25;
-    return base;
   }
 
   bool canUpgrade(String instanceId) {
@@ -207,7 +174,9 @@ class GameViewModel {
     if (gpu == null || gpu.condition >= 1.0) return 0;
     final model = GpuCatalog.byId(gpu.modelId);
     if (model == null) return 0;
-    final cost = (model.price * 0.30 * (1.0 - gpu.condition)).ceil();
+    final cost =
+        (model.price * GameConfig.repairCostFraction * (1.0 - gpu.condition))
+            .ceil();
     return cost;
   }
 
@@ -247,7 +216,10 @@ class GameViewModel {
         final level = (totalExp ~/ job.expPerLevel).clamp(0, path.length - 1);
         final title = path[level];
         var bonus = _diplomaBonus(entry.key);
-        return title.salaryPerTick * 60 * (1.0 + level * 0.1) * bonus;
+        return title.salaryPerTick *
+            60 *
+            (1.0 + level * GameConfig.levelIncomeMultiplier) *
+            bonus;
       }
     }
     return 0;
@@ -258,20 +230,28 @@ class GameViewModel {
     final courses = _game.completedCourses;
     switch (pathName) {
       case 'Tech & IT':
-        if (courses.contains('basic_it')) bonus += 0.20;
-        if (courses.contains('data_analytics')) bonus += 0.20;
-        if (courses.contains('programming')) bonus += 0.20;
+        if (courses.contains('basic_it'))
+          bonus += GameConfig.diplomaBonusPerCourse;
+        if (courses.contains('data_analytics'))
+          bonus += GameConfig.diplomaBonusPerCourse;
+        if (courses.contains('programming'))
+          bonus += GameConfig.diplomaBonusPerCourse;
       case 'Business & Finance':
-        if (courses.contains('management')) bonus += 0.20;
-        if (courses.contains('data_analytics')) bonus += 0.20;
-        if (courses.contains('marketing')) bonus += 0.20;
+        if (courses.contains('management'))
+          bonus += GameConfig.diplomaBonusPerCourse;
+        if (courses.contains('data_analytics'))
+          bonus += GameConfig.diplomaBonusPerCourse;
+        if (courses.contains('marketing'))
+          bonus += GameConfig.diplomaBonusPerCourse;
       case 'Creative & Media':
-        if (courses.contains('marketing')) bonus += 0.20;
+        if (courses.contains('marketing'))
+          bonus += GameConfig.diplomaBonusPerCourse;
       case 'Engineering':
-        if (courses.contains('programming')) bonus += 0.20;
+        if (courses.contains('programming'))
+          bonus += GameConfig.diplomaBonusPerCourse;
       default:
     }
-    if (courses.contains('business')) bonus += 0.25;
+    if (courses.contains('business')) bonus += GameConfig.diplomaBonusGlobal;
     return bonus;
   }
 
@@ -318,7 +298,9 @@ class GameViewModel {
   List<ShopGpuEntry> get shopGpus {
     final sale = hasGpuSale;
     return GpuCatalog.all.map((model) {
-      final price = sale ? (model.price * 0.7).ceil() : model.price;
+      final price = sale
+          ? (model.price * GameConfig.gpuSaleDiscount).ceil()
+          : model.price;
       return ShopGpuEntry(
         model: model,
         effectivePrice: price,
@@ -349,7 +331,8 @@ class GameViewModel {
     final debuff = DebuffCatalog.byId(debuffId);
     if (debuff == null) return 0;
     var cost = debuff.repairCost;
-    if (_game.character == CharacterType.engineer) cost = (cost * 0.7).ceil();
+    if (_game.character == CharacterType.engineer)
+      cost = (cost * GameConfig.engineerRepairDiscount).ceil();
     return cost;
   }
 
