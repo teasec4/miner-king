@@ -1,7 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
 import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
-import 'package:crypto_king/domain/models/inventory_item.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,8 +13,6 @@ class GpuDetailPage extends StatefulWidget {
 }
 
 class _GpuDetailPageState extends State<GpuDetailPage> {
-  bool _showInventory = false;
-
   @override
   Widget build(BuildContext context) {
     final vm = GameViewModel.fromState(context.watch<GameState>());
@@ -179,13 +176,7 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
 
                 const SizedBox(height: 12),
 
-                // Inventory
-                _section('Inventory'),
-                const SizedBox(height: 4),
-                _inventorySection(vm, widget.instanceId),
-
-                const SizedBox(height: 16),
-
+                // Actions
                 // Debuffs
                 if (gpu.debuffs.isNotEmpty) ...[
                   _section('Debuffs'),
@@ -348,16 +339,7 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
                   ),
               ],
             ),
-            if (_showInventory) _inventoryPanel(vm),
           ],
-        ),
-      ),
-      floatingActionButton: Badge(
-        label: Text('${vm.gpuInventoryCount}'),
-        isLabelVisible: vm.gpuInventoryCount > 0,
-        child: FloatingActionButton.small(
-          onPressed: () => setState(() => _showInventory = !_showInventory),
-          child: const Icon(Icons.inventory),
         ),
       ),
     );
@@ -387,190 +369,7 @@ class _GpuDetailPageState extends State<GpuDetailPage> {
     ),
   );
 
-  // ── Inventory section ──
-
-  Widget _inventorySection(GameViewModel vm, String gpuId) {
-    final items = vm.unequippedInventory.where((i) => i.type == 'gpu').toList();
-    if (items.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(8),
-        child: Text(
-          'No items. Visit Shop.',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-        ),
-      );
-    }
-    final isGpu = (InventoryItem i) => i.type == 'gpu';
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: items.map((item) {
-        return GestureDetector(
-          onTap: isGpu(item) ? () => vm.installGpu(item.id) : null,
-          child: Container(
-            width: 100,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isGpu(item)
-                    ? Colors.blue.shade200
-                    : Colors.grey.shade300,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _iconForType(item.type),
-                  size: 22,
-                  color: isGpu(item) ? Colors.blue : Colors.grey.shade400,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.name,
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-                  textAlign: TextAlign.center,
-                ),
-                Text(
-                  item.detail,
-                  style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
-                ),
-                if (isGpu(item))
-                  Text(
-                    'Tap to install',
-                    style: TextStyle(fontSize: 8, color: Colors.blue.shade400),
-                  ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  IconData _iconForType(String type) => switch (type) {
-    'gpu' => Icons.memory,
-    _ => Icons.inventory,
-  };
-
-  Widget _inventoryPanel(GameViewModel vm) => Positioned(
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 220,
-    child: Material(
-      elevation: 8,
-      color: Colors.white,
-      borderRadius: const BorderRadius.only(
-        topRight: Radius.circular(16),
-        bottomRight: Radius.circular(16),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  const Icon(Icons.inventory, size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Inventory (${vm.inventory.length})',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => setState(() => _showInventory = false),
-                    child: const Icon(Icons.close, size: 18),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            if (vm.inventory.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Empty. Buy items in Shop.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              )
-            else
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(8),
-                  children: vm.unequippedInventory
-                      .where((item) => item.type == 'gpu')
-                      .map((item) {
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 2),
-                          color: Colors.grey.shade50,
-                          child: ListTile(
-                            dense: true,
-                            leading: Icon(
-                              _iconForType(item.type),
-                              size: 20,
-                              color: Colors.grey.shade600,
-                            ),
-                            title: Text(
-                              item.name,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Text(
-                              item.detail,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade500,
-                              ),
-                            ),
-                            trailing: item.type == 'gpu'
-                                ? _invActionBtn(
-                                    'INSTALL',
-                                    Colors.deepPurple,
-                                    () => vm.installGpu(item.id),
-                                  )
-                                : null,
-                          ),
-                        );
-                      })
-                      .toList(),
-                ),
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-
   // ── Shared ──
-
-  Widget _invActionBtn(String label, Color color, VoidCallback onTap) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      );
 
   Widget _section(String title) => Text(
     title,

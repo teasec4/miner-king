@@ -3,7 +3,6 @@ import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
 import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
-import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -113,7 +112,10 @@ class FarmDetailPage extends StatelessWidget {
           upgradeCost: vm.coolingUpgradeCost,
           canUpgrade:
               vm.coolingUpgradeCost > 0 && vm.money >= vm.coolingUpgradeCost,
-          onUpgrade: () => vm.buyCooling(_nextCooling(vm)!),
+          onUpgrade: () {
+            final next = _nextCooling(vm);
+            if (next != null) vm.buyCooling(next);
+          },
         ),
         const SizedBox(height: 6),
         // Middle row: PSU + Motherboard + Solar
@@ -130,7 +132,10 @@ class FarmDetailPage extends StatelessWidget {
                 upgradeCost: vm.psuUpgradeCost,
                 canUpgrade:
                     vm.psuUpgradeCost > 0 && vm.money >= vm.psuUpgradeCost,
-                onUpgrade: () => vm.buyPsu(_nextPsu(vm)!),
+                onUpgrade: () {
+                  final next = _nextPsu(vm);
+                  if (next != null) vm.buyPsu(next);
+                },
                 compact: true,
               ),
             ),
@@ -165,7 +170,7 @@ class FarmDetailPage extends StatelessWidget {
     final next = SlotCatalog.nextTier(vm.totalSlots);
     final canUpgrade = next != null && vm.money >= next.price;
     return GestureDetector(
-      onTap: canUpgrade ? () => vm.buySlotTier(next!) : null,
+      onTap: canUpgrade ? () => vm.buySlotTier(next) : null,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(

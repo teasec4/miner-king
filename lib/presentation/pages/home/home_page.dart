@@ -18,7 +18,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   GameEvent? _expandedEvent;
-  bool _showInventory = false;
 
   @override
   void initState() {
@@ -56,16 +55,7 @@ class _HomePageState extends State<HomePage> {
             ),
             if (vm.activeEvents.any((e) => e.category == 'rig'))
               _eventOverlay(vm),
-            if (_showInventory) _inventoryPanel(vm),
           ],
-        ),
-      ),
-      floatingActionButton: Badge(
-        label: Text('${vm.gpuInventoryCount}'),
-        isLabelVisible: vm.gpuInventoryCount > 0,
-        child: FloatingActionButton.small(
-          onPressed: () => setState(() => _showInventory = !_showInventory),
-          child: const Icon(Icons.inventory),
         ),
       ),
     );
@@ -318,7 +308,7 @@ class _HomePageState extends State<HomePage> {
                     if (gpu != null) {
                       return _gpuCard(gpu, vm);
                     }
-                    return _emptySlotCard(i + 1);
+                    return _emptySlotCard(vm, i + 1);
                   }),
                 ),
               ),
@@ -329,38 +319,116 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _emptySlotCard(int slotNum) => Container(
-    margin: const EdgeInsets.symmetric(vertical: 4),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.grey.shade100,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
-    ),
-    child: Row(
-      children: [
-        Icon(Icons.memory, size: 32, color: Colors.grey.shade400),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _emptySlotCard(GameViewModel vm, int slotNum) {
+    final gpuItems = vm.unequippedInventory
+        .where((i) => i.type == 'gpu')
+        .toList();
+    return GestureDetector(
+      onTap: gpuItems.isNotEmpty
+          ? () => _showInstallDialog(context, vm, gpuItems)
+          : null,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Colors.grey.shade300,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Row(
           children: [
-            Text(
-              'Slot $slotNum — Empty',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: Colors.grey.shade500,
-              ),
-            ),
-            Text(
-              'Install GPU from inventory',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+            Icon(Icons.memory, size: 32, color: Colors.grey.shade400),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Slot $slotNum — Empty',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                Text(
+                  gpuItems.isEmpty
+                      ? 'Buy GPU in Shop'
+                      : 'Tap to install (${gpuItems.length} available)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                ),
+              ],
             ),
           ],
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
+
+  void _showInstallDialog(
+    BuildContext context,
+    GameViewModel vm,
+    List<InventoryItem> gpuItems,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Install GPU to Slot',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...gpuItems.map((item) {
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: const Icon(Icons.memory, color: Colors.deepPurple),
+                    title: Text(
+                      item.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      item.detail,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    trailing: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        vm.installGpu(item.id);
+                        Navigator.pop(context);
+                      },
+                      child: const Text('INSTALL'),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _gpuCard(GpuDisplayInfo gpu, GameViewModel vm) {
     final dead = gpu.isDead,
@@ -634,137 +702,4 @@ class _HomePageState extends State<HomePage> {
           onPressed: onTap,
         ),
       );
-
-  Widget _inventoryPanel(GameViewModel vm) => Positioned(
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 220,
-    child: Material(
-      elevation: 8,
-      color: Colors.white,
-      borderRadius: const BorderRadius.only(
-        topRight: Radius.circular(16),
-        bottomRight: Radius.circular(16),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  const Icon(Icons.inventory, size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Inventory (${vm.inventory.length})',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => setState(() => _showInventory = false),
-                    child: const Icon(Icons.close, size: 18),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            if (vm.inventory.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Empty. Buy items in Shop.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              )
-            else
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(8),
-                  children: vm.inventory.map((item) {
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      color: item.isEquipped
-                          ? Colors.green.shade50
-                          : Colors.grey.shade50,
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(
-                          _invIcon(item.type),
-                          size: 20,
-                          color: item.isEquipped
-                              ? Colors.green
-                              : Colors.grey.shade600,
-                        ),
-                        title: Text(
-                          item.name,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          item.isEquipped ? 'On GPU' : item.detail,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        trailing: !item.isEquipped
-                            ? _invAction(item, vm)
-                            : null,
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  IconData _invIcon(String type) => switch (type) {
-    'cooling' => Icons.ac_unit,
-    'psu' => Icons.power,
-    'paste' => Icons.water_drop,
-    'bios' => Icons.tune,
-    'motherboard' => Icons.dashboard,
-    'gpu' => Icons.memory,
-    _ => Icons.inventory,
-  };
-
-  Widget _invAction(InventoryItem item, GameViewModel vm) {
-    if (item.type == 'gpu' && !vm.farmHasFreeSlots) {
-      return Text(
-        'No slots',
-        style: TextStyle(fontSize: 10, color: Colors.red.shade400),
-      );
-    }
-    final label = item.type == 'gpu' ? 'INSTALL' : 'USE';
-    final color = item.type == 'gpu' ? Colors.deepPurple : Colors.green;
-    final onTap = item.type == 'gpu' ? () => vm.installGpu(item.id) : null;
-    if (onTap == null) return const SizedBox.shrink();
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
 }
