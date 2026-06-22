@@ -1,29 +1,45 @@
+import '../config/game_config.dart';
 import '../models/game.dart';
+import '../models/specialization.dart';
+import '../systems/job_system.dart';
 
-/// Handles economic operations: buying, selling, upgrading.
+/// Handles economic operations: buying, selling, swapping.
 class EconomySystem {
   EconomySystem._();
 
-  /// Buy coin with cash at market price (5% fee).
-  /// Returns updated game or null if can't afford.
+  /// Buy coin with cash at market price (with fee).
   static Game? buyCoinWithCash(Game game, String coinId, double cashAmount) {
     final coin = game.coin(coinId);
     if (coin == null || cashAmount <= 0 || game.money < cashAmount) return null;
-    final amount = cashAmount * 0.95 / coin.price;
+    final amount = cashAmount * (1 - GameConfig.cashExchangeFee) / coin.price;
     final newHoldings = Map<String, double>.from(game.holdings);
     newHoldings[coinId] = (newHoldings[coinId] ?? 0) + amount;
     return game.copyWith(money: game.money - cashAmount, holdings: newHoldings);
   }
 
-  /// Sell coin for cash at market price (5% fee).
+  /// Sell coin for cash at market price (with fee).
   static Game? sellCoinForCash(Game game, String coinId, double coinAmount) {
     final coin = game.coin(coinId);
     final balance = game.holdings[coinId] ?? 0;
     if (coin == null || coinAmount <= 0 || balance < coinAmount) return null;
-    final cash = coinAmount * coin.price * 0.95;
+    var cash = coinAmount * coin.price * (1 - GameConfig.cashExchangeFee);
+
+    // Business & Finance Lv3 job perk
+    cash *= 1 + JobSystem.sellPriceBonus(game);
+
     final newHoldings = Map<String, double>.from(game.holdings);
     newHoldings[coinId] = balance - coinAmount;
-    return game.copyWith(money: game.money + cash, holdings: newHoldings);
+
+    // Market Speculator: +50% profit
+    final profit = cash;
+    final bonus = game.specialization == Specialization.marketSpeculator
+        ? profit * GameConfig.speculatorProfitBonus
+        : 0.0;
+
+    return game.copyWith(
+      money: game.money + cash + bonus,
+      holdings: newHoldings,
+    );
   }
 
   /// Sell all of a specific coin for money at current price.
@@ -48,8 +64,7 @@ class EconomySystem {
     return g;
   }
 
-  /// Swap one coin for another at market rates.
-  /// Uses a 1% spread (slight disadvantage to prevent arbitrage loops).
+  /// Swap one coin for another at market rates (with fee, no arbitrage).
   static Game? swapCoins(Game game, String fromId, String toId, double amount) {
     if (fromId == toId) return null;
     final fromCoin = game.coin(fromId);
@@ -62,14 +77,23 @@ class EconomySystem {
       return null;
     }
 
-    // Value in USD, with 1% fee
-    final usdValue = amount * fromCoin.price * 0.99;
+    final usdValue = amount * fromCoin.price * (1 - GameConfig.swapFee);
     final toAmount = usdValue / toCoin.price;
+
+    // Market Speculator: +50% profit on swap
+    var bonus = 0.0;
+    if (game.specialization == Specialization.marketSpeculator) {
+      bonus =
+          amount *
+          fromCoin.price *
+          GameConfig.swapFee *
+          GameConfig.speculatorProfitBonus;
+    }
 
     final newHoldings = Map<String, double>.from(game.holdings);
     newHoldings[fromId] = (newHoldings[fromId] ?? 0) - amount;
     newHoldings[toId] = (newHoldings[toId] ?? 0) + toAmount;
 
-    return game.copyWith(holdings: newHoldings);
+    return game.copyWith(money: game.money + bonus, holdings: newHoldings);
   }
 }

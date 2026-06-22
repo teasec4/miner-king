@@ -1,28 +1,20 @@
-/// Slot upgrade tier.
-class SlotTier {
-  final int slots;
-  final int price;
-
-  const SlotTier({required this.slots, required this.price});
-}
-
-/// Static catalog of motherboard / slot upgrades.
+/// Simple slot pricing — each additional slot costs more.
 class SlotCatalog {
   SlotCatalog._();
 
-  static const tiers = [
-    SlotTier(slots: 1, price: 0), // starting
-    SlotTier(slots: 2, price: 400),
-    SlotTier(slots: 4, price: 1500),
-    SlotTier(slots: 8, price: 5000),
-    SlotTier(slots: 12, price: 15000),
-  ];
+  static final _prices = [300, 600, 1200, 2400, 4800];
 
-  /// Returns the next tier above current slot count, or null if maxed.
-  static SlotTier? nextTier(int currentSlots) {
-    for (final t in tiers) {
-      if (t.slots > currentSlots) return t;
-    }
-    return null;
+  /// Cost to buy the next slot (returns 0 if maxed at 6 slots).
+  static int nextSlotCost(int currentSlots) {
+    final idx = currentSlots - 1;
+    if (idx < 0) return _prices[0];
+    if (idx >= _prices.length) return 0;
+    return idx < _prices.length ? _prices[idx] : 0;
   }
+
+  /// Max slots.
+  static const int maxSlots = 6;
+
+  /// Whether more slots can be bought.
+  static bool canBuyMore(int currentSlots) => currentSlots < maxSlots;
 }

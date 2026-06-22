@@ -1,6 +1,6 @@
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
+import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +11,7 @@ class ShopPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final game = context.watch<GameState>();
-    final vm = GameViewModel(game);
+    final vm = GameViewModel.fromState(game);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Shop'), centerTitle: true),
@@ -19,7 +19,6 @@ class ShopPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Money
             Row(
               children: [
                 const Icon(Icons.attach_money, color: Colors.green, size: 20),
@@ -40,83 +39,89 @@ class ShopPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Motherboard
-            if (vm.nextSlotTier != null)
-              _upgradeCard(
-                icon: Icons.dashboard,
-                color: Colors.green,
-                title: 'Motherboard → ${vm.nextSlotTier} slots',
-                subtitle: 'Currently ${vm.totalSlots} slots',
-                price: vm.nextSlotCost,
-                canBuy: vm.canBuySlot,
-                onBuy: () => vm.buySlot(),
-              ),
-
             // GPUs
             _section('GPUs'),
-            ...vm.shopGpus.map((e) {
-              final m = e.model;
-              final hasSale = vm.hasGpuSale;
-              return _upgradeCard(
-                icon: Icons.memory,
-                color: Colors.deepPurple,
-                title: m.name,
-                subtitle:
-                    '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
-                price: e.effectivePrice,
-                canBuy: e.canBuy,
-                onBuy: () => vm.buyGpu(m),
-                hint: !e.hasSlots
-                    ? 'No slots'
-                    : !e.canAfford
-                    ? 'Need \$${e.effectivePrice - vm.money.toInt()}'
-                    : null,
-                salePercent: hasSale ? 30 : null,
-              );
-            }),
-
-            // Cooling
-            _section('Cooling'),
-            ...CoolingCatalog.all.map((c) {
-              final current = game.game.farm.coolingSystem;
-              final owned = current == c.id;
-              final betterThanCurrent =
-                  ['basic', 'fans', 'water', 'immersion'].indexOf(c.id) >
-                  ['basic', 'fans', 'water', 'immersion'].indexOf(current);
-              return _upgradeCard(
-                icon: Icons.ac_unit,
-                color: Colors.blue,
-                title: c.name,
-                subtitle:
-                    '${c.tempReduction}°C  ${owned
-                        ? "(installed)"
-                        : betterThanCurrent
-                        ? ""
-                        : "(downgrade)"}',
-                price: c.price,
-                canBuy: !owned && vm.money >= c.price,
-                onBuy: () => vm.buyCooling(c),
-              );
-            }),
-
-            // Solar
-            _section('Solar Panels'),
             Text(
-              'Generated: ${vm.solarPower.toStringAsFixed(0)}W',
+              'Installed directly to first free slot',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
             const SizedBox(height: 4),
-            ...SolarCatalog.all.map(
-              (s) => _upgradeCard(
-                icon: Icons.solar_power,
-                color: Colors.amber,
-                title: s.name,
-                subtitle: '+${s.powerGen.toStringAsFixed(0)}W generation',
-                price: s.price,
-                canBuy: vm.money >= s.price,
-                onBuy: () => vm.buySolar(s),
-              ),
+            ...vm.shopGpus.map((e) {
+              final m = e.model;
+              final noSlots = !vm.farmHasFreeSlots;
+              return _card(
+                icon: Icons.memory,
+                color: Colors.deepPurple,
+                title: m.name,
+                subtitle: noSlots
+                    ? 'No free slots — buy +1 slot below'
+                    : '${m.baseHashrate.toStringAsFixed(0)} MH/s  •  ${m.basePowerConsumption.toStringAsFixed(0)}W  •  ${m.baseTemperature.toStringAsFixed(0)}°C',
+                price: e.effectivePrice,
+                canBuy: e.canBuy && !noSlots,
+                onBuy: () => vm.buyGpu(m),
+                salePercent: vm.hasGpuSale ? 30 : null,
+              );
+            }),
+
+            // Motherboard
+            _section('Motherboard'),
+            Text(
+              'Current: ${vm.totalSlots} slots (max 6)',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
             ),
+            const SizedBox(height: 4),
+            _card(
+              icon: Icons.dashboard,
+              color: Colors.green,
+              title: '+1 Slot (→ ${vm.totalSlots + 1} total)',
+              subtitle: vm.canBuySlot ? null : 'Max slots reached',
+              price: vm.nextSlotCost,
+              canBuy: vm.canBuySlot,
+              onBuy: () => vm.buySlot(),
+            ),
+
+            // PSU
+            _section('Power Supply'),
+            Text(
+              'Current: ${vm.psuLabel} — ${vm.psuCapacity}W',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            if (vm.nextPsuName != null)
+              _card(
+                icon: Icons.power,
+                color: Colors.orange,
+                title: 'Upgrade to ${vm.nextPsuName}',
+                subtitle: '${vm.psuMaxWatt}W → ${_nextPsuWatt(vm)}W capacity',
+                price: vm.psuUpgradeCost,
+                canBuy: vm.psuUpgradeCost > 0 && vm.money >= vm.psuUpgradeCost,
+                onBuy: () => vm.buyPsu(_nextPsu(vm)!),
+              )
+            else
+              _infoCard(Icons.check_circle, Colors.green, 'PSU maxed out'),
+
+            // Cooling
+            _section('Cooling'),
+            Text(
+              'Current: ${vm.coolingLabel.isEmpty ? 'Stock Fan' : vm.coolingLabel}',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            ),
+            const SizedBox(height: 4),
+            if (vm.nextCoolingName != null)
+              _card(
+                icon: Icons.ac_unit,
+                color: Colors.blue,
+                title: 'Upgrade to ${vm.nextCoolingName}',
+                subtitle:
+                    '${_currentCoolingTemp(vm)}°C → ${_nextCoolingTemp(vm)}°C',
+                price: vm.coolingUpgradeCost,
+                canBuy:
+                    vm.coolingUpgradeCost > 0 &&
+                    vm.money >= vm.coolingUpgradeCost,
+                onBuy: () => vm.buyCooling(_nextCooling(vm)!),
+              )
+            else
+              _infoCard(Icons.check_circle, Colors.blue, 'Cooling maxed out'),
           ],
         ),
       ),
@@ -136,15 +141,14 @@ class ShopPage extends StatelessWidget {
     ),
   );
 
-  Widget _upgradeCard({
+  Widget _card({
     required IconData icon,
     required Color color,
     required String title,
-    required String subtitle,
+    String? subtitle,
     required int price,
     required bool canBuy,
     required VoidCallback onBuy,
-    String? hint,
     int? salePercent,
   }) => Card(
     margin: const EdgeInsets.symmetric(vertical: 4),
@@ -165,10 +169,11 @@ class ShopPage extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
               ],
             ),
           ),
@@ -188,7 +193,7 @@ class ShopPage extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (salePercent != null) ...[
+                    if (salePercent != null)
                       Text(
                         '-$salePercent% ',
                         style: TextStyle(
@@ -197,7 +202,6 @@ class ShopPage extends StatelessWidget {
                           color: Colors.green.shade700,
                         ),
                       ),
-                    ],
                     Text(
                       '\$$price',
                       style: TextStyle(
@@ -208,15 +212,56 @@ class ShopPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (hint != null)
-                  Text(
-                    hint,
-                    style: TextStyle(fontSize: 10, color: Colors.red.shade400),
-                  ),
               ],
             ),
         ],
       ),
     ),
   );
+
+  Widget _infoCard(IconData icon, Color color, String text) => Card(
+    margin: const EdgeInsets.symmetric(vertical: 4),
+    color: color.withAlpha(20),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  PsuUpgrade? _nextPsu(GameViewModel vm) {
+    final idx = PsuCatalog.indexOf(vm.game.farm.psuTier);
+    return idx + 1 < PsuCatalog.all.length ? PsuCatalog.all[idx + 1] : null;
+  }
+
+  int _nextPsuWatt(GameViewModel vm) => _nextPsu(vm)?.maxTotalWatt ?? 0;
+
+  CoolingUpgrade? _nextCooling(GameViewModel vm) {
+    final idx = CoolingCatalog.indexOf(vm.game.farm.coolingSystem);
+    return idx + 1 < CoolingCatalog.all.length
+        ? CoolingCatalog.all[idx + 1]
+        : null;
+  }
+
+  String _currentCoolingTemp(GameViewModel vm) {
+    final idx = CoolingCatalog.indexOf(vm.game.farm.coolingSystem);
+    return CoolingCatalog.all[idx].tempReduction.toStringAsFixed(0);
+  }
+
+  String _nextCoolingTemp(GameViewModel vm) {
+    final next = _nextCooling(vm);
+    return next?.tempReduction.toStringAsFixed(0) ?? '-';
+  }
 }

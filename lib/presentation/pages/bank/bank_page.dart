@@ -11,7 +11,7 @@ class BankPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final game = context.watch<GameState>();
-    final vm = GameViewModel(game);
+    final vm = GameViewModel.fromState(game);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bank'), centerTitle: true),

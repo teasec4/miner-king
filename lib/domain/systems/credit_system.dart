@@ -1,3 +1,4 @@
+import '../config/game_config.dart';
 import '../models/game.dart';
 
 /// Manages loans: interest accrual and repayment.
@@ -9,7 +10,9 @@ class CreditSystem {
     if (game.activeLoans.isEmpty) return game;
 
     final updatedLoans = game.activeLoans.map((loan) {
-      final interest = loan.remaining * (loan.interestPerMinute / 60);
+      final interest =
+          loan.remaining *
+          (loan.interestPerMinute / GameConfig.ticksPerHour * 60);
       return loan.copyWith(remaining: loan.remaining + interest);
     }).toList();
 

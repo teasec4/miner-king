@@ -1,6 +1,10 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/models/game_event.dart';
+import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
+import 'package:crypto_king/domain/config/game_config.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
+import 'package:crypto_king/presentation/pages/home/farm_detail_page.dart';
+import 'package:crypto_king/presentation/pages/home/gpu_detail_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -18,20 +22,24 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GameViewModel>().startTicks();
+      // Ticks are already running (started by setCharacter).
+      // Just wire up the event overlay callback.
       context.read<GameState>().onEvent = (e) {
         if (!mounted) return;
         setState(() => _expandedEvent = e);
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted) setState(() => _expandedEvent = null);
-        });
+        Future.delayed(
+          Duration(seconds: GameConfig.eventOverlayDismissSeconds),
+          () {
+            if (mounted) setState(() => _expandedEvent = null);
+          },
+        );
       };
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
     return Scaffold(
       appBar: AppBar(title: const Text('Mining Rig'), centerTitle: true),
       body: SafeArea(
@@ -42,10 +50,10 @@ class _HomePageState extends State<HomePage> {
                 _resourcesBar(vm),
                 const Divider(height: 1),
                 Expanded(child: _gpuList(vm)),
-                _bottomBar(vm),
               ],
             ),
-            if (vm.activeEvents.isNotEmpty) _eventOverlay(vm),
+            if (vm.activeEvents.any((e) => e.category == 'rig'))
+              _eventOverlay(vm),
           ],
         ),
       ),
@@ -57,7 +65,7 @@ class _HomePageState extends State<HomePage> {
     right: 8,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.end,
-      children: vm.activeEvents.map((e) {
+      children: vm.activeEvents.where((e) => e.category == 'rig').map((e) {
         final open = _expandedEvent?.id == e.id;
         return GestureDetector(
           onTap: () => setState(() => _expandedEvent = open ? null : e),
@@ -140,129 +148,88 @@ class _HomePageState extends State<HomePage> {
       }).toList(),
     ),
   );
-
   Widget _resourcesBar(GameViewModel vm) {
     final profit = vm.netProfitPerMin;
-    final c = profit >= 0 ? Colors.green : Colors.red;
+    final jobIncome = vm.jobIncomePerMin;
+    final total = profit + jobIncome;
     final btc = vm.coinState('btc');
-    return Padding(
+    return Container(
+      margin: const EdgeInsets.fromLTRB(8, 6, 8, 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade900,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              _chip(
+              _hudStat(
                 Icons.attach_money,
-                '\$${vm.money.toStringAsFixed(0)}',
-                Colors.green,
+                vm.money.toStringAsFixed(0),
+                Colors.greenAccent,
               ),
-              const SizedBox(width: 8),
-              _chip(
+              const SizedBox(width: 10),
+              _hudStat(
                 Icons.account_balance_wallet,
-                '\$${vm.totalHoldingsValue.toStringAsFixed(0)}',
-                Colors.amber,
+                vm.totalHoldingsValue.toStringAsFixed(0),
+                Colors.amberAccent,
               ),
               const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${vm.totalHashrate.toStringAsFixed(1)} MH/s',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    '${profit >= 0 ? "+" : ""}${profit.toStringAsFixed(2)}\$/min',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: c,
-                    ),
-                  ),
-                ],
+              _hudStat(
+                Icons.speed,
+                vm.totalHashrate.toStringAsFixed(1),
+                Colors.cyanAccent,
+              ),
+              const SizedBox(width: 8),
+              _hudStat(
+                total >= 0 ? Icons.trending_up : Icons.trending_down,
+                '${total >= 0 ? "+" : ""}${total.toStringAsFixed(2)}/min',
+                total >= 0 ? Colors.greenAccent : Colors.redAccent,
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Row(
             children: [
-              Icon(Icons.bolt, size: 14, color: Colors.orange.shade700),
+              Icon(Icons.bolt, size: 11, color: Colors.orange.shade300),
               const SizedBox(width: 2),
-              Text(
-                '${vm.totalPowerDraw.toStringAsFixed(0)}W',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-              ),
-              if (vm.solarPower > 0) ...[
-                Text(
-                  ' \u2212 ${vm.solarPower.toStringAsFixed(0)}W \u2600',
-                  style: TextStyle(fontSize: 11, color: Colors.amber.shade700),
+              Expanded(
+                child: Text(
+                  '${vm.totalPowerDraw.toStringAsFixed(0)}W  −\$${vm.electricityCostPerMin.toStringAsFixed(2)}/min',
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                 ),
-              ],
-              const SizedBox(width: 8),
-              Text(
-                '\u2212${vm.electricityCostPerMin.toStringAsFixed(2)}\$/min',
-                style: TextStyle(fontSize: 11, color: Colors.red.shade400),
               ),
-              const Spacer(),
               if (btc != null)
                 Text(
-                  '${MarketSystem.phaseIcon(btc.phase)} BTC \$${btc.price.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                  '${MarketSystem.icon(btc.phase)} BTC \$${btc.price.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 10, color: Colors.white54),
                 ),
+              if (jobIncome > 0) ...[
+                const SizedBox(width: 8),
+                Text(
+                  '+job ${jobIncome.toStringAsFixed(2)}/min',
+                  style: TextStyle(fontSize: 10, color: Colors.orange.shade300),
+                ),
+              ],
             ],
           ),
-          if (vm.solarPower > 0 || vm.coolingSystem != 'basic')
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Row(
-                children: [
-                  if (vm.coolingSystem != 'basic') ...[
-                    Icon(Icons.ac_unit, size: 12, color: Colors.blue.shade400),
-                    const SizedBox(width: 2),
-                    Text(
-                      vm.coolingLabel,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.blue.shade400,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  if (vm.solarPower > 0) ...[
-                    Icon(
-                      Icons.solar_power,
-                      size: 12,
-                      color: Colors.amber.shade600,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${vm.solarPower.toStringAsFixed(0)}W \u2600',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.amber.shade600,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _chip(IconData icon, String value, Color color) => Row(
+  Widget _hudStat(IconData icon, String value, Color color) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 18, color: color),
-      const SizedBox(width: 2),
+      Icon(icon, size: 13, color: color),
+      const SizedBox(width: 3),
       Text(
         value,
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: 14,
+          fontSize: 12,
           color: color,
         ),
       ),
@@ -271,51 +238,120 @@ class _HomePageState extends State<HomePage> {
 
   Widget _gpuList(GameViewModel vm) {
     final gpus = vm.gpus;
-    final e = vm.totalSlots - vm.usedSlots;
-    if (gpus.isEmpty && e == 0) {
-      return const Center(child: Text('No GPUs installed'));
-    }
-    return ListView.builder(
+    final totalSlots = vm.totalSlots;
+    return ListView(
       padding: const EdgeInsets.all(8),
-      itemCount: gpus.length + (e > 0 ? 1 : 0),
-      itemBuilder: (_, i) =>
-          i < gpus.length ? _gpuCard(gpus[i], vm) : _emptySlotCard(e),
+      children: [
+        // Motherboard card
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header (tap for farm detail)
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FarmDetailPage()),
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade700,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(14),
+                      topRight: Radius.circular(14),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.dashboard,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Motherboard — $totalSlots slots',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${gpus.length}/$totalSlots',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ), // GestureDetector
+              // Slots
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  children: List.generate(totalSlots, (i) {
+                    final gpu = i < gpus.length ? gpus[i] : null;
+                    if (gpu != null) {
+                      return _gpuCard(gpu, vm);
+                    }
+                    return _emptySlotCard(vm, i + 1);
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _emptySlotCard(int count) => Card(
-    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    color: Colors.grey.shade100,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
+  Widget _emptySlotCard(GameViewModel vm, int slotNum) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
       child: Row(
         children: [
-          Icon(Icons.memory, size: 36, color: Colors.grey.shade400),
+          Icon(Icons.memory, size: 32, color: Colors.grey.shade400),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$count empty slot${count > 1 ? "s" : ""}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
-                    color: Colors.grey.shade500,
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Slot $slotNum — Empty',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  color: Colors.grey.shade500,
                 ),
-                Text(
-                  'Go to Shop to buy a GPU',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                ),
-              ],
-            ),
+              ),
+              Text(
+                'Buy GPU in Shop',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+              ),
+            ],
           ),
-          Icon(Icons.chevron_right, color: Colors.grey.shade400),
         ],
       ),
-    ),
-  );
+    );
+  }
 
   Widget _gpuCard(GpuDisplayInfo gpu, GameViewModel vm) {
     final dead = gpu.isDead,
@@ -337,173 +373,191 @@ class _HomePageState extends State<HomePage> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       color: dead ? Colors.grey.shade100 : null,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.memory,
-                  size: 36,
-                  color: dead ? Colors.grey.shade400 : Colors.deepPurple,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              gpu.modelName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: dead ? Colors.grey.shade500 : null,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => GpuDetailPage(instanceId: gpu.instanceId),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.memory,
+                    size: 36,
+                    color: dead ? Colors.grey.shade400 : Colors.deepPurple,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                gpu.modelName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: dead ? Colors.grey.shade500 : null,
+                                ),
                               ),
                             ),
-                          ),
-                          if (oc) ...[
+                            if (oc) ...[
+                              const SizedBox(width: 4),
+                              _badge(
+                                'OC',
+                                Colors.deepOrange,
+                                Colors.orange.shade100,
+                              ),
+                            ],
+                            if (sl) ...[
+                              const SizedBox(width: 4),
+                              _badge(
+                                'SL',
+                                Colors.purple,
+                                Colors.purple.shade50,
+                              ),
+                            ],
                             const SizedBox(width: 4),
                             _badge(
-                              'OC',
-                              Colors.deepOrange,
-                              Colors.orange.shade100,
+                              gpu.miningCoinName,
+                              Colors.blue.shade700,
+                              Colors.blue.shade50,
                             ),
+                            if (!gpu.isPowered) ...[
+                              const SizedBox(width: 4),
+                              _badge('OFF', Colors.white, Colors.grey.shade600),
+                            ],
+                            if (dead) ...[
+                              const SizedBox(width: 4),
+                              _badge('DEAD', Colors.white, Colors.grey),
+                            ],
+                            for (final d in gpu.debuffs) ...[
+                              const SizedBox(width: 4),
+                              _badge(
+                                _debuffName(d),
+                                Colors.red.shade700,
+                                Colors.red.shade50,
+                              ),
+                            ],
                           ],
-                          if (sl) ...[
-                            const SizedBox(width: 4),
-                            _badge('SL', Colors.purple, Colors.purple.shade50),
-                          ],
-                          const SizedBox(width: 4),
-                          _badge(
-                            gpu.miningCoinName,
-                            Colors.blue.shade700,
-                            Colors.blue.shade50,
-                          ),
-                          if (!gpu.isPowered) ...[
-                            const SizedBox(width: 4),
-                            _badge('OFF', Colors.white, Colors.grey.shade600),
-                          ],
-                          if (dead) ...[
-                            const SizedBox(width: 4),
-                            _badge('DEAD', Colors.white, Colors.grey),
-                          ],
-                          for (final _ in gpu.debuffs) ...[
-                            const SizedBox(width: 4),
-                            _badge(
-                              '⚠',
-                              Colors.red.shade700,
-                              Colors.red.shade50,
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(Icons.thermostat, size: 14, color: tc),
-                          const SizedBox(width: 2),
-                          Text(
-                            '${gpu.temperature.toStringAsFixed(0)}\u00B0C',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: tc,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (!dead && gpu.isPowered)
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.thermostat, size: 14, color: tc),
+                            const SizedBox(width: 2),
                             Text(
-                              '\$${gpu.revenuePerMin.toStringAsFixed(1)}/min',
+                              '${gpu.temperature.toStringAsFixed(0)}\u00B0C',
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.green.shade600,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: tc,
                               ),
                             ),
-                        ],
-                      ),
-                    ],
+                            const Spacer(),
+                            if (!dead && gpu.isPowered)
+                              Text(
+                                '\$${gpu.revenuePerMin.toStringAsFixed(1)}/min',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade600,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    value: gpu.condition,
-                    strokeWidth: 2,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation(cc),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '$cp%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: cc,
-                  ),
-                ),
-                const Spacer(),
-                if (!dead) ...[
-                  _iconBtn(
-                    gpu.isPowered ? Icons.power_settings_new : Icons.power_off,
-                    gpu.isPowered ? Colors.green : Colors.grey,
-                    () => vm.togglePower(gpu.instanceId),
-                  ),
-                  const SizedBox(width: 2),
-                  _iconBtn(
-                    Icons.speed,
-                    oc ? Colors.deepOrange : Colors.grey.shade400,
-                    () => vm.toggleOverclock(gpu.instanceId),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      value: gpu.condition,
+                      strokeWidth: 2,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation(cc),
+                    ),
                   ),
                   const SizedBox(width: 4),
-                  _coinSwitcher(gpu, vm),
-                  const SizedBox(width: 4),
-                  if (vm.upgradeCost(gpu.instanceId) > 0)
+                  Text(
+                    '$cp%',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: cc,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (!dead) ...[
+                    _iconBtn(
+                      gpu.isPowered
+                          ? Icons.power_settings_new
+                          : Icons.power_off,
+                      gpu.isPowered ? Colors.green : Colors.grey,
+                      () => vm.togglePower(gpu.instanceId),
+                    ),
+                    const SizedBox(width: 2),
+                    _iconBtn(
+                      Icons.speed,
+                      oc ? Colors.deepOrange : Colors.grey.shade400,
+                      () => vm.toggleOverclock(gpu.instanceId),
+                    ),
+                    const SizedBox(width: 4),
+                    _coinSwitcher(gpu, vm),
+                    const SizedBox(width: 4),
+                  ],
+                  if (vm.repairCost(gpu.instanceId) > 0 ||
+                      gpu.condition < 1.0) ...[
+                    if (!dead) const SizedBox(width: 4),
                     _btn(
-                      'Up \$${vm.upgradeCost(gpu.instanceId)}',
-                      Icons.upgrade,
-                      vm.canUpgrade(gpu.instanceId)
-                          ? Colors.amber
-                          : Colors.grey,
-                      vm.canUpgrade(gpu.instanceId)
-                          ? () => vm.upgradeGpu(gpu.instanceId)
+                      'Fix \$${vm.repairCost(gpu.instanceId)}',
+                      Icons.build,
+                      vm.canRepair(gpu.instanceId) ? Colors.blue : Colors.grey,
+                      vm.canRepair(gpu.instanceId)
+                          ? () => vm.repairGpu(gpu.instanceId)
                           : null,
                     ),
+                  ],
+                  for (final d in gpu.debuffs) ...[
+                    const SizedBox(width: 4),
+                    _btn(
+                      'Fix ${_debuffName(d)} \$${vm.debuffRepairCost(d)}',
+                      Icons.cleaning_services,
+                      vm.money >= vm.debuffRepairCost(d)
+                          ? Colors.red.shade400
+                          : Colors.grey,
+                      vm.money >= vm.debuffRepairCost(d)
+                          ? () => vm.repairDebuff(gpu.instanceId, d)
+                          : null,
+                    ),
+                  ],
                 ],
-                if (vm.repairCost(gpu.instanceId) > 0 ||
-                    gpu.condition < 1.0) ...[
-                  if (!dead) const SizedBox(width: 4),
-                  _btn(
-                    'Fix \$${vm.repairCost(gpu.instanceId)}',
-                    Icons.build,
-                    vm.canRepair(gpu.instanceId) ? Colors.blue : Colors.grey,
-                    vm.canRepair(gpu.instanceId)
-                        ? () => vm.repairGpu(gpu.instanceId)
-                        : null,
-                  ),
-                ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _coinSwitcher(GpuDisplayInfo gpu, GameViewModel vm) {
-    final coins = vm.coins.where((c) => c.id != 'usdt').toList();
+    final mineable = {'btc', 'doge'};
+    final coins = vm.coins.where((c) => mineable.contains(c.id)).toList();
     if (coins.length < 2) return const SizedBox.shrink();
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
@@ -527,6 +581,10 @@ class _HomePageState extends State<HomePage> {
           .toList(),
       child: _iconBtn(Icons.currency_bitcoin, Colors.blue.shade600, null),
     );
+  }
+
+  String _debuffName(String id) {
+    return DebuffCatalog.byId(id)?.name ?? id;
   }
 
   Widget _badge(String text, Color fg, Color bg) => Container(
@@ -567,31 +625,4 @@ class _HomePageState extends State<HomePage> {
           onPressed: onTap,
         ),
       );
-
-  Widget _bottomBar(GameViewModel vm) => Container(
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: Colors.grey.shade100,
-      border: Border(top: BorderSide(color: Colors.grey.shade300)),
-    ),
-    child: Row(
-      children: [
-        Text(
-          'Slots: ${vm.usedSlots}/${vm.totalSlots}',
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-        ),
-        const Spacer(),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.sell, size: 16),
-          label: Text('Sell All \$${vm.totalHoldingsValue.toStringAsFixed(2)}'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            textStyle: const TextStyle(fontSize: 12),
-          ),
-          onPressed: vm.totalHoldingsValue > 0 ? () => vm.sellAllCoins() : null,
-        ),
-      ],
-    ),
-  );
 }

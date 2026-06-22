@@ -16,6 +16,7 @@ class BlackMarketPage extends StatefulWidget {
 class _BlackMarketPageState extends State<BlackMarketPage> {
   static final _r = Random();
   late List<_BlackOffer> _offers;
+  int _lastGen = -1;
 
   @override
   void initState() {
@@ -28,7 +29,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
     allGpus.shuffle(_r);
     _offers = allGpus.take(3).map((model) {
       final debuffs = <String>[];
-      final count = _r.nextInt(3);
+      final count = 1 + _r.nextInt(2);
       for (int i = 0; i < count; i++) {
         final available = DebuffCatalog.all
             .where((d) => !debuffs.contains(d.id))
@@ -52,16 +53,44 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
+    final gen = vm.blackMarketGen;
+    final refreshIn = vm.blackMarketRefreshIn;
+
+    // Detect global refresh (even when page was closed)
+    if (_lastGen >= 0 && gen > _lastGen) {
+      _lastGen = gen;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _generateOffers();
+      });
+    }
+    if (_lastGen < 0) _lastGen = gen;
+
+    final mins = refreshIn ~/ 60;
+    final secs = refreshIn % 60;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Black Market'), centerTitle: true),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              'Shady deals — stats are approximate. GPUs may have hidden flaws.',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            Row(
+              children: [
+                Text(
+                  'Shady deals — stats are approximate.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                const Spacer(),
+                Text(
+                  'Refresh in $mins:${secs.toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Row(
@@ -90,8 +119,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
 
   Widget _offerCard(_BlackOffer offer, GameViewModel vm) {
     final m = offer.model;
-    final hasSlots = vm.usedSlots < vm.totalSlots;
-    final canBuy = vm.money >= offer.price && hasSlots;
+    final canBuy = vm.money >= offer.price && vm.farmHasFreeSlots;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -165,7 +193,7 @@ class _BlackMarketPageState extends State<BlackMarketPage> {
                           setState(() => _offers.remove(offer));
                         }
                       : null,
-                  child: Text(hasSlots ? 'Buy' : 'No slots'),
+                  child: const Text('Buy'),
                 ),
               ],
             ),

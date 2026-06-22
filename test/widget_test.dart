@@ -6,6 +6,7 @@ import 'package:crypto_king/domain/systems/economy_system.dart';
 import 'package:crypto_king/domain/systems/electricity_system.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/domain/systems/mining_system.dart';
+import 'package:crypto_king/domain/systems/systems.dart';
 import 'package:crypto_king/domain/systems/thermal_system.dart';
 import 'package:crypto_king/domain/systems/tick_system.dart';
 import 'package:crypto_king/domain/systems/wear_system.dart';
@@ -16,7 +17,7 @@ void main() {
     test('initial state has correct values', () {
       final state = GameState();
       final game = state.game;
-      expect(game.money, 1000);
+      expect(game.money, 500);
       expect(game.holdings['btc'], 0);
       expect(game.holdings['eth'], 0);
       expect(game.holdings['sol'], 0);
@@ -25,8 +26,10 @@ void main() {
       expect(game.holdings['usdt'], 0);
       expect(game.coins.length, 6);
       expect(game.primaryCoin.price, 10.0);
-      expect(game.electricityRate, 0.12);
+      expect(game.electricityRate, 0.25);
       expect(game.farm.gpuList.length, 1);
+      expect(game.farm.gpuList.first.condition, 0.5);
+      expect(game.activeJobId, 'food_l1');
       expect(game.farm.totalSlots, 1);
     });
   });
@@ -35,20 +38,21 @@ void main() {
     test('tick increases holdings and tick counter after cycles', () {
       final state = GameState();
       var game = state.game;
-      // GTX 1060 needs ~5 ticks to complete its first mining cycle
-      for (int i = 0; i < 6; i++) {
-        (game, _) = TickSystem.tick(game);
+      game = game.copyWith(activeJobId: null);
+      final ticker = TickSystem(Systems());
+      for (int i = 0; i < 20; i++) {
+        (game, _) = ticker.tick(game);
       }
       expect(game.holdings['btc']!, greaterThan(0));
-      expect(game.tick, 6);
+      expect(game.tick, 20);
     });
   });
 
   group('ThermalSystem', () {
-    test('temperatures use model base temp', () {
+    test('temperatures use model base temp + worn bonus', () {
       final state = GameState();
       final game = ThermalSystem.update(state.game);
-      expect(game.farm.gpuList.first.temperature, 45.0);
+      expect(game.farm.gpuList.first.temperature, 55.0);
     });
     test('worn card runs hotter', () {
       final state = GameState();
@@ -66,27 +70,31 @@ void main() {
   });
 
   group('WearSystem', () {
-    test('no wear below 65°C', () {
-      final state = GameState();
-      var game = state.game;
-      game = ThermalSystem.update(game); // GTX 1060 = 45°C — safe
-      game = WearSystem.update(game);
-      expect(game.farm.gpuList.first.condition, 1.0);
-    });
-    test('wear at 70°C (GTX 1060 OC)', () {
+    test('no wear below 50°C', () {
       final state = GameState();
       var game = state.game;
       final gpu = game.farm.gpuList.first.copyWith(
-        temperature: 70,
-        overclockLevel: 1,
+        temperature: 45,
+        condition: 1.0,
       );
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
-      // 70°C: rate = (70-65)/25 * 0.0005 = 0.0001/tick
-      // 100 ticks = 0.01 wear → condition ≈ 0.99
+      final wear = DefaultWearSystem();
+      game = wear.update(game);
+      expect(game.farm.gpuList.first.condition, 1.0);
+    });
+    test('wear at 70°C', () {
+      final state = GameState();
+      var game = state.game;
+      final gpu = game.farm.gpuList.first.copyWith(
+        condition: 1.0,
+        temperature: 70,
+      );
+      game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
+      final wear = DefaultWearSystem();
       for (var i = 0; i < 100; i++) {
-        game = WearSystem.update(game);
+        game = wear.update(game);
       }
-      expect(game.farm.gpuList.first.condition, closeTo(0.99, 0.005));
+      expect(game.farm.gpuList.first.condition, closeTo(0.95, 0.005));
     });
   });
 
@@ -97,7 +105,7 @@ void main() {
     });
     test('costPerHour uses game formula', () {
       final state = GameState();
-      expect(ElectricitySystem.costPerHour(state.game), closeTo(14.40, 0.01));
+      expect(ElectricitySystem.costPerHour(state.game), closeTo(30.0, 0.01));
     });
   });
 
@@ -105,8 +113,10 @@ void main() {
     test('sellCoin converts coins to money', () {
       final state = GameState();
       var game = state.game;
+      game = game.copyWith(activeJobId: null);
+      final ticker = TickSystem(Systems());
       for (var i = 0; i < 50; i++) {
-        (game, _) = TickSystem.tick(game);
+        (game, _) = ticker.tick(game);
       }
       final btcBefore = game.holdings['btc']!;
       expect(btcBefore, greaterThan(0));
@@ -120,17 +130,18 @@ void main() {
   group('MiningSystem', () {
     test('totalHashrate scales with condition', () {
       final state = GameState();
-      final full = MiningSystem.totalHashrate(state.game);
       var game = state.game;
-      final gpu = game.farm.gpuList.first.copyWith(condition: 0.5);
+      var gpu = game.farm.gpuList.first.copyWith(condition: 1.0);
+      game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
+      final full = MiningSystem.totalHashrate(game);
+      gpu = gpu.copyWith(condition: 0.5);
       game = game.copyWith(farm: game.farm.copyWith(gpuList: [gpu]));
       expect(MiningSystem.totalHashrate(game), closeTo(full * 0.5, 0.1));
     });
     test('mine returns per-coin map after enough ticks', () {
       final state = GameState();
       var game = state.game;
-      // GTX 1060 needs ~5 ticks to complete a cycle
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 14; i++) {
         final (gpus, mined) = MiningSystem.mine(game);
         if (mined.isNotEmpty) {
           expect(mined.containsKey('btc'), true);
@@ -162,8 +173,9 @@ void main() {
     test('price stays within bounds', () {
       final state = GameState();
       var game = state.game;
+      final market = DefaultMarketSystem();
       for (var i = 0; i < 1000; i++) {
-        game = MarketSystem.update(game);
+        game = market.update(game);
       }
       for (final c in game.coins) {
         expect(c.price, greaterThanOrEqualTo(0.01));
@@ -173,8 +185,10 @@ void main() {
     test('tick includes market update', () {
       final state = GameState();
       var game = state.game;
+      game = game.copyWith(activeJobId: null);
+      final ticker = TickSystem(Systems());
       for (var i = 0; i < 500; i++) {
-        (game, _) = TickSystem.tick(game);
+        (game, _) = ticker.tick(game);
       }
       expect(game.primaryCoin.price, isNot(10.0));
     });

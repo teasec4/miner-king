@@ -1,309 +1,165 @@
 import 'package:crypto_king/data/game_state.dart';
-import 'package:crypto_king/domain/catalogs/debuff_catalog.dart';
-import 'package:crypto_king/domain/catalogs/gpu_catalog.dart';
-import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
 import 'package:crypto_king/domain/catalogs/cooling_catalog.dart';
-import 'package:crypto_king/domain/catalogs/solar_catalog.dart';
+import 'package:crypto_king/domain/catalogs/psu_catalog.dart';
+import 'package:crypto_king/domain/catalogs/slot_catalog.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
 import 'package:crypto_king/domain/models/game.dart';
-import 'package:crypto_king/domain/models/game_event.dart';
 import 'package:crypto_king/domain/models/gpu_model.dart';
-import 'package:crypto_king/domain/models/gpu_instance.dart';
 import 'package:crypto_king/domain/models/loan.dart';
 import 'package:crypto_king/domain/models/player_profile.dart';
-import 'package:crypto_king/domain/systems/credit_system.dart';
-import 'package:crypto_king/domain/systems/electricity_system.dart';
-import 'package:crypto_king/domain/systems/mining_system.dart';
-import 'package:crypto_king/domain/systems/thermal_system.dart';
+import 'package:crypto_king/presentation/notifiers/notifiers.dart';
+import 'package:crypto_king/domain/catalogs/office_catalog.dart';
+import 'package:crypto_king/presentation/viewmodels/rig_viewmodel.dart';
+import 'package:crypto_king/presentation/viewmodels/economy_viewmodel.dart';
+import 'package:crypto_king/presentation/viewmodels/market_viewmodel.dart';
+import 'package:crypto_king/presentation/viewmodels/city_viewmodel.dart';
 
+// Re-export from sub-VMs for backward compat
+export 'package:crypto_king/presentation/viewmodels/rig_viewmodel.dart'
+    show GpuDisplayInfo, ShopGpuEntry;
+export 'package:crypto_king/presentation/viewmodels/economy_viewmodel.dart';
+export 'package:crypto_king/presentation/viewmodels/market_viewmodel.dart';
+export 'package:crypto_king/presentation/viewmodels/city_viewmodel.dart';
+
+/// Thin aggregator over domain-specific ViewModels.
 class GameViewModel {
-  final GameState _state;
+  final RigViewModel rig;
+  final EconomyViewModel economy;
+  final MarketViewModel market;
+  final CityViewModel city;
 
-  GameViewModel(this._state);
+  GameViewModel({
+    required RigNotifier rig,
+    required EconomyNotifier economy,
+    required MarketNotifier market,
+    required CityNotifier city,
+  }) : rig = RigViewModel(rig),
+       economy = EconomyViewModel(economy),
+       market = MarketViewModel(market),
+       city = CityViewModel(city);
 
-  Game get _game => _state.game;
-
-  // ── Display getters ──
-
-  double get money => _game.money;
-  double get electricityRate => _game.electricityRate;
-  int get tick => _game.tick;
-  int get totalSlots => _game.farm.totalSlots;
-  int get usedSlots => _game.farm.usedSlots;
-
-  double get totalHashrate => MiningSystem.totalHashrate(_game);
-  double get totalPowerDraw => ElectricitySystem.totalPowerDraw(_game);
-  double get solarPower => ElectricitySystem.solarPower(_game);
-  String get coolingSystem => _game.farm.coolingSystem;
-  String get coolingLabel => switch (_game.farm.coolingSystem) {
-    'fans' => 'Fan Cooling',
-    'water' => 'Water Cooling',
-    'immersion' => 'Immersion',
-    _ => '',
-  };
-  double get electricityCostPerHour => ElectricitySystem.costPerHour(_game);
-  double get electricityCostPerMin => electricityCostPerHour / 60;
-
-  double get netProfitPerMin {
-    double revenue = 0;
-    for (final gpu in _game.farm.gpuList) {
-      final model = GpuCatalog.byId(gpu.modelId);
-      if (model == null) continue;
-      final hashrate = _gpuHashrate(gpu, model);
-      if (hashrate <= 0) continue;
-      final coin = _game.coin(gpu.miningCoinId);
-      if (coin != null) {
-        revenue += hashrate * 0.02 * 60 * 0.01 * (coin.baseReward) * coin.price;
-      }
-    }
-    return revenue - electricityCostPerMin;
+  factory GameViewModel.fromState(GameState state) {
+    return GameViewModel(
+      rig: state.rigN,
+      economy: state.economyN,
+      market: state.marketN,
+      city: state.cityN,
+    );
   }
 
-  /// Holding amount for a coin.
-  double holding(String coinId) => _game.holdings[coinId] ?? 0;
+  // ── Common ──
 
-  /// All coin states.
-  List<CoinState> get coins => _game.coins;
+  int get tick => rig.game.tick;
+  Game get game => rig.game;
+  CharacterType? get character => rig.game.character;
+  List<Perk> get perks => rig.game.perks;
 
-  /// Coin display info.
-  CoinState? coinState(String id) => _game.coin(id);
+  // ── Rig ──
 
-  double holdingValue(String coinId) {
-    final c = _game.coin(coinId);
-    return (c?.price ?? 0) * holding(coinId);
-  }
+  double get totalHashrate => rig.totalHashrate;
+  double get totalPowerDraw => rig.totalPowerDraw;
+  String get coolingSystem => rig.coolingSystem;
+  String get coolingLabel => rig.coolingLabel;
+  String get psuTier => rig.psuTier;
+  int get psuMaxWatt => rig.psuMaxWatt;
+  String get psuLabel => rig.psuLabel;
+  int get psuCapacity => rig.psuCapacity;
+  int get totalSlots => rig.totalSlots;
+  int get usedSlots => rig.usedSlots;
+  bool get farmHasFreeSlots => rig.farmHasFreeSlots;
+  int get nextSlotCost => rig.nextSlotCost;
+  bool get canBuySlot => rig.canBuySlot;
+  List<GpuDisplayInfo> get gpus => rig.gpus;
+  bool canUpgrade(String id) => rig.canUpgrade(id);
+  int upgradeCost(String id) => rig.upgradeCost(id);
+  int repairCost(String id) => rig.repairCost(id);
+  bool canRepair(String id) => rig.canRepair(id);
+  int debuffRepairCost(String id) => rig.debuffRepairCost(id);
+  bool get hasGpuSale => rig.hasGpuSale;
+  List<ShopGpuEntry> get shopGpus => rig.shopGpus;
 
-  double get totalHoldingsValue {
-    return _game.coins.fold(0, (sum, c) => sum + holdingValue(c.id));
-  }
+  // ── Economy ──
 
-  List<GameEvent> get activeEvents => _game.activeEvents;
+  double get money => economy.money;
+  double get electricityRate => economy.electricityRate;
+  double get electricityCostPerHour => economy.electricityCostPerHour;
+  double get electricityCostPerMin => economy.electricityCostPerMin;
+  double get netProfitPerMin => economy.netProfitPerMin;
+  double holding(String id) => economy.holding(id);
+  List<CoinState> get coins => economy.coins;
+  CoinState? coinState(String id) => economy.coinState(id);
+  double holdingValue(String id) => economy.holdingValue(id);
+  double get totalHoldingsValue => economy.totalHoldingsValue;
+  bool canSellCoin(String id) => economy.canSellCoin(id);
+  List<Loan> get activeLoans => economy.activeLoans;
+  Map<String, int> get loanRepayments => economy.loanRepayments;
+  double get totalDebt => economy.totalDebt;
+  bool isLoanUnlocked(String id) => economy.isLoanUnlocked(id);
 
-  /// Active events affecting a specific coin (crash/boom).
-  GameEvent? eventForCoin(int coinIdx) {
-    for (final e in _game.activeEvents) {
-      if (e.data != null && e.data!['coinIdx'] == coinIdx) return e;
-    }
-    return null;
-  }
+  // ── Market ──
 
-  double get marketMood => _game.marketMood;
-  List<Loan> get activeLoans => _game.activeLoans;
-  Map<String, int> get loanRepayments => _game.loanRepayments;
-  double get totalDebt => CreditSystem.totalDebt(_game);
+  double get marketMood => market.marketMood;
+  List<GameEvent> get activeEvents => market.activeEvents;
+  GameEvent? eventForCoin(int idx) => market.eventForCoin(idx);
 
-  bool isLoanUnlocked(String loanId) {
-    final tiers = ['small', 'medium', 'large'];
-    final idx = tiers.indexOf(loanId);
-    if (idx <= 0) return true;
-    return (_game.loanRepayments[tiers[idx - 1]] ?? 0) >= 2;
-  }
+  // ── City ──
 
-  bool canSellCoin(String coinId) => holding(coinId) > 0;
+  String? get activeJobId => city.activeJobId;
+  int jobExp(String id) => city.jobExp(id);
+  double get jobIncomePerMin => city.jobIncomePerMin;
+  String? get activeCourseId => city.activeCourseId;
+  int get courseTicksLeft => city.courseTicksLeft;
+  List<String> get completedCourses => city.completedCourses;
+  String? get officeId => city.officeId;
+  List<String> get employees => city.employees;
+  List<String> get employeePool => city.employeePool;
+  int get nextPoolRefresh => city.nextPoolRefresh;
+  int get poolRefreshIn => city.poolRefreshIn;
+  List<Employee> get availableEmployees => city.availableEmployees;
+  List<EmployeeSynergy> get activeSynergies => city.activeSynergies;
+  int get officeSlots => city.officeSlots;
 
-  // ── GPU list ──
+  // ── Events / Black Market ──
 
-  List<GpuDisplayInfo> get gpus {
-    return _game.farm.gpuList.map((gpu) {
-      final model = GpuCatalog.byId(gpu.modelId);
-      final coin = _game.coin(gpu.miningCoinId);
-      final hashrate = _gpuHashrate(gpu, model);
-      // Cycle progress: visible fill on GPU card
-      final cycleProgress = gpu.cycleProgress;
-      // Revenue per cycle completion
-      final cycleReward = 0.01 * (coin?.baseReward ?? 1);
-      final revenuePerCycle = cycleReward * (coin?.price ?? 0);
-      return GpuDisplayInfo(
-        instanceId: gpu.id,
-        modelName: model?.name ?? 'Unknown',
-        modelId: gpu.modelId,
-        miningCoinId: gpu.miningCoinId,
-        miningCoinName: coin?.name ?? 'BTC',
-        isPowered: gpu.isPowered,
-        revenuePerHour:
-            hashrate * 0.02 * cycleReward * 3600 * (coin?.price ?? 0),
-        revenuePerMin: hashrate * 0.02 * cycleReward * 60 * (coin?.price ?? 0),
-        temperature: gpu.temperature,
-        condition: gpu.condition,
-        overclockLevel: gpu.overclockLevel,
-        siliconLotteryLevel: gpu.siliconLotteryLevel,
-        isDead: gpu.condition <= 0,
-        tempStatus: ThermalSystem.status(gpu.temperature),
-        cycleProgress: cycleProgress,
-        cycleReward: cycleReward,
-        revenuePerCycle: revenuePerCycle,
-        debuffs: gpu.debuffs,
-      );
-    }).toList();
-  }
-
-  double _gpuHashrate(GpuInstance gpu, GpuModel? model) {
-    if (gpu.condition <= 0 || !gpu.isPowered || model == null) return 0;
-    double base = model.baseHashrate;
-    if (gpu.effectiveOverclock > 0) base *= 1 + 0.2 * gpu.effectiveOverclock;
-    if (_game.perks.any((p) => p.effect == PerkEffect.siliconLottery)) {
-      base *= 1.1;
-    }
-    if (_game.perks.any((p) => p.effect == PerkEffect.riskLover)) {
-      base *= 1.5;
-    }
-    base *= gpu.condition;
-    for (final d in gpu.debuffs) {
-      final debuff = DebuffCatalog.byId(d);
-      if (debuff != null) base *= debuff.hashrateMul;
-    }
-    if (_game.activeJobId != null) base *= 0.6;
-    return base;
-  }
-
-  bool canUpgrade(String instanceId) {
-    final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
-    if (gpu == null) return false;
-    final model = GpuCatalog.byId(gpu.modelId);
-    if (model == null) return false;
-    final idx = GpuCatalog.all.indexOf(model);
-    if (idx >= GpuCatalog.all.length - 1) return false;
-    return _game.money >= (GpuCatalog.all[idx + 1].price - model.price);
-  }
-
-  int upgradeCost(String instanceId) {
-    final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
-    if (gpu == null) return 0;
-    final model = GpuCatalog.byId(gpu.modelId);
-    if (model == null) return 0;
-    final idx = GpuCatalog.all.indexOf(model);
-    if (idx >= GpuCatalog.all.length - 1) return 0;
-    return GpuCatalog.all[idx + 1].price - model.price;
-  }
-
-  int repairCost(String instanceId) {
-    final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
-    if (gpu == null || gpu.condition >= 1.0) return 0;
-    final model = GpuCatalog.byId(gpu.modelId);
-    if (model == null) return 0;
-    final cost = (model.price * 0.15 * (1.0 - gpu.condition)).ceil();
-    return cost;
-  }
-
-  bool canRepair(String instanceId) {
-    final gpu = _game.farm.gpuList.where((g) => g.id == instanceId).firstOrNull;
-    if (gpu == null || gpu.condition >= 1.0) return false;
-    return _game.money >= repairCost(instanceId);
-  }
-
-  // ── Slots ──
-
-  int? get nextSlotTier => SlotCatalog.nextTier(_game.farm.totalSlots)?.slots;
-  int get nextSlotCost =>
-      SlotCatalog.nextTier(_game.farm.totalSlots)?.price ?? 0;
-  bool get canBuySlot => nextSlotTier != null && _game.money >= nextSlotCost;
-
-  bool get hasGpuSale => _game.activeEvents.any((e) => e.id == 'gpu_sale');
-
-  // ── Jobs ──
-
-  String? get activeJobId => _game.activeJobId;
-  int jobExp(String jobId) => _game.jobExperience[jobId] ?? 0;
-  void startJob(String id) => _state.startJob(id);
-  void quitJob() => _state.quitJob();
-
-  // ── Shop ──
-
-  List<ShopGpuEntry> get shopGpus {
-    final sale = hasGpuSale;
-    return GpuCatalog.all.map((model) {
-      final price = sale ? (model.price * 0.7).ceil() : model.price;
-      return ShopGpuEntry(
-        model: model,
-        effectivePrice: price,
-        canAfford: _game.money >= price,
-        hasSlots: _game.farm.hasFreeSlots,
-        canBuy: _game.money >= price && _game.farm.hasFreeSlots,
-      );
-    }).toList();
-  }
+  Map<String, int> get unseenEvents => rig.game.unseenEvents;
+  void clearUnseen(String cat) => city.state.clearUnseen(cat);
+  int get blackMarketRefreshIn => city.state.blackMarketRefreshIn;
+  int get blackMarketGen => city.state.blackMarketGen;
+  void resetBlackMarketTimer() => city.state.resetBlackMarketTimer();
+  void startTicks() => city.state.startTicks();
 
   // ── Actions ──
 
-  void sellCoin(String id) => _state.sellCoin(id);
-  void sellAllCoins() => _state.sellAllCoins();
-  bool buyCoinWithCash(String id, double cash) =>
-      _state.buyCoinWithCash(id, cash);
-  bool sellCoinForCash(String id, double amount) =>
-      _state.sellCoinForCash(id, amount);
-  bool swapCoins(String from, String to, double amount) =>
-      _state.swapCoins(from, to, amount);
-  bool takeLoan(String id) => _state.takeLoan(id);
-  bool repayLoan(String id, double amount) => _state.repayLoan(id, amount);
-  void startTicks() => _state.startTicks();
-  bool upgradeGpu(String id) => _state.upgradeGpu(id);
-  void toggleOverclock(String id) => _state.toggleOverclock(id);
-  bool repairGpu(String id) => _state.repairGpu(id);
-  bool buyGpu(GpuModel model) => _state.buyGpu(model);
-  bool buyBlackMarketGpu(GpuModel model, int price, List<String> debuffs) =>
-      _state.buyBlackMarketGpu(model, price, debuffs);
-  bool buySlot() => _state.buySlot();
-  bool buyCooling(CoolingUpgrade u) => _state.buyCooling(u);
-  bool buySolar(SolarUpgrade u) => _state.buySolar(u);
-  void setMiningCoin(String gpuId, String coinId) =>
-      _state.setMiningCoin(gpuId, coinId);
-  void togglePower(String gpuId) => _state.togglePower(gpuId);
-}
-
-class ShopGpuEntry {
-  final GpuModel model;
-  final int effectivePrice;
-  final bool canAfford;
-  final bool hasSlots;
-  final bool canBuy;
-
-  const ShopGpuEntry({
-    required this.model,
-    required this.effectivePrice,
-    required this.canAfford,
-    required this.hasSlots,
-    required this.canBuy,
-  });
-}
-
-class GpuDisplayInfo {
-  final String instanceId;
-  final String modelName;
-  final String modelId;
-  final String miningCoinId;
-  final String miningCoinName;
-  final bool isPowered;
-  final double revenuePerHour;
-  final double revenuePerMin;
-  final double temperature;
-  final double condition;
-  final int overclockLevel;
-  final int siliconLotteryLevel;
-  final bool isDead;
-  final String tempStatus;
-  final double cycleProgress;
-  final double cycleReward;
-  final double revenuePerCycle;
-  final List<String> debuffs;
-
-  const GpuDisplayInfo({
-    required this.instanceId,
-    required this.modelName,
-    required this.modelId,
-    required this.miningCoinId,
-    required this.miningCoinName,
-    required this.isPowered,
-    required this.revenuePerHour,
-    required this.revenuePerMin,
-    required this.temperature,
-    required this.condition,
-    required this.overclockLevel,
-    required this.siliconLotteryLevel,
-    required this.isDead,
-    required this.tempStatus,
-    required this.cycleProgress,
-    required this.cycleReward,
-    required this.revenuePerCycle,
-    required this.debuffs,
-  });
+  void sellCoin(String id) => economy.sellCoin(id);
+  void sellAllCoins() => economy.sellAllCoins();
+  bool buyCoinWithCash(String id, double c) => economy.buyCoinWithCash(id, c);
+  bool sellCoinForCash(String id, double a) => economy.sellCoinForCash(id, a);
+  bool swapCoins(String f, String t, double a) => economy.swapCoins(f, t, a);
+  bool takeLoan(String id) => economy.takeLoan(id);
+  bool repayLoan(String id, double a) => economy.repayLoan(id, a);
+  bool buyGpu(GpuModel m) => rig.buyGpu(m);
+  bool buyBlackMarketGpu(GpuModel m, int p, List<String> d) =>
+      rig.buyBlackMarketGpu(m, p, d);
+  bool upgradeGpu(String id) => rig.upgradeGpu(id);
+  void toggleOverclock(String id) => rig.toggleOverclock(id);
+  bool repairGpu(String id) => rig.repairGpu(id);
+  bool repairDebuff(String g, String d) => rig.repairDebuff(g, d);
+  bool buySlot() => rig.buySlot();
+  bool buyCooling(CoolingUpgrade u) => rig.buyCooling(u);
+  bool buyPsu(PsuUpgrade u) => rig.buyPsu(u);
+  int get coolingUpgradeCost => rig.coolingUpgradeCost;
+  String? get nextCoolingName => rig.nextCoolingName;
+  int get psuUpgradeCost => rig.psuUpgradeCost;
+  String? get nextPsuName => rig.nextPsuName;
+  void setMiningCoin(String g, String c) => rig.setMiningCoin(g, c);
+  bool rerollSiliconLottery(String g) => rig.rerollSiliconLottery(g);
+  void togglePower(String g) => rig.togglePower(g);
+  void startJob(String id) => city.startJob(id);
+  void quitJob() => city.quitJob();
+  bool enrollCourse(String id) => city.enrollCourse(id);
+  bool buyOffice(String id) => city.buyOffice(id);
+  bool hireEmployee(String id) => city.hireEmployee(id);
+  void fireEmployee(String id) => city.fireEmployee(id);
+  void refreshEmployeePool() => city.refreshEmployeePool();
 }

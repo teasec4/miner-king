@@ -1,43 +1,63 @@
+import 'dart:math';
+import '../catalogs/debuff_catalog.dart';
+import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/player_profile.dart';
-import '../catalogs/debuff_catalog.dart';
+import 'employee_system.dart';
 
-/// Gradual GPU degradation system.
-///
-/// Wear starts at 65°C+. Each °C above increases wear rate.
-/// Worn cards degrade faster (snowball) and run hotter.
-class WearSystem {
-  WearSystem._();
+/// Interface for GPU degradation and failure simulation.
+abstract class WearSystem {
+  Game update(Game game);
+}
 
-  static Game update(Game game) {
+class DefaultWearSystem implements WearSystem {
+  final Random _r;
+
+  DefaultWearSystem({Random? random}) : _r = random ?? Random();
+
+  @override
+  Game update(Game game) {
     final updatedGpus = game.farm.gpuList.map((gpu) {
       final temp = gpu.temperature;
-      if (temp < 65) return gpu; // safe zone
+      if (temp < GameConfig.safeTemp) return gpu;
       if (gpu.condition <= 0) return gpu;
       if (!gpu.isPowered) return gpu;
 
-      // Wear rate: gentle at first, dangerous at high temps
-      // 0 at 65°C → 0.0005/tick at 90°C → more above
-      final wearRate = temp <= 90
-          ? (temp - 65) / 25 * 0.0005
-          : 0.0005 + (temp - 90) * 0.0005;
+      final wearRate = temp <= GameConfig.dangerousTemp
+          ? (temp - GameConfig.safeTemp) /
+                (GameConfig.dangerousTemp - GameConfig.safeTemp) *
+                GameConfig.wearRateAtDangerous
+          : GameConfig.wearRateAtDangerous +
+                (temp - GameConfig.dangerousTemp) *
+                    GameConfig.wearRateAboveDangerousPerDegree;
 
-      // Worn cards degrade up to 3x faster
-      var accelerator = 1 + (1 - gpu.condition) * 2;
-      // Debuffs: wear multiplier
+      var accelerator =
+          1 + (1 - gpu.condition) * GameConfig.wearConditionAccelerator;
       for (final d in gpu.debuffs) {
         final debuff = DebuffCatalog.byId(d);
         if (debuff != null) accelerator *= debuff.wearMul;
       }
-      // Perk: Risk Lover +50% wear
       if (game.perks.any((p) => p.effect == PerkEffect.riskLover)) {
-        accelerator *= 1.5;
+        accelerator *= GameConfig.riskLoverWearMultiplier;
+      }
+      accelerator *= (1 - EmployeeSystem.wearReduction(game));
+      if (game.character == CharacterType.engineer) {
+        accelerator *= GameConfig.engineerWearReduction;
       }
 
-      final newCondition = (gpu.condition - wearRate * accelerator).clamp(
+      var newCondition = (gpu.condition - wearRate * accelerator).clamp(
         0.0,
         1.0,
       );
+
+      if (temp > GameConfig.dangerousTemp &&
+          newCondition > 0 &&
+          _r.nextDouble() < GameConfig.critFailureChance) {
+        newCondition = (newCondition - GameConfig.critFailureDamage).clamp(
+          0.0,
+          1.0,
+        );
+      }
 
       return gpu.copyWith(condition: newCondition);
     }).toList();

@@ -1,20 +1,50 @@
 import 'dart:math';
+import '../config/game_config.dart';
 import '../models/game.dart';
 import '../models/market_phase.dart';
 
-class MarketSystem {
-  MarketSystem._();
-  static final _r = Random();
-  static const _minPhase = 60, _maxPhase = 300;
+/// Interface for market simulation (coin prices, mood, phases).
+abstract class MarketSystem {
+  Game update(Game game);
 
-  static Game update(Game game) {
-    // Update global mood (random walk + mean reversion toward 0)
+  String moodLabel(double mood);
+  String phaseLabel(MarketPhase phase);
+  String phaseIcon(MarketPhase phase);
+
+  /// Static convenience — pure functions, no state needed.
+  static String mood(double mood) {
+    if (mood > 0.6) return 'Extreme Greed';
+    if (mood > 0.2) return 'Greed';
+    if (mood > -0.2) return 'Neutral';
+    if (mood > -0.6) return 'Fear';
+    return 'Extreme Fear';
+  }
+
+  static String phase(MarketPhase phase) => switch (phase) {
+    MarketPhase.bull => 'Bull',
+    MarketPhase.bear => 'Bear',
+    MarketPhase.sideways => 'Sideways',
+  };
+
+  static String icon(MarketPhase phase) => switch (phase) {
+    MarketPhase.bull => '\u2191',
+    MarketPhase.bear => '\u2193',
+    MarketPhase.sideways => '\u2192',
+  };
+}
+
+class DefaultMarketSystem implements MarketSystem {
+  final Random _r;
+
+  DefaultMarketSystem({Random? random}) : _r = random ?? Random();
+
+  @override
+  Game update(Game game) {
     var mood = game.marketMood;
-    mood += (_r.nextDouble() - 0.5) * 0.02; // random walk
-    mood -= mood * 0.001; // mean reversion
+    mood += (_r.nextDouble() - 0.5) * GameConfig.moodRandomWalk;
+    mood -= mood * GameConfig.moodMeanReversion;
     mood = mood.clamp(-1.0, 1.0);
 
-    // Update coins
     final updatedCoins = game.coins.map((coin) {
       var phase = coin.phase;
       var ticksLeft = coin.phaseTicksLeft;
@@ -23,17 +53,32 @@ class MarketSystem {
       ticksLeft--;
       if (ticksLeft <= 0) {
         phase = _nextPhase(phase, mood);
-        ticksLeft = _minPhase + _r.nextInt(_maxPhase - _minPhase);
+        ticksLeft =
+            GameConfig.minPhaseTicks +
+            _r.nextInt(GameConfig.maxPhaseTicks - GameConfig.minPhaseTicks);
       }
 
-      // Price change: base volatility * mood amplification
-      final change = _priceChange(phase, coin.volatility, mood);
-      price = (price * (1 + change)).clamp(0.01, 10000.0);
+      final drift = _drift(phase, coin.volatility, mood);
+      price = (price * (1 + drift)).clamp(0.01, 999999.0);
 
-      // Coin-specific micro-event (random tiny swing per coin character)
-      if (coin.microEventRate > 0 && _r.nextDouble() < coin.microEventRate) {
-        final micro = (_r.nextDouble() - 0.45) * coin.volatility * 0.03;
-        price = (price * (1 + micro)).clamp(0.01, 10000.0);
+      if (coin.microEventRate > 0 &&
+          _r.nextDouble() <
+              coin.microEventRate * GameConfig.microShockChanceMultiplier) {
+        final crashBias = coin.volatility > 2 ? 0.55 : 0.48;
+        final shock =
+            (_r.nextDouble() - crashBias) *
+            coin.volatility *
+            GameConfig.microShockAmplitude;
+        price = (price * (1 + shock)).clamp(0.01, 999999.0);
+      }
+
+      if (coin.volatility > 2 &&
+          _r.nextDouble() < GameConfig.volatilityExplosionChance) {
+        final explosion =
+            (_r.nextDouble() - 0.52) *
+            coin.volatility *
+            GameConfig.volatilityExplosionAmplitude;
+        price = (price * (1 + explosion)).clamp(0.01, 999999.0);
       }
 
       return coin.copyWith(
@@ -46,41 +91,42 @@ class MarketSystem {
     return game.copyWith(coins: updatedCoins, marketMood: mood);
   }
 
-  static MarketPhase _nextPhase(MarketPhase current, double mood) {
+  MarketPhase _nextPhase(MarketPhase current, double mood) {
     final others = MarketPhase.values.where((p) => p != current).toList();
-    // Bias: positive mood → more bull, negative → more bear
-    if (mood > 0.3 && _r.nextDouble() < mood) return MarketPhase.bull;
-    if (mood < -0.3 && _r.nextDouble() < -mood) return MarketPhase.bear;
+    if (mood > GameConfig.moodBiasThreshold &&
+        _r.nextDouble() < mood * GameConfig.moodBiasProbabilityScalar) {
+      return MarketPhase.bull;
+    }
+    if (mood < -GameConfig.moodBiasThreshold &&
+        _r.nextDouble() < -mood * GameConfig.moodBiasProbabilityScalar) {
+      return MarketPhase.bear;
+    }
     return others[_r.nextInt(others.length)];
   }
 
-  static double _priceChange(MarketPhase phase, double vol, double mood) {
+  double _drift(MarketPhase phase, double vol, double mood) {
     final base = switch (phase) {
-      MarketPhase.bull => (_r.nextDouble() * 0.008 + 0.002),
-      MarketPhase.bear => -(_r.nextDouble() * 0.008 + 0.002),
-      MarketPhase.sideways => (_r.nextDouble() - 0.5) * 0.006,
+      MarketPhase.bull =>
+        (_r.nextDouble() * GameConfig.driftBaseMagnitude +
+            GameConfig.driftBaseOffset),
+      MarketPhase.bear =>
+        -(_r.nextDouble() * GameConfig.driftBaseMagnitude +
+            GameConfig.driftBaseOffset),
+      MarketPhase.sideways =>
+        (_r.nextDouble() - 0.5) * GameConfig.driftBaseMagnitude,
     };
-    // Mood amplifies: greed boosts bulls, fear deepens bears
-    final amp = 1 + mood.abs() * 0.5;
-    return base * vol * amp;
+    final amp = 1 + mood.abs() * GameConfig.driftMoodAmplifier;
+    final noise =
+        (_r.nextDouble() - 0.5) * GameConfig.driftNoiseMultiplier * vol;
+    return (base + noise) * vol * amp;
   }
 
-  static String moodLabel(double mood) {
-    if (mood > 0.6) return 'Extreme Greed';
-    if (mood > 0.2) return 'Greed';
-    if (mood > -0.2) return 'Neutral';
-    if (mood > -0.6) return 'Fear';
-    return 'Extreme Fear';
-  }
+  @override
+  String moodLabel(double m) => MarketSystem.mood(m);
 
-  static String phaseLabel(MarketPhase phase) => switch (phase) {
-    MarketPhase.bull => 'Bull',
-    MarketPhase.bear => 'Bear',
-    MarketPhase.sideways => 'Sideways',
-  };
-  static String phaseIcon(MarketPhase phase) => switch (phase) {
-    MarketPhase.bull => '\u2191',
-    MarketPhase.bear => '\u2193',
-    MarketPhase.sideways => '\u2192',
-  };
+  @override
+  String phaseLabel(MarketPhase p) => MarketSystem.phase(p);
+
+  @override
+  String phaseIcon(MarketPhase p) => MarketSystem.icon(p);
 }

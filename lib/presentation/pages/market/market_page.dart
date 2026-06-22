@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:crypto_king/data/game_state.dart';
 import 'package:crypto_king/domain/models/coin_state.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/domain/models/market_phase.dart';
 import 'package:crypto_king/domain/systems/market_system.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
@@ -8,34 +9,138 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-class MarketPage extends StatelessWidget {
+class MarketPage extends StatefulWidget {
   const MarketPage({super.key});
   @override
+  State<MarketPage> createState() => _MarketPageState();
+}
+
+class _MarketPageState extends State<MarketPage> {
+  GameEvent? _expandedEvent;
+
+  @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
+    final marketEvents = vm.activeEvents
+        .where((e) => e.category == 'market')
+        .toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Market'), centerTitle: true),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Stack(
           children: [
-            _moodGauge(vm.marketMood),
-            const SizedBox(height: 12),
-            ...vm.coins.asMap().entries.map(
-              (e) => _coinCard(e.key, e.value, vm),
+            ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _moodGauge(vm.marketMood),
+                const SizedBox(height: 12),
+                ...vm.coins.asMap().entries.map(
+                  (e) => _coinCard(e.key, e.value, vm),
+                ),
+                const SizedBox(height: 12),
+                _swapCard(context),
+                const SizedBox(height: 12),
+                _newsSection(vm),
+              ],
             ),
-            const SizedBox(height: 12),
-            _swapCard(context),
-            const SizedBox(height: 12),
-            _newsSection(vm),
+            if (marketEvents.isNotEmpty) _eventOverlay(marketEvents),
           ],
         ),
       ),
     );
   }
 
+  Widget _eventOverlay(List<GameEvent> events) => Positioned(
+    bottom: 8,
+    right: 8,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: events.map((e) {
+        final open = _expandedEvent?.id == e.id;
+        final isCrash = e.id == 'market_crash';
+        final color = isCrash ? Colors.red.shade600 : Colors.green.shade600;
+        final icon = isCrash ? Icons.trending_down : Icons.trending_up;
+        return GestureDetector(
+          onTap: () => setState(() => _expandedEvent = open ? null : e),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.all(10),
+            width: 190,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: Colors.white, size: 14),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        e.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      e.durationTicks > 0 ? '${e.remainingTicks}s' : 'Now',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: Alignment.topCenter,
+                  child: open
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                e.description,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                e.durationTicks > 0
+                                    ? '\u23F1 ${e.remainingTicks}s remaining'
+                                    : 'Instant effect',
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    ),
+  );
+
   Widget _moodGauge(double mood) {
-    final label = MarketSystem.moodLabel(mood);
+    final label = MarketSystem.mood(mood);
     final c = mood > 0.2
         ? Colors.green
         : mood < -0.2
@@ -161,7 +266,7 @@ class MarketPage extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            '${MarketSystem.phaseIcon(coin.phase)} ${MarketSystem.phaseLabel(coin.phase)}',
+                            '${MarketSystem.icon(coin.phase)} ${MarketSystem.phase(coin.phase)}',
                             style: TextStyle(fontSize: 13, color: c),
                           ),
                         ],
@@ -186,7 +291,6 @@ class MarketPage extends StatelessWidget {
               ],
             ),
           ),
-          // Active event overlay
           if (event != null)
             Positioned(
               top: 6,

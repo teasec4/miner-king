@@ -1,104 +1,222 @@
 import 'package:crypto_king/data/game_state.dart';
+import 'package:crypto_king/domain/events/game_events.dart';
 import 'package:crypto_king/presentation/pages/bank/bank_page.dart';
 import 'package:crypto_king/presentation/pages/black_market/black_market_page.dart';
+import 'package:crypto_king/presentation/pages/institute/institute_page.dart';
+import 'package:crypto_king/presentation/pages/business_center/business_center_page.dart';
 import 'package:crypto_king/presentation/pages/job/job_page.dart';
 import 'package:crypto_king/presentation/pages/shop/shop_page.dart';
+import 'package:crypto_king/presentation/pages/tech_lab/tech_lab_page.dart';
 import 'package:crypto_king/presentation/viewmodels/game_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class CityPage extends StatelessWidget {
+class CityPage extends StatefulWidget {
   const CityPage({super.key});
+  @override
+  State<CityPage> createState() => _CityPageState();
+}
+
+class _CityPageState extends State<CityPage> {
+  GameEvent? _expandedEvent;
 
   @override
   Widget build(BuildContext context) {
-    final vm = GameViewModel(context.watch<GameState>());
+    final vm = GameViewModel.fromState(context.watch<GameState>());
+    final cityEvents = vm.activeEvents
+        .where((e) => e.category == 'city')
+        .toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('City'), centerTitle: true),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '\$${vm.money.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '\$${vm.money.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Cash available',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.1,
+                      children: [
+                        _building(
+                          context,
+                          Icons.store,
+                          'Shop',
+                          'GPUs, cooling\nsolar, slots',
+                          Colors.deepPurple,
+                          '/shop',
+                        ),
+                        _building(
+                          context,
+                          Icons.account_balance,
+                          'Bank',
+                          'Loans & debt\n3 loan types',
+                          Colors.blue,
+                          '/bank',
+                          badge: vm.activeLoans.isNotEmpty
+                              ? _loanBadge(vm)
+                              : null,
+                        ),
+                        _building(
+                          context,
+                          Icons.work,
+                          'Job',
+                          'Earn cash\n+EXP per level',
+                          Colors.orange,
+                          '/job',
+                          badge: vm.activeJobId != null ? _activeBadge() : null,
+                        ),
+                        _building(
+                          context,
+                          Icons.dark_mode,
+                          'Black Market',
+                          'Cheap flawed GPUs\n40-60% off',
+                          Colors.red,
+                          '/blackmarket',
+                        ),
+                        _building(
+                          context,
+                          Icons.business,
+                          'Business Center',
+                          'Buy office, hire staff\nPassive income & buffs',
+                          Colors.teal,
+                          '/business',
+                        ),
+                        _building(
+                          context,
+                          Icons.school,
+                          'Institute',
+                          'Study courses\nUnlock better jobs',
+                          Colors.indigo,
+                          '/institute',
+                          badge: vm.activeCourseId != null
+                              ? _activeBadge()
+                              : null,
+                        ),
+                        _building(
+                          context,
+                          Icons.build,
+                          'Tech Lab',
+                          'Fix debuffs\nReroll silicon lottery',
+                          Colors.amber.shade700,
+                          '/techlab',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                'Cash available',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.1,
-                  children: [
-                    _building(
-                      context,
-                      Icons.store,
-                      'Shop',
-                      'GPUs, cooling\nsolar, slots',
-                      Colors.deepPurple,
-                      '/shop',
-                    ),
-                    _building(
-                      context,
-                      Icons.account_balance,
-                      'Bank',
-                      'Loans & debt\n3 loan types',
-                      Colors.blue,
-                      '/bank',
-                      badge: vm.activeLoans.isNotEmpty ? _loanBadge(vm) : null,
-                    ),
-                    _building(
-                      context,
-                      Icons.work,
-                      'Job',
-                      'Earn cash\n-40% mining speed',
-                      Colors.orange,
-                      '/job',
-                      badge: vm.activeJobId != null ? _activeBadge() : null,
-                    ),
-                    _building(
-                      context,
-                      Icons.warehouse,
-                      'Warehouse',
-                      'Coming soon...',
-                      Colors.grey,
-                      null,
-                    ),
-                    _building(
-                      context,
-                      Icons.dark_mode,
-                      'Black Market',
-                      'Cheap flawed GPUs\n40-60% off',
-                      Colors.red,
-                      '/blackmarket',
-                    ),
-                    _building(
-                      context,
-                      Icons.people,
-                      'Employees',
-                      'Coming soon...',
-                      Colors.grey,
-                      null,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+            // ── Event overlay (positioned, like Rig) ──
+            if (cityEvents.isNotEmpty) _eventOverlay(cityEvents),
+          ],
         ),
       ),
     );
   }
+
+  Widget _eventOverlay(List<GameEvent> events) => Positioned(
+    bottom: 8,
+    right: 8,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: events.map((e) {
+        final open = _expandedEvent?.id == e.id;
+        return GestureDetector(
+          onTap: () => setState(() => _expandedEvent = open ? null : e),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.all(10),
+            width: 190,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade600,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.campaign, color: Colors.white, size: 14),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        e.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      e.durationTicks > 0 ? '${e.remainingTicks}s' : 'Now',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: Alignment.topCenter,
+                  child: open
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                e.description,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                e.durationTicks > 0
+                                    ? '\u23F1 ${e.remainingTicks}s remaining'
+                                    : 'Instant effect',
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    ),
+  );
 
   Widget _building(
     BuildContext context,
@@ -163,6 +281,9 @@ class CityPage extends StatelessWidget {
     if (route == '/bank') return const BankPage();
     if (route == '/job') return const JobPage();
     if (route == '/blackmarket') return const BlackMarketPage();
+    if (route == '/institute') return const InstitutePage();
+    if (route == '/business') return const BusinessCenterPage();
+    if (route == '/techlab') return const TechLabPage();
     return const SizedBox.shrink();
   }
 

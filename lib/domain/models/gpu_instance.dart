@@ -3,12 +3,12 @@ class GpuInstance {
   final String modelId;
   final String miningCoinId;
   final bool isPowered;
-  double condition;
-  double temperature;
-  int overclockLevel;
-  int siliconLotteryLevel;
-  double cycleProgress; // 0.0 → 1.0, reward at 1.0
-  List<String> debuffs; // permanent negative traits
+  final double condition;
+  final double temperature;
+  final int overclockLevel;
+  final int siliconLotteryLevel;
+  final double cycleProgress; // 0.0 → 1.0, reward at 1.0
+  final List<String> debuffs;
 
   GpuInstance({
     required this.id,

@@ -25,7 +25,7 @@ class _SwapPageState extends State<SwapPage> {
   @override
   Widget build(BuildContext context) {
     final game = context.watch<GameState>();
-    final vm = GameViewModel(game);
+    final vm = GameViewModel.fromState(game);
     final coins = vm.coins;
     final from = _fromId != null ? vm.coinState(_fromId!) : null;
     final to = _toId != null ? vm.coinState(_toId!) : null;

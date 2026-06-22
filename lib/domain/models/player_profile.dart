@@ -1,9 +1,11 @@
 /// Player character type with unique starting bonuses.
 enum CharacterType {
-  enthusiast('Enthusiast', 'GPU efficiency +20%'),
-  engineer('Engineer', 'GPU wear -30%'),
-  businessman('Businessman', 'Equipment -15% discount'),
-  speculator('Speculator', 'Swap fee 0.5% (was 1%)');
+  miner('Crypto Miner', '+25% hashrate, GPU 100%, no debt'),
+  engineer('Engineer', '-50% wear, -30% repair, GPU 100%'),
+  businessman('Businessman', '+\$500, -15% shop, small loan \$550'),
+  hustler('Hustler', '+100% job EXP, medium loan \$2200'),
+  student('Student', '-30% courses, Basic IT done, large loan \$8800'),
+  debug('Debug Mode', '\$100000 cash, all courses, GPU 100%');
 
   final String name;
   final String description;
