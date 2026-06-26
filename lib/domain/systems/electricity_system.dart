@@ -28,7 +28,7 @@ class ElectricitySystem {
 
     final cost = costPerHour / GameConfig.ticksPerHour;
 
-    final newMoney = ((game.money - cost).clamp(0, double.infinity) as double);
+    final newMoney = game.money - cost;
     return game.copyWith(money: newMoney);
   }
 

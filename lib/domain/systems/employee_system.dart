@@ -50,7 +50,7 @@ class EmployeeSystem {
         : 1.0;
     money -= office.rentPerTick * rentMult;
 
-    return game.copyWith(money: money.clamp(0, double.infinity));
+    return game.copyWith(money: money);
   }
 
   // ── Passive effects queried by other systems ──
