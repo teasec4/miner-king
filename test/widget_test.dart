@@ -26,10 +26,10 @@ void main() {
       expect(game.holdings['usdt'], 0);
       expect(game.coins.length, 6);
       expect(game.primaryCoin.price, 10.0);
-      expect(game.electricityRate, 0.25);
+      expect(game.electricityRate, 0.08);
       expect(game.farm.gpuList.length, 1);
       expect(game.farm.gpuList.first.condition, 0.5);
-      expect(game.activeJobId, 'food_l1');
+      expect(game.activeJobId, 'tech_l1');
       expect(game.farm.totalSlots, 1);
     });
   });
@@ -105,7 +105,7 @@ void main() {
     });
     test('costPerHour uses game formula', () {
       final state = GameState();
-      expect(ElectricitySystem.costPerHour(state.game), closeTo(30.0, 0.01));
+      expect(ElectricitySystem.costPerHour(state.game), closeTo(9.6, 0.01));
     });
   });
 
@@ -162,10 +162,19 @@ void main() {
   });
 
   group('SlotCatalog', () {
-    test('nextTier returns correct tier', () {
-      expect(SlotCatalog.nextTier(1)?.slots, 2);
-      expect(SlotCatalog.nextTier(2)?.slots, 4);
-      expect(SlotCatalog.nextTier(12), null);
+    test('nextSlotCost returns correct prices', () {
+      expect(SlotCatalog.nextSlotCost(1), 300);
+      expect(SlotCatalog.nextSlotCost(2), 600);
+      expect(SlotCatalog.nextSlotCost(3), 1200);
+      expect(SlotCatalog.nextSlotCost(4), 2400);
+      expect(SlotCatalog.nextSlotCost(6), 0); // maxed at 6
+    });
+    test('canBuyMore respects maxSlots', () {
+      expect(SlotCatalog.canBuyMore(1), true);
+      expect(SlotCatalog.canBuyMore(6), false);
+    });
+    test('maxSlots is 6', () {
+      expect(SlotCatalog.maxSlots, 6);
     });
   });
 
