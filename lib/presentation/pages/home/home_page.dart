@@ -34,6 +34,15 @@ class _HomePageState extends State<HomePage> {
           },
         );
       };
+      context.read<GameState>().onGpuDestroyed = (name) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$name destroyed!'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      };
     });
   }
 

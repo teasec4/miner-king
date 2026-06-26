@@ -51,6 +51,9 @@ class GameState extends ChangeNotifier {
   /// Callback when a new event is triggered.
   void Function(GameEvent)? onEvent;
 
+  /// Callback when a GPU is destroyed (receives the GPU model name).
+  void Function(String)? onGpuDestroyed;
+
   GameState({Systems? systems})
     : _systems = systems ?? Systems(),
       _game = _createInitialGame() {
@@ -221,6 +224,7 @@ class GameState extends ChangeNotifier {
         break;
     }
     _startWatchdog();
+    startTicks();
     notifyListeners();
   }
 
@@ -250,6 +254,10 @@ class GameState extends ChangeNotifier {
       _game = newGame;
       if (_game.gameOver) {
         _tickTimer?.cancel();
+      }
+      if (_game.destroyedGpu != null) {
+        onGpuDestroyed?.call(_game.destroyedGpu!);
+        _game = _game.copyWith(destroyedGpu: null);
       }
       if (event != null) {
         lastEvent = event;
