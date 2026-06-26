@@ -33,6 +33,9 @@ class Game {
   /// Which milestone (0-3) the active course is currently at.
   final int courseMilestone;
 
+  /// How many milestones have been awarded (never decrements on burnout).
+  final int courseAwardedMilestones;
+
   /// Whether the player is cram-studying (×2 speed, risk of burnout).
   final bool isCramStudy;
 
@@ -83,6 +86,7 @@ class Game {
     this.activeCourseId,
     this.courseTicksLeft = 0,
     this.courseMilestone = 0,
+    this.courseAwardedMilestones = 0,
     this.isCramStudy = false,
     this.employees = const [],
     this.officeId,
@@ -128,6 +132,7 @@ class Game {
     Object? activeCourseId = _unset,
     int? courseTicksLeft,
     int? courseMilestone,
+    int? courseAwardedMilestones,
     bool? isCramStudy,
     List<String>? employees,
     Object? officeId = _unset,
@@ -161,6 +166,8 @@ class Game {
       activeCourseId: _unwrapOr<String?>(activeCourseId, this.activeCourseId),
       courseTicksLeft: courseTicksLeft ?? this.courseTicksLeft,
       courseMilestone: courseMilestone ?? this.courseMilestone,
+      courseAwardedMilestones:
+          courseAwardedMilestones ?? this.courseAwardedMilestones,
       isCramStudy: isCramStudy ?? this.isCramStudy,
       employees: employees ?? this.employees,
       officeId: _unwrapOr<String?>(officeId, this.officeId),

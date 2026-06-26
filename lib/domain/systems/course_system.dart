@@ -27,6 +27,7 @@ class CourseSystem {
 
     var left = (game.courseTicksLeft - speed).ceil().clamp(0, 999999);
     var milestone = game.courseMilestone;
+    var awarded = game.courseAwardedMilestones;
     var isCramStudy = game.isCramStudy;
 
     // Cram Study burnout check: reset to previous milestone
@@ -46,12 +47,13 @@ class CourseSystem {
     final progress = elapsed / course.durationTicks;
     var money = game.money;
 
-    while (milestone < course.milestones.length &&
-        progress >= course.milestones[milestone]) {
-      final bonus = course.milestoneBonuses[milestone];
+    while (awarded < course.milestones.length &&
+        progress >= course.milestones[awarded]) {
+      final bonus = course.milestoneBonuses[awarded];
       money += bonus;
-      milestone++;
+      awarded++;
     }
+    milestone = awarded;
 
     if (left <= 0) {
       // Course completed!
@@ -62,6 +64,7 @@ class CourseSystem {
         activeCourseId: null,
         courseTicksLeft: 0,
         courseMilestone: 0,
+        courseAwardedMilestones: awarded,
         isCramStudy: false,
       );
     }
@@ -70,6 +73,7 @@ class CourseSystem {
       money: money,
       courseTicksLeft: left,
       courseMilestone: milestone,
+      courseAwardedMilestones: awarded,
       isCramStudy: isCramStudy,
     );
   }

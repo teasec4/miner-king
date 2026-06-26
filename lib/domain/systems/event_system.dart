@@ -110,6 +110,7 @@ class DefaultEventSystem implements EventSystem {
     }
 
     var pool = _eventPool(cat, game);
+    if (pool.isEmpty) return null;
 
     final mood = game.marketMood;
     final r = _random.nextDouble();
