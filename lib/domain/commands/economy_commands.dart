@@ -2,6 +2,7 @@ import '../config/game_config.dart';
 import '../catalogs/loan_catalog.dart';
 import '../models/game.dart';
 import '../models/loan.dart';
+import '../systems/economy_system.dart';
 
 /// Pure functions for economy operations: coins, loans.
 class EconomyCommands {
@@ -10,63 +11,23 @@ class EconomyCommands {
   // ── Coin trading ──
 
   static Game sellCoin(Game game, String coinId) {
-    final coin = game.coin(coinId);
-    final amount = game.holdings[coinId] ?? 0;
-    if (coin == null || amount <= 0) return game;
-    return game.copyWith(
-      money: game.money + amount * coin.price,
-      holdings: {...game.holdings, coinId: 0},
-    );
+    return EconomySystem.sellCoin(game, coinId);
   }
 
   static Game sellAllCoins(Game game) {
-    var g = game;
-    for (final coin in game.coins) {
-      g = sellCoin(g, coin.id);
-    }
-    return g;
+    return EconomySystem.sellAllCoins(game);
   }
 
   static Game? buyCoinWithCash(Game game, String coinId, double cashAmount) {
-    final coin = game.coin(coinId);
-    if (coin == null || cashAmount <= 0 || game.money < cashAmount) return null;
-    final amount = cashAmount * (1 - GameConfig.cashExchangeFee) / coin.price;
-    final newHoldings = Map<String, double>.from(game.holdings);
-    newHoldings[coinId] = (newHoldings[coinId] ?? 0) + amount;
-    return game.copyWith(money: game.money - cashAmount, holdings: newHoldings);
+    return EconomySystem.buyCoinWithCash(game, coinId, cashAmount);
   }
 
   static Game? sellCoinForCash(Game game, String coinId, double coinAmount) {
-    final coin = game.coin(coinId);
-    final balance = game.holdings[coinId] ?? 0;
-    if (coin == null || coinAmount <= 0 || balance < coinAmount) return null;
-    final cash = coinAmount * coin.price * (1 - GameConfig.cashExchangeFee);
-    return game.copyWith(
-      money: game.money + cash,
-      holdings: {...game.holdings, coinId: balance - coinAmount},
-    );
+    return EconomySystem.sellCoinForCash(game, coinId, coinAmount);
   }
 
   static Game? swapCoins(Game game, String fromId, String toId, double amount) {
-    if (fromId == toId) return null;
-    final fromCoin = game.coin(fromId);
-    final toCoin = game.coin(toId);
-    final fromBalance = game.holdings[fromId] ?? 0;
-    if (fromCoin == null ||
-        toCoin == null ||
-        amount <= 0 ||
-        fromBalance < amount) {
-      return null;
-    }
-    final usdValue = amount * fromCoin.price * (1 - GameConfig.swapFee);
-    final toAmount = usdValue / toCoin.price;
-    return game.copyWith(
-      holdings: {
-        ...game.holdings,
-        fromId: (game.holdings[fromId] ?? 0) - amount,
-        toId: (game.holdings[toId] ?? 0) + toAmount,
-      },
-    );
+    return EconomySystem.swapCoins(game, fromId, toId, amount);
   }
 
   // ── Loans ──
