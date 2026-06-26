@@ -55,7 +55,10 @@ class FarmCommands {
 
   static int coolingUpgradeCost(Game game) {
     final idx = CoolingCatalog.indexOf(game.farm.coolingSystem);
-    return CoolingCatalog.upgradeCost(idx, idx + 1);
+    return GameConfig.applyShopDiscount(
+      CoolingCatalog.upgradeCost(idx, idx + 1),
+      game.shopMultiplier,
+    );
   }
 
   static String? nextCoolingName(Game game) {
@@ -67,7 +70,10 @@ class FarmCommands {
 
   static int psuUpgradeCost(Game game) {
     final idx = PsuCatalog.indexOf(game.farm.psuTier);
-    return PsuCatalog.upgradeCost(idx, idx + 1);
+    return GameConfig.applyShopDiscount(
+      PsuCatalog.upgradeCost(idx, idx + 1),
+      game.shopMultiplier,
+    );
   }
 
   static String? nextPsuName(Game game) {

@@ -20,6 +20,9 @@ class RigViewModel {
   Game get game => _n.game;
   GameState get state => _n.state;
 
+  int _discounted(int price) =>
+      GameConfig.applyShopDiscount(price, game.shopMultiplier);
+
   double get totalHashrate => MiningSystem.totalHashrate(game);
   double get totalPowerDraw => ElectricitySystem.totalPowerDraw(game);
   String get coolingSystem => game.farm.coolingSystem;
@@ -43,7 +46,7 @@ class RigViewModel {
   bool get farmHasFreeSlots => game.farm.hasFreeSlots;
   bool get canBuySlot =>
       SlotCatalog.canBuyMore(game.farm.totalSlots) &&
-      game.money >= SlotCatalog.nextSlotCost(game.farm.totalSlots);
+      game.money >= _discounted(SlotCatalog.nextSlotCost(game.farm.totalSlots));
   int get nextSlotCost => SlotCatalog.nextSlotCost(game.farm.totalSlots);
 
   List<GpuDisplayInfo> get gpus {
@@ -82,7 +85,7 @@ class RigViewModel {
     if (m == null) return false;
     final idx = GpuCatalog.all.indexOf(m);
     return idx < GpuCatalog.all.length - 1 &&
-        game.money >= (GpuCatalog.all[idx + 1].price - m.price);
+        game.money >= _discounted(GpuCatalog.all[idx + 1].price - m.price);
   }
 
   int upgradeCost(String id) {
@@ -92,7 +95,7 @@ class RigViewModel {
     if (m == null) return 0;
     final idx = GpuCatalog.all.indexOf(m);
     return idx < GpuCatalog.all.length - 1
-        ? GpuCatalog.all[idx + 1].price - m.price
+        ? _discounted(GpuCatalog.all[idx + 1].price - m.price)
         : 0;
   }
 
@@ -101,8 +104,12 @@ class RigViewModel {
     if (gpu == null || gpu.condition >= 1.0) return 0;
     final m = GpuCatalog.byId(gpu.modelId);
     if (m == null) return 0;
-    return (m.price * GameConfig.repairCostFraction * (1.0 - gpu.condition))
+    var cost = (m.price * GameConfig.repairCostFraction * (1.0 - gpu.condition))
         .ceil();
+    cost = GameConfig.applyShopDiscount(cost, game.shopMultiplier);
+    if (game.character == CharacterType.engineer)
+      cost = (cost * GameConfig.engineerRepairDiscount).ceil();
+    return cost;
   }
 
   bool canRepair(String id) {
@@ -113,7 +120,7 @@ class RigViewModel {
   int debuffRepairCost(String debuffId) {
     final d = DebuffCatalog.byId(debuffId);
     if (d == null) return 0;
-    var cost = d.repairCost;
+    var cost = GameConfig.applyShopDiscount(d.repairCost, game.shopMultiplier);
     if (game.character == CharacterType.engineer)
       cost = (cost * GameConfig.engineerRepairDiscount).ceil();
     return cost;
@@ -123,7 +130,9 @@ class RigViewModel {
   List<ShopGpuEntry> get shopGpus {
     final sale = hasGpuSale;
     return GpuCatalog.all.map((m) {
-      final p = sale ? (m.price * GameConfig.gpuSaleDiscount).ceil() : m.price;
+      final p = _discounted(
+        sale ? (m.price * GameConfig.gpuSaleDiscount).ceil() : m.price,
+      );
       return ShopGpuEntry(
         model: m,
         effectivePrice: p,
